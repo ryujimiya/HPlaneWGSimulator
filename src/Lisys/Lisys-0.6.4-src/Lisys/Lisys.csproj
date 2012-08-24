@@ -1,0 +1,175 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>9.0.30729</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{E3D5DBE2-1848-4204-92DF-F88AA28326F7}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>KrdLab.Lisys</RootNamespace>
+    <AssemblyName>Lisys</AssemblyName>
+    <SignAssembly>false</SignAssembly>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <OldToolsVersion>3.5</OldToolsVersion>
+    <UpgradeBackupLocation>
+    </UpgradeBackupLocation>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <DocumentationFile>bin\Debug\Lisys.xml</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Release\Lisys.xml</DocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="CLW">
+      <HintPath>..\Release\CLW.dll</HintPath>
+    </Reference>
+    <Reference Include="GSLW">
+      <HintPath>..\Release\GSLW.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.VisualStudio.DebuggerVisualizers, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>C:\Program Files (x86)\Microsoft Visual Studio 10.0\Common7\IDE\ReferenceAssemblies\v2.0\Microsoft.VisualStudio.DebuggerVisualizers.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.framework, Version=2.6.0.0, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\NUnit-2.5.10.11092\bin\net-2.0\framework\nunit.framework.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="CollectionImpl.cs" />
+    <Compile Include="ColumnCollection.cs" />
+    <Compile Include="ColumnVector.cs" />
+    <Compile Include="Complex.cs" />
+    <Compile Include="Exception\CannotMultiplyException.cs" />
+    <Compile Include="Exception\IllegalArgumentException.cs" />
+    <Compile Include="Exception\IllegalXsvFormatException.cs" />
+    <Compile Include="Exception\IllegalXsvStateException.cs" />
+    <Compile Include="Exception\NotReadableStreamException.cs" />
+    <Compile Include="Exception\NotWritableStreamException.cs" />
+    <Compile Include="Exception\LisysException.cs" />
+    <Compile Include="Exception\NotSquareMatrixException.cs" />
+    <Compile Include="Exception\MismatchSizeException.cs" />
+    <Compile Include="Exception\ValueIsLessThanLimitException.cs" />
+    <Compile Include="Exception\ZeroSizeException.cs" />
+    <Compile Include="IO\XsvFormat.cs" />
+    <Compile Include="Matrix.static.cs" />
+    <Compile Include="Method\CorrelationAnalysis.cs" />
+    <Compile Include="Definitions.cs" />
+    <Compile Include="Method\DiscriminantAnalysis.cs" />
+    <Compile Include="Method\EigenvalueDecomposition.cs" />
+    <Compile Include="Functions.cs" />
+    <Compile Include="ICsv.cs" />
+    <Compile Include="IResizableVector.cs" />
+    <Compile Include="IVector.cs" />
+    <Compile Include="IVectorCollection.cs" />
+    <Compile Include="Lisys.cs" />
+    <Compile Include="Matrix.cs" />
+    <Compile Include="MatrixUtils.cs" />
+    <Compile Include="Method\LUDecomposition.cs" />
+    <Compile Include="Method\MultipleLinearRegressionAnalysis.cs" />
+    <Compile Include="Method\PrincipalComponentAnalysis.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RowCollection.cs" />
+    <Compile Include="RowVector.cs" />
+    <Compile Include="Method\SingularValueDecomposition.cs" />
+    <Compile Include="Method\Solver.cs" />
+    <Compile Include="SubCollection.cs" />
+    <Compile Include="SubVector.cs" />
+    <Compile Include="Testing\TTest.cs" />
+    <Compile Include="Testing\VarTest.cs" />
+    <Compile Include="Vector.cs" />
+    <Compile Include="VectorUtils.cs" />
+    <Compile Include="VectorImpl.cs" />
+    <Compile Include="Visualizer\MatrixVisualizer.cs" />
+    <Compile Include="Visualizer\MatrixVisualizerForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Visualizer\MatrixVisualizerForm.designer.cs">
+      <DependentUpon>MatrixVisualizerForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="IO\XSV.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Visualizer\MatrixVisualizerForm.resx">
+      <DependentUpon>MatrixVisualizerForm.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework Client Profile</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.2.0">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 2.0 %28x86%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.0">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.0 %28x86%29</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

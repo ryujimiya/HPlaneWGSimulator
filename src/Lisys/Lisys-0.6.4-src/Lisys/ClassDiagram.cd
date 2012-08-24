@@ -1,0 +1,306 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Font Name="MS UI Gothic" Size="9" />
+  <Class Name="KrdLab.Lisys.CollectionImpl" Collapsed="true">
+    <Position X="5.25" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>CollectionImpl.cs</FileName>
+      <HashCode>AAAACEEAAAAEAkAAAAAAAAAAAAABAIAAAAAACAAAAAA=</HashCode>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="KrdLab.Lisys.RefVector" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="10.5" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>CollectionImpl.cs</FileName>
+      <HashCode>AIgAgACAIAAAIBAkggAAEAAgCBAAAAAEAwgAAEIAEAA=</HashCode>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="KrdLab.Lisys.ColumnCollection" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="7" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>ColumnCollection.cs</FileName>
+      <HashCode>AAAACAAAAAAEABAACAAAAAQAAAABAICEABAAAAAAEAA=</HashCode>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="KrdLab.Lisys.ColumnVector" Collapsed="true">
+    <Position X="0.5" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>ColumnVector.cs</FileName>
+      <HashCode>AAMAAAAAAAAAAAAgYAUAAAAAAAAAAAAAAAAAAAAAAAQ=</HashCode>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="KrdLab.Lisys.Functions" Collapsed="true">
+    <Position X="12.25" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>Functions.cs</FileName>
+      <HashCode>AAAAAAEAAAQAAAAAAAAAAAAQAIAAAAAAAAQAAAAAAAA=</HashCode>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="KrdLab.Lisys.LisysConfig" Collapsed="true">
+    <Position X="5.25" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>Lisys.cs</FileName>
+      <HashCode>AgAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAA=</HashCode>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="KrdLab.Lisys.Matrix" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="7" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>Matrix.cs</FileName>
+      <HashCode>AAMAAAAgSAAAQGCm6AcAAgEAAQAACLCAEFAhAClUECQ=</HashCode>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="KrdLab.Lisys.MatrixChecker" Collapsed="true">
+    <Position X="8.75" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>MatrixUtils.cs</FileName>
+      <HashCode>AAAAAQAACAAAAAAAAAAAAAAAIAAAAAAAAAAAIAAAAAA=</HashCode>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="KrdLab.Lisys.RowCollection" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="12.25" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>RowCollection.cs</FileName>
+      <HashCode>AAAACAAAAAAEABAACAAAAAQAAAABAICEABAAAAAAEAA=</HashCode>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="KrdLab.Lisys.RowVector" Collapsed="true">
+    <Position X="2.75" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>RowVector.cs</FileName>
+      <HashCode>AAMAAAAAAAAAAAAgYAUAAAAAAAAAAAAAAAAAAAAAAAQ=</HashCode>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="KrdLab.Lisys.SubCollection" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="8.75" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>SubCollection.cs</FileName>
+      <HashCode>AAAACAAEAAAEABQgCAAAAAQAAAABAAAEAAAAAAAAEAA=</HashCode>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="KrdLab.Lisys.SubVector" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="10.5" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>SubVector.cs</FileName>
+      <HashCode>AIgAgACAIAAAIBAkggAAEAAgCBAAAAAEAggAAEIAEAA=</HashCode>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="KrdLab.Lisys.Vector" Collapsed="true">
+    <Position X="1.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>Vector.cs</FileName>
+      <HashCode>ACNACAAAAAAAwDAk6AUAAAEAQQAAAIAEhAAAAQFAEAQ=</HashCode>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="KrdLab.Lisys.VectorChecker" Collapsed="true">
+    <Position X="12.25" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>VectorUtils.cs</FileName>
+      <HashCode>AAAAAAAAAAAABAAAAAAAAAAAIAAAAAAAAAAAAAAAAAE=</HashCode>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="KrdLab.Lisys.VectorImpl" Collapsed="true">
+    <Position X="5.25" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>VectorImpl.cs</FileName>
+      <HashCode>AKNACAEAAAAgQCAkAAAAAAEBSQAAAAAABEAAAQBAAAQ=</HashCode>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="KrdLab.Lisys.IO.XsvFormat" Collapsed="true">
+    <Position X="8.75" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>IO\XsvFormat.cs</FileName>
+      <HashCode>AgAAAAAAIAAAABAAAAAgAAAAkAAAAJIAAAAiAAIAAAA=</HashCode>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="KrdLab.Lisys.IO.XSV" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="7" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>IO\XSV.cs</FileName>
+      <HashCode>BAQAAgQAgCAEAAAAlkAACAAAAAEAAIABCAgBAAFIAAo=</HashCode>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="KrdLab.Lisys.Method.CorrelationAnalysis" Collapsed="true">
+    <Position X="8.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>Method\CorrelationAnalysis.cs</FileName>
+      <HashCode>AAAAAAAAAAAAAACAAAAAAAAAAIAAAAAAACAAAAAAAQA=</HashCode>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="KrdLab.Lisys.Method.MultipleDiscriminantAnalysis" Collapsed="true">
+    <Position X="5.25" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>Method\DiscriminantAnalysis.cs</FileName>
+      <HashCode>AEAAAAAABAAAAAQAAAAAAAAAAAAAACAAAAAAAABAAAA=</HashCode>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="KrdLab.Lisys.Method.EigenvalueDecomposition" Collapsed="true">
+    <Position X="10.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>Method\EigenvalueDecomposition.cs</FileName>
+      <HashCode>ICAAgAAAAACAAgAAAAAQAAABAAAAAAAAFAAAAAICAAA=</HashCode>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="KrdLab.Lisys.Method.MultipleLinearRegressionAnalysis" Collapsed="true">
+    <Position X="7" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>Method\MultipleLinearRegressionAnalysis.cs</FileName>
+      <HashCode>CEgAAAIAAAAAAEAACABAQAAAQAKAAAAAAgAAACAIQEA=</HashCode>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="KrdLab.Lisys.Method.PrincipalComponentAnalysis" Collapsed="true">
+    <Position X="8.75" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>Method\PrincipalComponentAnalysis.cs</FileName>
+      <HashCode>AEAAAAAABAAAAAQAAAAAAAAAAAAAAGAAAAAAAABAAAA=</HashCode>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="KrdLab.Lisys.Method.SingularValueDecomposition" Collapsed="true">
+    <Position X="5.25" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>Method\SingularValueDecomposition.cs</FileName>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAgAAAAACSQAA=</HashCode>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="KrdLab.Lisys.Method.Solver" Collapsed="true">
+    <Position X="7" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>Method\Solver.cs</FileName>
+      <HashCode>AAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA=</HashCode>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="KrdLab.Lisys.Visualizer.MatrixVisualizer" Collapsed="true">
+    <Position X="10.5" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>Visualizer\MatrixVisualizer.cs</FileName>
+      <HashCode>AAAAAABAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA=</HashCode>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="KrdLab.Lisys.Visualizer.MatrixVisualizerForm" Collapsed="true">
+    <Position X="12.25" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>Visualizer\MatrixVisualizerForm.cs</FileName>
+      <HashCode>ABAAAAAAACAAAAAAAADAAAACAAAAAAAAAAAAAAAAAAA=</HashCode>
+    </TypeIdentifier>
+  </Class>
+  <Interface Name="KrdLab.Lisys.ICsv" Collapsed="true">
+    <Position X="5.25" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>ICsv.cs</FileName>
+      <HashCode>AAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="KrdLab.Lisys.IResizableVector" Collapsed="true">
+    <Position X="0.5" Y="5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>IResizableVector.cs</FileName>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAA=</HashCode>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="KrdLab.Lisys.IVector" Collapsed="true">
+    <Position X="0.5" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>IVector.cs</FileName>
+      <HashCode>ACNACAAAAAAAgAAgCAAAAAEAQQAAAAAAgAAAAQBAAAQ=</HashCode>
+    </TypeIdentifier>
+  </Interface>
+  <Interface Name="KrdLab.Lisys.IVectorCollection" Collapsed="true">
+    <Position X="7" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>IVectorCollection.cs</FileName>
+      <HashCode>AAAACAAAAAAEAAAACAAAAAQAAAABAIAAAAAAAAAAAAA=</HashCode>
+    </TypeIdentifier>
+  </Interface>
+  <Enum Name="KrdLab.Lisys.VarianceType" Collapsed="true">
+    <Position X="10.5" Y="6.75" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>Definitions.cs</FileName>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAgAAAAAAAA=</HashCode>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="KrdLab.Lisys.Target" Collapsed="true">
+    <Position X="8.75" Y="6.75" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>Definitions.cs</FileName>
+      <HashCode>AAAAAAAAAAAAAAgAAAAAAAAAAAAQAAAAAAAAAAAAAAA=</HashCode>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="KrdLab.Lisys.Direction" Collapsed="true">
+    <Position X="7" Y="6.75" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>Definitions.cs</FileName>
+      <HashCode>AAAAAAAAAAAAAAAAAABAAAAAAAAAAgAAAAAAAAAAAAA=</HashCode>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="KrdLab.Lisys.VectorType" Collapsed="true">
+    <Position X="12.25" Y="6.75" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>Definitions.cs</FileName>
+      <HashCode>AAAAAAAAAAAAAAAAAEAAAAAIAAAAAAAAAAAAAAAAAAA=</HashCode>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="KrdLab.Lisys.CollectionType" Collapsed="true">
+    <Position X="5.25" Y="6.75" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>Definitions.cs</FileName>
+      <HashCode>AAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAgAAAA=</HashCode>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="KrdLab.Lisys.IO.XsvDataFormatType" Collapsed="true">
+    <Position X="5.25" Y="7.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>IO\XsvFormat.cs</FileName>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAABAAA=</HashCode>
+    </TypeIdentifier>
+  </Enum>
+  <Delegate Name="KrdLab.Lisys.ElementActionByVal" Collapsed="true">
+    <Position X="8.75" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>IVector.cs</FileName>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAA=</HashCode>
+    </TypeIdentifier>
+  </Delegate>
+  <Delegate Name="KrdLab.Lisys.ElementActionByRef" Collapsed="true">
+    <Position X="5.25" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>IVector.cs</FileName>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAA=</HashCode>
+    </TypeIdentifier>
+  </Delegate>
+  <Delegate Name="KrdLab.Lisys.ElementActionByValWithIndex" Collapsed="true">
+    <Position X="10.5" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>IVector.cs</FileName>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAEAAgAAAAAAAAAAAA=</HashCode>
+    </TypeIdentifier>
+  </Delegate>
+  <Delegate Name="KrdLab.Lisys.ElementActionByRefWithIndex" Collapsed="true">
+    <Position X="7" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>IVector.cs</FileName>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAEAAgAAAAAAAAAAAA=</HashCode>
+    </TypeIdentifier>
+  </Delegate>
+  <Delegate Name="KrdLab.Lisys.VectorCollectionAction" Collapsed="true">
+    <Position X="12.25" Y="8.5" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>IVectorCollection.cs</FileName>
+      <HashCode>AAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+    </TypeIdentifier>
+  </Delegate>
+  <Delegate Name="KrdLab.Lisys.VectorCollectionActionWithIndex" Collapsed="true">
+    <Position X="5.25" Y="9.25" Width="1.5" />
+    <TypeIdentifier>
+      <FileName>IVectorCollection.cs</FileName>
+      <HashCode>AAAAAAAAAAAAAAAAAAABAAAAAAAEAAAAAAAAAAAAAAA=</HashCode>
+    </TypeIdentifier>
+  </Delegate>
+</ClassDiagram>

@@ -1,0 +1,72 @@
+Lisys のリリースノート
+
+@author KrdLab
+@last-update 2009/05/06
+
+
+version: 0.6.4.0
+    CLAPACK-3.1.1-VisualStudio，gsl-1.11-windows-binaries を利用するようにプロジェクトを修正
+    Visual Studio 2008 SP1 でリビルド
+    ヘルプファイルを Sandcastle で作成
+    LisysSample.cs を別プロジェクト化 (Wgnuplot に依存していたため)
+
+version: 0.6.3.0
+    Matrix の this[row,col] に対するコメントへindex範囲を明記
+    Matrixクラスをpartial化
+    Functions.Transpose, Functions.Inverse をMatrix以下へ移動
+    Matrix.Identity, Matrix.Flip を追加
+    Matrix.I, Matrix.T, Matrix.Inv, Matrix.Tr, Matrix.Det を追加
+    dgeevをコピー無しに変更
+    dgetrfをコピー無しに変更
+    CLapackをclapackに，FunctionsをFunctionにした．
+    clapack.Functionのメソッドに対するドキュメントを修正
+    clapack.Function.dgemv(array<doublereal>^% Y,
+                             array<doublereal>^  X,
+                             array<doublereal>^  A, int a_row, int a_col) のバグを修正
+    clapack.Function.dgesvをコピー無しに変更，ドキュメントを修正
+    Solverのドキュメントを修正
+    dgesvdをコピー無しに変更，ドキュメントを修正，バグ修正
+    SingularValueDecompositionを修正
+    clapack.Function.dgeevのドキュメントを修正
+    LUDecompositionを非正方行列に対応させた
+    Lisys.ExceptionsをLisys.Exceptionに変更
+    閾値が指定できる Vector.Equals(Vector, Vector, double) を追加
+    Vector.Cloneメソッドを廃止
+    VectorがICsvを実装するようにした
+    LisysExceptionsを廃止し，Lisysへ統合した
+    IResizableVector.Resize(int)の戻り値をIVectorへの参照とした
+    IVectorCollection.Swap(int,int)を追加した
+    MatrixのメンバメソッドにInverseとTransposeを追加した
+    値に対応関係があるt検定メソッドを使用するとNotSupportedExceptionがthrowされるようにした
+    Exception.CannotEigenvalueDecompositionExceptionを廃止
+    Exception.CannotLUDecompositionExceptionを廃止
+    Exception.CannotSingularValueDecompositionExceptionを廃止
+    KrdLab.Lisys.MethodsをKrdLab.Lisys.Methodに変更
+    Exception.IsNot... 系を Exception.Not... に変更
+    Matrix(IVector[], VectorType)をMatrix(VectorType, params IVector[])に変更
+    Matrix.ToRowVectorsとMatrix.ToColumnVectorsのバグを修正
+
+
+version: 0.6.2.0
+    固有値分解にHasComplexプロパティを追加した．
+    Complex構造体を追加した（有用性の検証）．
+    LU分解を追加した．
+    CLWにおいて，
+        Wrapper→Functionsに変更
+        Exceptions名前空間を新設して例外クラスを移動
+        ClwExceptionを新規作成
+        一部の例外クラス名を変更
+    Matrix.Determinantの実装を変更
+        LU分解を利用する（おそらく数値計算ではこちらの方法が一般的）
+        サイズが2×2，3×3の場合は，直接計算する方法に変更した
+    テストケースを細分化した．
+    LU分解のテストケースを追加した．
+    MatrixTestに行列式のテストケースを追加した．
+
+version: 0.6.1.0
+    GSLのWrapperを追加した．
+    検定用の名前空間「Lisys.Testing」を用意した．
+    t検定を追加した（有用性検証）．
+    F検定を追加した（有用性検証）．
+    非正方行列に対するSVDの結果が，ユニタリ行列になっていたのを，特異ベクトルのみになるよう修正した．
+    「母分散」の表記を削除し，Population系プロパティ，メソッドを削除した（とれるはずのない値であり，明らかにおかしい）

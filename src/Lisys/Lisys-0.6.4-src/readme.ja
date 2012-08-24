@@ -1,0 +1,144 @@
+/**
+ * Lisys 取扱説明書
+ * 
+ * @author KrdLab
+ * @date 2008/01/01
+ * 
+ * @last-modified 2009/05/05
+ */
+
+
+■ はじめに
+  本文書では Lisys の使用方法，ならびにビルド方法について説明します．
+  Lisys では以下のライブラリを利用しています．
+
+  CLAPACK:
+    CLAPACK-3.1.1-VisualStudio.zip
+  GSL:
+    gsl-1.11-windows-binaries.zip
+
+  Lisys は混合アセンブリです．
+  利用する場合は Visual C++ のランタイムライブラリが必要になります．
+  (通常は問題ありませんが，バージョンがズレていると問題です)
+
+
+■ Lisys の使用方法
+  DLL を参照設定するだけで OK です．
+
+  Lisys を利用するプロジェクト対し，以下の参照設定を行ってください．
+    ・Lisys.dll
+    ・CLW.dll
+    ・GSLW.dll
+
+  デフォルト設定であれば，\bin\Debug または \bin\Release 以下に，
+  *.dll と *.xml がコピーされます (xml はインテリセンス用)．
+
+
+■ ライブラリの使用方法に関する FAQ
+  (1) アセンブリロード時にエラーが発生します (「～を読み込めませんでした」の様な)
+      Lisys は内部で CLAPACK を利用しているため，
+      開発環境と実行環境とで Visual C++ の Runtime を一致させる必要があります．
+
+      以下の URL から再頒布可能パッケージをダウンロードし，インストールしてください．
+      (※注意:↓Visual Studio 2008 SP1 用です)
+        http://www.microsoft.com/downloads/details.aspx?displaylang=ja&FamilyID=a5c84275-3b97-4ab7-a40d-3802b2af5fc2
+
+
+■ ライブラリの構成
+  ・Lisys.dll
+    メインのアセンブリ
+
+  ・CLW.dll
+    CLAPACK の wrapper アセンブリ
+
+  ・GSLW.dll
+    GSL の wrapper アセンブリ
+
+  ・LisysDoc.chm
+    ライブラリのヘルプ
+
+  ・*.xml
+    Visual Studio の IntelliSense が利用する情報
+
+  ・TestCases フォルダ
+    Lisys のテストケース (使い方の参考に)
+
+
+■ ライブラリのビルド方法
+  Lisys をビルドする場合は，以下のライブラリが必要です．
+  (※Lisys を利用するだけであれば必要ありません)
+
+  ・CLAPACK-3.1.1-VisualStudio
+      http://www.netlib.org/clapack/index.html
+  ・gsl-1.11-windows-binaries
+      http://na-inet.jp/na/gsl.html
+      (本家サイト http://www.gnu.org/software/gsl/)
+
+  C:\vslibs 以下に "clapack"，"gsl" ディレクトリを用意し，ダウンロードした zip ファイルを解凍します．
+  以下のように配置してください．
+  C:\vslibs
+    ├ /clapack
+    │   ├ /BLAS
+    │   ├ /F2CLIB
+    │   ...
+    │   ├ clapack.sln
+    │   ...
+    │   └ MSWin-Notes.txt
+    │
+    └ /gsl
+         ├ /example
+         ├ /include
+         └ /lib
+
+
+  ※配置場所を変えたい場合
+    以下のように設定を変更してください．
+      [CLW]
+      CLAPACK-3.1.1-VisualStudio.zip を解凍したディレクトリを $CL_HOME とします．
+      → [構成プロパティ]-[C/C++]-[全般] の [追加のインクルード ディレクトリ]
+          $CL_HOME\INCLUDE;$CL_HOME\BLAS\WRAP
+      → [構成プロパティ]-[リンカ]-[入力] の [追加の依存ファイル]
+          以下の値を追加する．
+          Release: clapack_nowrap.lib BLAS_nowrap.lib libf2c.lib
+          Debug  : clapackd_nowrap.lib BLASd_nowrap.lib libf2cd.lib
+
+      [GSLW]
+      → [構成プロパティ]-[C/C++]-[全般] の [追加のインクルード ディレクトリ]
+          gsl の include フォルダパスを設定する
+      → [構成プロパティ]-[リンカ]-[全般] の [追加のライブラリ ディレクトリ]
+          gsl の lib フォルダパスを設定する
+      → [構成プロパティ]-[リンカ]-[入力] の [追加の依存ファイル]
+          Release: gsl.lib
+          Debug  : gsl_d.lib
+
+
+■ ライブラリのビルドに関する FAQ
+  (1) LisysTest プロジェクトがビルドできません
+      LisysTest では NUnit を利用しています．
+      以下のサイトからダウンロードし，インストールしてください．
+        http://www.nunit.org/
+        (version 2.4.8 を利用しています)
+
+
+■ その他
+  ・こちらでもテストを行っていますが，念のため御自分で動作確認されることをお勧めいたします．
+    (さすがに企業のような保証はできませんので...)
+
+  ・前バージョンからの差異は ReleaseNote.txt をご覧ください．
+
+  ・本プロジェクトの著作権は KrdLab にあります．
+    が，アセンブリならびにソースコードについては自由に使用してもらってかまいません．
+    というか，自由に使用してください．制限なんてありません．
+
+  ・そのうち署名つきにするかもしれません．
+
+
+/以上
+
+変更履歴
+  2009/05/05
+    CLAPACK-3.1.1-VisualStudio，gsl-1.11-windows-binaries の利用に伴い，内容を修正
+    ビルド手順を詳細化
+
+  2008/01/01
+    新規作成

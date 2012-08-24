@@ -1,0 +1,324 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        "CLW"
+    </assembly>
+    <members>
+        <member name="M:KrdLab.clapack.CalculationChecker.IsLessThanLimit(System.Double)">
+            <summary>
+精度が下限値より下であるかどうかを調べる．
+</summary>
+            <param name="value">調べたい値</param>
+            <returns>下限値を下回る場合はtrue，その他はfalseを返す．</returns>
+        </member>
+        <member name="T:KrdLab.clapack.CalculationChecker">
+            <summary>
+計算上必要になるチェックルーチンを定義する．
+</summary>
+        </member>
+        <member name="M:KrdLab.clapack.Function.zgesv(System.ValueType!System.Numerics.Complex!System.Runtime.CompilerServices.IsBoxed[]@,System.Int32@,System.Int32@,System.ValueType!System.Numerics.Complex!System.Runtime.CompilerServices.IsBoxed[],System.Int32,System.Int32,System.ValueType!System.Numerics.Complex!System.Runtime.CompilerServices.IsBoxed[],System.Int32,System.Int32)">
+            <summary>
+                <para>A * X = B を解く（ X が解）．</para>
+                <para>A は n×n の行列，X と B は n×nrhs の行列である．</para>
+            </summary>
+            <param name="X">
+                <c>A * X = B</c> の解である X が格納される（実際には B と同じオブジェクトを指す）</param>
+            <param name="x_row">行列 X の行数が格納される（<c>== <paramref name="b_row" /></c>）</param>
+            <param name="x_col">行列 X の列数が格納される（<c>== <paramref name="b_col" /></c>）</param>
+            <param name="A">係数行列（LU分解の結果である P*L*U に書き換えられる．P*L*Uについては<see cref="M:KrdLab.clapack.Function.dgetrf(System.Double[],System.Int32,System.Int32,System.Int32[]@)" />を参照）</param>
+            <param name="a_row">行列Aの行数</param>
+            <param name="a_col">行列Aの列数</param>
+            <param name="B">行列 B（内部のCLAPACK関数により X の値が格納される）</param>
+            <param name="b_row">行列Bの行数</param>
+            <param name="b_col">行列Bの列数</param>
+            <returns>常に 0 が返ってくる．</returns>
+            <exception cref="T:KrdLab.clapack.exception.IllegalClapackArgumentException">
+内部で zgesv_関数に渡された引数に問題があると throw される．
+</exception>
+            <exception cref="T:KrdLab.clapack.exception.IllegalClapackResultException">
+行列 A の LU分解において，U[i, i] が 0 となってしまった場合に throw される．
+この場合，解を求めることができない．
+</exception>
+            <remarks>
+                <para>対応するCLAPACK関数（CLAPACK/SRC/dgesv.c）</para>
+                <code>
+int zgesv_(integer *n, integer *nrhs,
+           doublecomplex *a, integer *lda, integer *ipiv,
+           doublecomplex *b, integer *ldb, integer *info)
+</code>
+                <para>zgesv_ 関数の内部では LU分解が使用されている．</para>
+            </remarks>
+        </member>
+        <member name="M:KrdLab.clapack.Function.dgetrf(System.Double[],System.Int32,System.Int32,System.Int32[]@)">
+            <summary>
+LU分解
+</summary>
+            <param name="X">LU分解の対象となる行列（分解の結果が格納される）</param>
+            <param name="x_row">行列 <paramref name="X" /> の行数</param>
+            <param name="x_col">行列 <paramref name="X" /> の列数</param>
+            <param name="p">置換情報（行列 X の i 行（i は 0 始まり）は，p[i] 行と交換されたことを示す）</param>
+            <returns>
+正常終了の時は 0 が返ってくる．
+LU分解後の行列 U の対角要素に 0 要素が含まれる場合は，
+その位置 + 1（0は正常終了を示すため）を返す（U[i-1, i-1] == 0.0）．
+</returns>
+            <remarks>
+                <para>LU分解結果（行数：<paramref name="x_row" />，列数：<paramref name="x_col" />，LとUが格納されている，
+Lの対角要素（全て 1）は格納されていない）</para>
+                <para>対応するCLAPACK関数（CLAPACK/BLAS/SRC/dgetrf.c）</para>
+                <code>
+int
+dgetrf_(integer *m, integer *n, doublereal *a,
+        integer *lda, integer *ipiv, integer *info)
+</code>
+            </remarks>
+        </member>
+        <member name="M:KrdLab.clapack.Function.dgeev(System.Double[],System.Int32,System.Int32,System.Double[]@,System.Double[]@)">
+            <summary>
+固有値分解（固有値のみ）
+<para>
+詳細は 固有値・固有ベクトルの両方を計算する dgeev メソッド を参照せよ．
+</para></summary>
+            <param name="X">固有値分解される行列（計算過程で上書きされる）</param>
+            <param name="x_row">行列 <paramref name="X" /> の行数</param>
+            <param name="x_col">行列 <paramref name="X" /> の列数</param>
+            <param name="r_evals">固有値の実数部</param>
+            <param name="i_evals">固有値の虚数部</param>
+            <returns>常に 0 が返ってくる．</returns>
+        </member>
+        <member name="M:KrdLab.clapack.Function.dgeev(System.Double[],System.Int32,System.Int32,System.Double[]@,System.Double[]@,System.Double[][]@,System.Double[][]@)">
+            <summary>
+                <para>固有値分解</para>
+                <para>計算された固有ベクトルは，大きさ（ユークリッドノルム）が 1 に規格化されている．</para>
+            </summary>
+            <param name="X">固有値分解される行列（計算の過程で上書きされる）</param>
+            <param name="x_row">行列 <paramref name="X" /> の行数</param>
+            <param name="x_col">行列 <paramref name="X" /> の列数</param>
+            <param name="r_evals">固有値の実数部</param>
+            <param name="i_evals">固有値の虚数部</param>
+            <param name="r_evecs">固有ベクトルの実数部</param>
+            <param name="i_evecs">固有ベクトルの虚数部</param>
+            <returns>常に 0 が返ってくる．</returns>
+            <remarks>
+                <para>対応するCLAPACK関数（CLAPACK/BLAS/SRC/dgeev.c）</para>
+                <code>
+int dgeev_(char *jobvl, char *jobvr, integer *n,
+           doublereal *a, integer *lda,
+           doublereal *wr, doublereal *wi,
+           doublereal *vl, integer *ldvl, doublereal *vr, integer *ldvr,
+           doublereal *work, integer *lwork, integer *info);
+</code>
+            </remarks>
+        </member>
+        <member name="M:KrdLab.clapack.Function.dgesvd(System.Double[],System.Int32,System.Int32,System.Double[]@,System.Int32@,System.Int32@,System.Double[]@,System.Int32@,System.Int32@,System.Double[]@,System.Int32@,System.Int32@)">
+            <summary>
+特異値分解
+</summary>
+            <param name="X">特異値分解される行列（内容は破壊される）</param>
+            <param name="x_row">行列 <paramref name="X" /> の行数</param>
+            <param name="x_col">行列 <paramref name="X" /> の列数</param>
+            <param name="U">各特異値に対応する左特異ベクトルが，列ごとに入っている行列</param>
+            <param name="u_row">行列 <paramref name="U" /> の行数</param>
+            <param name="u_col">行列 <paramref name="U" /> の列数</param>
+            <param name="S">対角要素が特異値である行列（特異値は降順に格納されている S[i, i] &gt;= S[i+1, i+1]）</param>
+            <param name="s_row">行列 <paramref name="S" /> の行数</param>
+            <param name="s_col">行列 <paramref name="S" /> の列数</param>
+            <param name="V">各特異値に対応する右特異ベクトルが，列ごとに入っている行列</param>
+            <param name="v_row">行列 <paramref name="V" /> の行数</param>
+            <param name="v_col">行列 <paramref name="V" /> の列数</param>
+            <returns>常に 0 が返ってくる．</returns>
+            <remarks>
+                <para>対応するCLAPACK関数（CLAPACK/BLAS/SRC/dgesvd.c）</para>
+                <code>
+int dgesvd_(char *jobu, char *jobvt, integer *m, integer *n, 
+            doublereal *a, integer *lda,
+            doublereal *s, doublereal *u, integer *ldu, doublereal *vt, integer *ldvt,
+            doublereal *work, integer *lwork, 
+            integer *info);
+</code>
+            </remarks>
+        </member>
+        <member name="M:KrdLab.clapack.Function.dgesv(System.Double[]@,System.Int32@,System.Int32@,System.Double[],System.Int32,System.Int32,System.Double[],System.Int32,System.Int32)">
+            <summary>
+                <para>A * X = B を解く（ X が解）．</para>
+                <para>A は n×n の行列，X と B は n×nrhs の行列である．</para>
+            </summary>
+            <param name="X">
+                <c>A * X = B</c> の解である X が格納される（実際には B と同じオブジェクトを指す）</param>
+            <param name="x_row">行列 X の行数が格納される（<c>== <paramref name="b_row" /></c>）</param>
+            <param name="x_col">行列 X の列数が格納される（<c>== <paramref name="b_col" /></c>）</param>
+            <param name="A">係数行列（LU分解の結果である P*L*U に書き換えられる．P*L*Uについては<see cref="M:KrdLab.clapack.Function.dgetrf(System.Double[],System.Int32,System.Int32,System.Int32[]@)" />を参照）</param>
+            <param name="a_row">行列Aの行数</param>
+            <param name="a_col">行列Aの列数</param>
+            <param name="B">行列 B（内部のCLAPACK関数により X の値が格納される）</param>
+            <param name="b_row">行列Bの行数</param>
+            <param name="b_col">行列Bの列数</param>
+            <returns>常に 0 が返ってくる．</returns>
+            <exception cref="T:KrdLab.clapack.exception.IllegalClapackArgumentException">
+内部で dgesv_関数に渡された引数に問題があると throw される．
+</exception>
+            <exception cref="T:KrdLab.clapack.exception.IllegalClapackResultException">
+行列 A の LU分解において，U[i, i] が 0 となってしまった場合に throw される．
+この場合，解を求めることができない．
+</exception>
+            <remarks>
+                <para>対応するCLAPACK関数（CLAPACK/BLAS/SRC/dgesv.c）</para>
+                <code>
+int
+dgesv_(integer *n, integer *nrhs,
+       doublereal *a, integer *lda, integer *ipiv,
+       doublereal *b, integer *ldb, integer *info);
+</code>
+                <para>dgesv_ 関数の内部では LU分解が使用されている．</para>
+            </remarks>
+        </member>
+        <member name="M:KrdLab.clapack.Function.dgemv(System.Double[]@,System.Double[],System.Double[],System.Int32,System.Int32)">
+            <summary>
+Y = XA を計算する．
+</summary>
+            <param name="Y">結果の行ベクトル（内部で適切なサイズのメモリが割り当てられる）</param>
+            <param name="X">行ベクトル（変更されない）</param>
+            <param name="A">行列（変更されない）</param>
+            <returns>常に 0 が返ってくる．</returns>
+            <exception cref="T:KrdLab.clapack.exception.MismatchSizeException">
+                <paramref name="X" /> のサイズと <paramref name="A" /> の行数とが一致しないときにthrowされる．
+</exception>
+            <remarks>
+                <para>対応するCLAPACK関数（CLAPACK/BLAS/SRC/dgemv.c）</para>
+                <code>
+int
+dgemv_(char* trans, integer* M, integer* N,
+       doublereal* alpha,
+       doublereal* A, integer* lda,
+       doublereal* X, integer* incX,
+       doublereal* beta,
+       doublereal* Y, integer* incY);
+</code>
+            </remarks>
+        </member>
+        <member name="M:KrdLab.clapack.Function.dgemv(System.Double[]@,System.Double[],System.Int32,System.Int32,System.Double[])">
+            <summary>
+Y = AX を計算する．
+</summary>
+            <param name="Y">結果の列ベクトル（内部で適切なサイズのメモリが割り当てられる）</param>
+            <param name="A">行列（変更されない）</param>
+            <param name="X">列ベクトル（変更されない）</param>
+            <returns>常に 0 が返ってくる．</returns>
+            <exception cref="T:KrdLab.clapack.exception.MismatchSizeException">
+                <paramref name="A" /> の列数と <paramref name="X" /> のサイズとが一致しないときにthrowされる．
+</exception>
+            <remarks>
+                <para>対応するCLAPACK関数（CLAPACK/BLAS/SRC/dgemv.c）</para>
+                <code>
+int
+dgemv_(char* trans, integer* M, integer* N,
+       doublereal* alpha,
+       doublereal* A, integer* lda,
+       doublereal* X, integer* incX,
+       doublereal* beta,
+       doublereal* Y, integer* incY);
+</code>
+            </remarks>
+        </member>
+        <member name="M:KrdLab.clapack.Function.dgemm(System.Double[]@,System.Int32@,System.Int32@,System.Double[],System.Int32,System.Int32,System.Double[],System.Int32,System.Int32)">
+            <summary>
+行列どうしの乗算を行う．
+</summary>
+            <param name="C">結果の行列（内部で適切なサイズのメモリが割り当てられる）</param>
+            <param name="A">行列（変更されない）</param>
+            <param name="B">行列（変更されない）</param>
+            <returns>常に 0 が返ってくる．</returns>
+            <exception cref="T:KrdLab.clapack.exception.MismatchSizeException">
+                <paramref name="A" /> の列数と <paramref name="B" /> の行数とが一致しないときにthrowされる．
+</exception>
+            <remarks>
+                <para>対応するCLAPACK関数（CLAPACK/BLAS/SRC/dgemm.c）</para>
+                <code>
+int dgemm_(char* transA, char* transB, integer* M, integer* N, integer* K,
+            doublereal* alpha,
+            doublereal* A, integer* lda,
+            doublereal* B, integer* ldb,
+            doublereal* beta,
+            doublereal* C, integer* ldc);
+</code>
+            </remarks>
+        </member>
+        <member name="M:KrdLab.clapack.Function.ddot(System.Double[],System.Double[])">
+            <summary>
+ベクトルの内積をとる．
+</summary>
+            <param name="v1">配列</param>
+            <param name="v2">配列</param>
+            <returns>
+                <paramref name="v1" /> と <paramref name="v2" /> の内積</returns>
+            <exception cref="T:KrdLab.clapack.exception.MismatchSizeException">
+                <paramref name="v1" /> と <paramref name="v2" /> のサイズが一致しないとthrowされる．
+</exception>
+        </member>
+        <member name="M:KrdLab.clapack.Function.dscal(System.Double[],System.Double)">
+            <summary>
+配列の各要素をスカラ倍する．
+</summary>
+            <param name="arr">スカラ倍される配列</param>
+            <param name="d">スカラ</param>
+            <returns>CLAPACK/BLAS/SRC/dscal.c によれば，常に 0 が返ってくる．</returns>
+        </member>
+        <member name="M:KrdLab.clapack.Function.dnrm2(System.Double[])">
+            <summary>
+ベクトルのノルムを計算する．
+</summary>
+            <param name="arr">ノルムを知りたい配列</param>
+            <returns>ノルム</returns>
+        </member>
+        <member name="M:KrdLab.clapack.Function.round_off(System.Double[])">
+            <summary>
+設定された精度未満の値を丸め込む．
+</summary>
+        </member>
+        <member name="F:KrdLab.clapack.Function.CalculationLowerLimit">
+            <summary>
+有効な値であると見なす下限値（デフォルト値：1e-15）
+</summary>
+        </member>
+        <member name="T:KrdLab.clapack.Function">
+            <summary>
+CLAPACK を CLR 上で利用するためのラッパークラス
+</summary>
+        </member>
+        <member name="T:KrdLab.clapack.exception.MismatchSizeException">
+            <summary>
+処理対象となる行列やベクトルのサイズが一致していない場合にthrowされる．
+</summary>
+        </member>
+        <member name="P:KrdLab.clapack.exception.IllegalClapackArgumentException.Index">
+            <summary>
+問題のある引数の位置を取得する．
+</summary>
+        </member>
+        <member name="T:KrdLab.clapack.exception.IllegalClapackArgumentException">
+            <summary>
+CLAPACKに渡された引数に問題がある場合に throw される．
+</summary>
+        </member>
+        <member name="P:KrdLab.clapack.exception.IllegalClapackResultException.Info">
+            <summary>
+エラーの状態を表す数値を取得する．
+</summary>
+        </member>
+        <member name="T:KrdLab.clapack.exception.IllegalClapackResultException">
+            <summary>
+CLAPACKの計算結果が無効な場合にthrowされる．
+</summary>
+        </member>
+        <member name="T:KrdLab.clapack.exception.ClwException">
+            <summary>
+clapack Function の例外基本クラス
+</summary>
+        </member>
+        <member name="D:integer">
+ barf  [ba:rf]  2.  "He suggested using FORTRAN, and everybody barfed."
+
+	- From The Shogakukan DICTIONARY OF NEW ENGLISH (Second edition) 
+</member>
+    </members>
+</doc>
