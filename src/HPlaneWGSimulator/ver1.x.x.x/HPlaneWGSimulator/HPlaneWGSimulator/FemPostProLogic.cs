@@ -351,20 +351,24 @@ namespace HPlaneWGSimulator
         /// </summary>
         /// <param name="g"></param>
         /// <param name="panel"></param>
-        public void DrawMesh(Graphics g, Panel panel)
+        public void DrawMesh(Graphics g, Panel panel, bool fitFlg = false)
         {
             if (!isInputDataReady())
             {
                 return;
             }
-            // 描画領域の方眼桝目の寸法を決定
-            double deltaxx = panel.Width / (double)(Constants.MaxDiv.Width + 2);
-            int deltax = (int)deltaxx;
-            double deltayy = panel.Height / (double)(Constants.MaxDiv.Height + 2);
-            int deltay = (int)deltayy;
-            Size ofs = new Size(deltax, deltay);
-            Size delta = new Size(deltax, deltay);
-            Size regionSize = new Size(delta.Width * Constants.MaxDiv.Width, delta.Height * Constants.MaxDiv.Height);
+            Size ofs;
+            Size delta;
+            Size regionSize;
+            if (!fitFlg)
+            {
+                getDrawRegion(panel, out delta, out ofs, out regionSize);
+            }
+            else
+            {
+                getFitDrawRegion(panel, out delta, out ofs, out regionSize);
+            }
+
             foreach (FemElement element in Elements)
             {
                 element.Draw(g, ofs, delta, regionSize);
@@ -372,25 +376,38 @@ namespace HPlaneWGSimulator
         }
 
         /// <summary>
-        /// フィールド値等高線図描画
+        /// 描画領域を取得
         /// </summary>
-        /// <param name="g"></param>
         /// <param name="panel"></param>
-        public void DrawField(Graphics g, Panel panel)
+        /// <param name="delta"></param>
+        /// <param name="ofs"></param>
+        /// <param name="regionSize"></param>
+        private void getDrawRegion(Panel panel, out Size delta, out Size ofs, out Size regionSize)
         {
-            if (!isInputDataReady())
-            {
-                return;
-            }
-            if (!isOutputDataReady())
-            {
-                return;
-            }
+            // 描画領域の方眼桝目の寸法を決定
+            double deltaxx = panel.Width / (double)(Constants.MaxDiv.Width + 2);
+            int deltax = (int)deltaxx;
+            double deltayy = panel.Height / (double)(Constants.MaxDiv.Height + 2);
+            int deltay = (int)deltayy;
+            ofs = new Size(deltax, deltay);
+            delta = new Size(deltax, deltay);
+           regionSize = new Size(delta.Width * Constants.MaxDiv.Width, delta.Height * Constants.MaxDiv.Height);
+        }
+
+        /// <summary>
+        /// パネルに合わせて領域を拡縮する
+        /// </summary>
+        /// <param name="panel"></param>
+        /// <param name="delta"></param>
+        /// <param name="ofs"></param>
+        /// <param name="regionSize"></param>
+        private void getFitDrawRegion(Panel panel, out Size delta, out Size ofs, out Size regionSize)
+        {
             const int ndim = 2;
 
             // 節点座標の最小、最大
-            double[] minPt = new double[]{double.MaxValue, double.MaxValue};
-            double[] maxPt = new double[]{double.MinValue, double.MinValue};
+            double[] minPt = new double[] { double.MaxValue, double.MaxValue };
+            double[] maxPt = new double[] { double.MinValue, double.MinValue };
             foreach (FemNode node in Nodes)
             {
                 for (int i = 0; i < ndim; i++)
@@ -405,8 +422,8 @@ namespace HPlaneWGSimulator
                     }
                 }
             }
-            double[] midPt = new double[]{ (minPt[0] + maxPt[0]) * 0.5, (minPt[1] + maxPt[1]) * 0.5 };
-            
+            double[] midPt = new double[] { (minPt[0] + maxPt[0]) * 0.5, (minPt[1] + maxPt[1]) * 0.5 };
+
             // 描画領域の方眼桝目の寸法を決定
             // 図形をパネルのサイズにあわせて拡縮する
             int w = (int)(maxPt[0] - minPt[0]);
@@ -427,11 +444,33 @@ namespace HPlaneWGSimulator
             // 図形の中央がパネルの中央に来るようにする
             ofsx += (int)(deltaxx * (boxWidth - w) * 0.5);
             ofsy -= (int)(deltayy * (boxWidth - h) * 0.5);
-            Size delta = new Size(deltax, deltay);
-            Size ofs = new Size(ofsx, ofsy);
-            Size regionSize = new Size(delta.Width * boxWidth, delta.Height * boxWidth);
+            
+            delta = new Size(deltax, deltay);
+            ofs = new Size(ofsx, ofsy);
+            regionSize = new Size(delta.Width * boxWidth, delta.Height * boxWidth);
             //Console.WriteLine("{0},{1}", ofs.Width, ofs.Height);
             //Console.WriteLine("{0},{1}", regionSize.Width, regionSize.Height);
+        }
+
+        /// <summary>
+        /// フィールド値等高線図描画
+        /// </summary>
+        /// <param name="g"></param>
+        /// <param name="panel"></param>
+        public void DrawField(Graphics g, Panel panel)
+        {
+            if (!isInputDataReady())
+            {
+                return;
+            }
+            if (!isOutputDataReady())
+            {
+                return;
+            }
+            Size delta;
+            Size ofs;
+            Size regionSize;
+            getFitDrawRegion(panel, out delta, out ofs, out regionSize);
 
             // フィールド値の絶対値の最小、最大
             double minfValue = double.MaxValue;

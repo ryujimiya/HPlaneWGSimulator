@@ -118,8 +118,8 @@ namespace HPlaneWGSimulator
             {
                 FemNode node = _Nodes[ino];
                 System.Diagnostics.Debug.Assert(node.Coord.Length == 2);
-                int x = (int)node.Coord[0] * delta.Width;
-                int y = regionSize.Height - (int)node.Coord[1] * delta.Height;
+                int x = (int)((double)node.Coord[0] * delta.Width);
+                int y = (int)(regionSize.Height - (double)node.Coord[1] * delta.Height);
                 points[ino] = new Point(x, y) + ofs;
             }
             // 三角形を描画

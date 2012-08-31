@@ -198,7 +198,7 @@ namespace HPlaneWGSimulator
         /// <summary>
         /// 初期化処理
         /// </summary>
-        private void init()
+        private new void init()
         {
             base.init();
 
@@ -454,11 +454,14 @@ namespace HPlaneWGSimulator
         /// <param name="e"></param>
         public void CadPanelMouseDown(MouseEventArgs e)
         {
-            DragFlg = true;
-            StartPt = new Point(e.X, e.Y) - Ofs;
-            EndPt = StartPt;
+            if (e.Button == MouseButtons.Left)
+            {
+                DragFlg = true;
+                StartPt = new Point(e.X, e.Y) - Ofs;
+                EndPt = StartPt;
 
-            hitTesting();
+                hitTesting();
+            }
         }
 
         /// <summary>
@@ -467,9 +470,12 @@ namespace HPlaneWGSimulator
         /// <param name="e"></param>
         public void CadPanelMouseMove(MouseEventArgs e)
         {
-            EndPt = new Point(e.X, e.Y) - Ofs;
+            if (e.Button == MouseButtons.Left)
+            {
+                EndPt = new Point(e.X, e.Y) - Ofs;
 
-            hitTesting();            
+                hitTesting();
+            }
         }
 
         /// <summary>
@@ -477,6 +483,18 @@ namespace HPlaneWGSimulator
         /// </summary>
         /// <param name="e"></param>
         public void CadPanelMouseUp(MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left)
+            {
+                CadPanelMouseLeftButtonUp(e);
+            }
+        }
+
+        /// <summary>
+        /// マウス左ボタンアップ
+        /// </summary>
+        /// <param name="e"></param>
+        private void CadPanelMouseLeftButtonUp(MouseEventArgs e)
         {
             EndPt = new Point(e.X, e.Y) - Ofs;
             DragFlg = false;
@@ -1393,6 +1411,7 @@ namespace HPlaneWGSimulator
                 ((List<Edge>)EdgeList).Sort();
                 // 欠番を無くす
                 int portCounter = 0;
+                int newIncidentPortNo = -1;
                 foreach (Edge work in EdgeList)
                 {
                     //Console.Write("{0}", work.No);
@@ -1401,8 +1420,14 @@ namespace HPlaneWGSimulator
                     //Console.WriteLine("  --> {0}", work.No);
                     if (saveNo == IncidentPortNo)
                     {
-                        IncidentPortNo = work.No;
+                        //BUGFIX 判定に用いているIncdentPortNoを書き換えない!!!
+                        //IncidentPortNo = work.No;
+                        newIncidentPortNo = work.No;
                     }
+                }
+                if (newIncidentPortNo != -1)
+                {
+                    IncidentPortNo = newIncidentPortNo;
                 }
             }
             if (executed && !isDirty)
@@ -1573,6 +1598,7 @@ namespace HPlaneWGSimulator
                     {
                         if (x < 0 || x >= MaxDiv.Width) continue;
                         drawArea(g, x, y, brush);
+                        hit = true;
                     }
                 }
             }
