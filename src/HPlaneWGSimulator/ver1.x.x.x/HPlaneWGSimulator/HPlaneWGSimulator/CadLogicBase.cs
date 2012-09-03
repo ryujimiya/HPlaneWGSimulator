@@ -14,6 +14,18 @@ namespace HPlaneWGSimulator
     class CadLogicBase
     {
         ////////////////////////////////////////////////////////////////////////
+        // 型
+        ////////////////////////////////////////////////////////////////////////
+        /// <summary>
+        /// Cadモード
+        ///   None 操作なし
+        ///   Area マス目選択
+        ///   Port ポート境界選択
+        ///   Erase 消しゴム
+        /// </summary>
+        public enum CadModeType { None, Area, Port, Erase, IncidentPort, PortNumbering };
+
+        ////////////////////////////////////////////////////////////////////////
         // 定数
         ////////////////////////////////////////////////////////////////////////
         /// <summary>
@@ -67,6 +79,10 @@ namespace HPlaneWGSimulator
         /// 媒質リスト
         /// </summary>
         protected MediaInfo[] Medias = new MediaInfo[Constants.MaxMediaCount];
+        /// <summary>
+        /// Cadモード
+        /// </summary>
+        protected CadModeType _CadMode = CadModeType.None;
         
         /// <summary>
         /// コンストラクタ
@@ -81,6 +97,8 @@ namespace HPlaneWGSimulator
         /// </summary>
         protected void init()
         {
+            _CadMode = CadModeType.None;
+
             for (int y = 0; y < MaxDiv.Height; y++)
             {
                 for (int x = 0; x < MaxDiv.Width; x++)
@@ -119,7 +137,9 @@ namespace HPlaneWGSimulator
         /// <param name="src"></param>
         public void CopyData(CadLogicBase src)
         {
-            //CadMode = src.CadMode;
+            // CadモードもUndo/Redo対象に入れる
+            _CadMode = src._CadMode;
+
             for (int y = 0; y < MaxDiv.Height; y++)
             {
                 for (int x = 0; x < MaxDiv.Width; x++)

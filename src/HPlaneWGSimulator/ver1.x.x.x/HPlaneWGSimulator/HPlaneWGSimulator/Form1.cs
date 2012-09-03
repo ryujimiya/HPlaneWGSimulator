@@ -138,6 +138,21 @@ namespace HPlaneWGSimulator
                 radioBtnIncidentPort,
                 radioBtnPortNumbering
             };
+            // Cadモードをラジオボタンに紐づける
+            CadLogic.CadModeType[] cadModeTypeForRadioButtons = new CadLogic.CadModeType[]
+            {
+                CadLogic.CadModeType.None,
+                CadLogic.CadModeType.Area,
+                CadLogic.CadModeType.Port,
+                CadLogic.CadModeType.Erase,
+                CadLogic.CadModeType.IncidentPort,
+                CadLogic.CadModeType.PortNumbering
+            };
+            System.Diagnostics.Debug.Assert(CadModeRadioButtons.Length == cadModeTypeForRadioButtons.Length);
+            for (int i = 0; i < CadModeRadioButtons.Length; i++)
+            {
+                CadModeRadioButtons[i].Tag = cadModeTypeForRadioButtons[i];
+            }
             MediaRadioButtons = new RadioButton[]
             {
                 radioBtnMedia0,
@@ -187,11 +202,31 @@ namespace HPlaneWGSimulator
         }
 
         /// <summary>
+        /// Cadモードをラジオボタンに反映する
+        /// </summary>
+        /// <param name="cadMode"></param>
+        private void setupCadModeRadioButtons(CadLogic.CadModeType cadMode)
+        {
+            foreach (RadioButton rb in CadModeRadioButtons)
+            {
+                if ((CadLogic.CadModeType)rb.Tag == cadMode)
+                {
+                    rb.Checked = true;
+                }
+                else
+                {
+                    rb.Checked = false;
+                }
+            }
+        }
+
+        /// <summary>
         /// 自動スクロールを設定する
         /// </summary>
         /// <param name="autoScroll"></param>
         private void setAutoScroll(bool autoScroll)
         {
+            Console.WriteLine("setAutoScroll:{0}", autoScroll);
             this.AutoScroll = autoScroll;
             this.AutoScrollOffset = new Point(0, 0);
             this.AutoScrollPosition = new Point(0, 0);
@@ -259,6 +294,7 @@ namespace HPlaneWGSimulator
         /// </summary>
         private void fitPanelSizeToFrmSize()
         {
+            Console.WriteLine("fitPanelSizeToFrmSize");
             Control[] ctrlList = { SMatChart, BetaChart, EigenVecChart };
             Point[] ctrlBaseLocationList = { SMatChartBaseLocation, BetaChartBaseLocation, EigenVecChartBaseLocation };
             Size[] ctrlBaseSizeList = { SMatChartBaseSize, BetaChartBaseSize, EigenVecChartBaseSize };
@@ -576,11 +612,11 @@ namespace HPlaneWGSimulator
             {
                 CadLgc.CadPanelPaint(g);
             }
-            if (PostPro != null && btnCalc.Text == "計算キャンセル")
-            {
-                // 計算実行中はメッシュ表示
-                PostPro.DrawMesh(g, CadPanel);
-            }
+            //if (PostPro != null && btnCalc.Text == "計算キャンセル")
+            //{
+            //    // 計算実行中はメッシュ表示
+            //    PostPro.DrawMesh(g, CadPanel);
+            //}
         }
 
         /// <summary>
@@ -640,6 +676,11 @@ namespace HPlaneWGSimulator
             if (PostPro != null)
             {
                 PostPro.DrawField(g, FValuePanel);
+                if (PostPro != null && btnCalc.Text == "計算キャンセル")
+                {
+                    // 計算実行中はメッシュ表示
+                    PostPro.DrawMesh(g, FValuePanel, true);
+                }
             }
         }
 
@@ -691,11 +732,14 @@ namespace HPlaneWGSimulator
             btnCalc.Text = "計算キャンセル";
 
             // Cadモードを操作なしにする
+            setupCadModeRadioButtons(CadLogic.CadModeType.None);
+            /*
             foreach (RadioButton rb in CadModeRadioButtons)
             {
                 rb.Checked = false;
             }
             radioBtnNone.Checked = true;
+             */
             CadLgc.CadMode = CadLogic.CadModeType.None;
 
             // 選択中媒質を真空にする
@@ -717,7 +761,7 @@ namespace HPlaneWGSimulator
             //{
             //    PostPro.DrawMesh(g, CadPanel);
             //}
-            CadPanel.Invalidate();
+            //CadPanel.Invalidate();
 
             // 周波数インデックス初期化
             FreqNo = -1;
@@ -781,7 +825,9 @@ namespace HPlaneWGSimulator
 
                             this.Invoke(new InvokeDelegate(delegate()
                                 {
-                                    if (PostPro.GetCalculatedFreqCnt(FemOutputDatFilePath) == 1) 
+                                    int firstFreqNo;
+                                    int lastFreqNo;
+                                    if (PostPro.GetCalculatedFreqCnt(FemOutputDatFilePath, out firstFreqNo, out lastFreqNo) == 1) 
                                     {
                                         // 固有値チャート初期化(モード数が変わっているので再度初期化する)
                                         PostPro.ResetEigenValueChart(BetaChart);
@@ -807,13 +853,19 @@ namespace HPlaneWGSimulator
                             // 周波数インデックスを最後にセット
                             //BUGFIX
                             //周波数番号は1起点なので、件数 = 最後の番号となる
-                            FreqNo = PostPro.GetCalculatedFreqCnt(FemOutputDatFilePath);
+                            //計算失敗の場合、上記は成り立たない
+                            int firstFreqNo;
+                            int lastFreqNo;
+                            int cnt = PostPro.GetCalculatedFreqCnt(FemOutputDatFilePath, out firstFreqNo, out lastFreqNo);
+                            FreqNo = lastFreqNo;
                             // 周波数ボタンの有効・無効化
                             setupBtnFreqEnable();
 
-                            // Cadパネル再描画
-                            CadPanel.Invalidate();
+                            // Cadパネル再描画（メッシュを消す）
+                            //CadPanel.Invalidate();
 
+                            // 等高線図再描画（メッシュを消す）
+                            FValuePanel.Invalidate();
                         }));
                 }));
             SolverThread.Name = "solverThread";
@@ -851,12 +903,31 @@ namespace HPlaneWGSimulator
         }
 
         /// <summary>
+        /// ラジオボタンから描画モードを取得する
+        /// </summary>
+        /// <returns></returns>
+        private CadLogic.CadModeType getCadModeFromCadModeRadioButtons()
+        {
+            CadLogic.CadModeType cadMode = CadLogic.CadModeType.None;
+
+            foreach (RadioButton rb in CadModeRadioButtons)
+            {
+                if (rb.Checked)
+                {
+                    cadMode = (CadLogic.CadModeType)rb.Tag;
+                    break;
+                }
+            }
+            return cadMode;
+        }
+        /// <summary>
         /// 「描画モード解除」ラジオボタンチェック状態変更イベントハンドラ
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void radioBtnNone_CheckedChanged(object sender, EventArgs e)
         {
+            /*
             if (radioBtnNone.Checked)
             {
                 CadLgc.CadMode = CadLogic.CadModeType.None;
@@ -866,6 +937,8 @@ namespace HPlaneWGSimulator
                 CadLgc.CadMode = CadLogic.CadModeType.None;
             }
             //Console.WriteLine("CadMode:{0}", CadLgc.CadMode);
+             */
+            CadLgc.CadMode = getCadModeFromCadModeRadioButtons();
         }
         /// <summary>
         /// 「マス目」ラジオボタンチェック状態変更イベントハンドラ
@@ -874,6 +947,7 @@ namespace HPlaneWGSimulator
         /// <param name="e"></param>
         private void radioBtnArea_CheckedChanged(object sender, EventArgs e)
         {
+            /*
             if (radioBtnArea.Checked)
             {
                 CadLgc.CadMode = CadLogic.CadModeType.Area;
@@ -882,6 +956,8 @@ namespace HPlaneWGSimulator
             {
                 CadLgc.CadMode = CadLogic.CadModeType.None;
             }
+             */
+            CadLgc.CadMode = getCadModeFromCadModeRadioButtons();
             //Console.WriteLine("CadMode:{0}", CadLgc.CadMode);
         }
         /// <summary>
@@ -891,6 +967,7 @@ namespace HPlaneWGSimulator
         /// <param name="e"></param>
         private void radioBtnPort_CheckedChanged(object sender, EventArgs e)
         {
+            /*
             if (radioBtnPort.Checked)
             {
                 CadLgc.CadMode = CadLogic.CadModeType.Port;
@@ -899,6 +976,8 @@ namespace HPlaneWGSimulator
             {
                 CadLgc.CadMode = CadLogic.CadModeType.None;
             }
+             */
+            CadLgc.CadMode = getCadModeFromCadModeRadioButtons();
             //Console.WriteLine("CadMode:{0}", CadLgc.CadMode);
         }
         /// <summary>
@@ -908,6 +987,7 @@ namespace HPlaneWGSimulator
         /// <param name="e"></param>
         private void radioBtnErase_CheckedChanged(object sender, EventArgs e)
         {
+            /*
             if (radioBtnErase.Checked)
             {
                 CadLgc.CadMode = CadLogic.CadModeType.Erase;
@@ -916,6 +996,8 @@ namespace HPlaneWGSimulator
             {
                 CadLgc.CadMode = CadLogic.CadModeType.None;
             }
+             */
+            CadLgc.CadMode = getCadModeFromCadModeRadioButtons();
             //Console.WriteLine("CadMode:{0}", CadLgc.CadMode);
         }
         /// <summary>
@@ -925,6 +1007,7 @@ namespace HPlaneWGSimulator
         /// <param name="e"></param>
         private void radioBtnIncidentPort_CheckedChanged(object sender, EventArgs e)
         {
+            /*
             if (radioBtnIncidentPort.Checked)
             {
                 CadLgc.CadMode = CadLogic.CadModeType.IncidentPort;
@@ -933,6 +1016,8 @@ namespace HPlaneWGSimulator
             {
                 CadLgc.CadMode = CadLogic.CadModeType.None;
             }
+             */
+            CadLgc.CadMode = getCadModeFromCadModeRadioButtons();
             //Console.WriteLine("CadMode:{0}", CadLgc.CadMode);
 
         }
@@ -943,6 +1028,7 @@ namespace HPlaneWGSimulator
         /// <param name="e"></param>
         private void radioBtnPortNumbering_CheckedChanged(object sender, EventArgs e)
         {
+            /*
             if (radioBtnPortNumbering.Checked)
             {
                 CadLgc.CadMode = CadLogic.CadModeType.PortNumbering;
@@ -951,6 +1037,8 @@ namespace HPlaneWGSimulator
             {
                 CadLgc.CadMode = CadLogic.CadModeType.None;
             }
+             */
+            CadLgc.CadMode = getCadModeFromCadModeRadioButtons();
             //Console.WriteLine("CadMode:{0}", CadLgc.CadMode);
         }
 
@@ -996,7 +1084,10 @@ namespace HPlaneWGSimulator
             {
                 return;
             }
-            if (FreqNo >= PostPro.GetCalculatedFreqCnt(FemOutputDatFilePath))
+            int firstFreqNo;
+            int lastFreqNo;
+            int cnt = PostPro.GetCalculatedFreqCnt(FemOutputDatFilePath, out firstFreqNo, out lastFreqNo);
+            if (FreqNo >= lastFreqNo)
             {
                 return;
             }
@@ -1021,8 +1112,11 @@ namespace HPlaneWGSimulator
         /// </summary>
         private void setupBtnFreqEnable()
         {
-            btnPrevFreq.Enabled = (FreqNo > 1 && FreqNo <= PostPro.GetCalculatedFreqCnt(FemOutputDatFilePath));
-            btnNextFreq.Enabled = (FreqNo >= 1 && FreqNo < PostPro.GetCalculatedFreqCnt(FemOutputDatFilePath));
+            int firstFreqNo;
+            int lastFreqNo;
+            int cnt = PostPro.GetCalculatedFreqCnt(FemOutputDatFilePath, out firstFreqNo, out lastFreqNo);
+            btnPrevFreq.Enabled = (FreqNo > firstFreqNo && FreqNo <= lastFreqNo);
+            btnNextFreq.Enabled = (FreqNo >= firstFreqNo && FreqNo <lastFreqNo);
         }
 
         /// <summary>
@@ -1210,11 +1304,14 @@ namespace HPlaneWGSimulator
             setupUndoRedoEnable();
 
             // Cadモードを操作なしにする
+            setupCadModeRadioButtons(CadLogic.CadModeType.None);
+            /*
             foreach (RadioButton rb in CadModeRadioButtons)
             {
                 rb.Checked = false;
             }
             radioBtnNone.Checked = true;
+             */
             CadLgc.CadMode = CadLogic.CadModeType.None;
             // 選択中媒質を真空にする
             radioBtnMedia0.Checked = true;
@@ -1283,19 +1380,24 @@ namespace HPlaneWGSimulator
                 Application.DoEvents();
 
                 // 周波数特性グラフの表示
-                int dataCnt = FemOutputDatFile.GetCalculatedFreqCnt(FemOutputDatFilePath);
-                for (int freqIndex = 0; freqIndex < dataCnt; freqIndex++)
+                int loadcnt = 0; // 計算失敗を考慮
+                int firstFreqNo;
+                int lastFreqNo;
+                int cnt = PostPro.GetCalculatedFreqCnt(FemOutputDatFilePath, out firstFreqNo, out lastFreqNo);
+                for (int freqIndex = firstFreqNo - 1; freqIndex <= lastFreqNo - 1; freqIndex++)
                 {
                     int freqNo = freqIndex + 1;
                     // ポストプロセッサへ結果読み込み
                     bool ret = PostPro.LoadOutput(FemOutputDatFilePath, freqNo);
                     if (!ret)
                     {
-                        break;
+                        continue;  // 計算失敗を考慮
                     }
+                    loadcnt++; // 計算失敗を考慮
+
                     // Sマトリックス周波数特性グラフに計算した点を追加
                     PostPro.AddScatterMatrixToChart(SMatChart);
-                    if (freqNo == 1)
+                    if (loadcnt == 1) // 計算失敗を考慮
                     {
                         // チャート初期化(モード数が変わっているので再度初期化する)
                         PostPro.ResetEigenValueChart(BetaChart);
@@ -1308,7 +1410,8 @@ namespace HPlaneWGSimulator
                 }
 
                 // 周波数
-                FreqNo = 1;
+                //FreqNo = 1;
+                FreqNo = firstFreqNo;
                 // 周波数ボタンの有効・無効化
                 setupBtnFreqEnable();
 
@@ -1754,6 +1857,7 @@ namespace HPlaneWGSimulator
             }
             if (executed)
             {
+                setupCadModeRadioButtons(CadLgc.CadMode);
                 setupUndoRedoEnable();
             }
             return executed;
@@ -1772,11 +1876,14 @@ namespace HPlaneWGSimulator
                 // やり直し
                 CadLgc.Redo();
                 //CadPanel.Invalidate(); // CadLogic内で処理される
+                // Cadモードが変更される可能性があるので、CadLgcのCadModeをGuiに反映させる
+
                 // 子コントロールへイベントを伝搬させないようにする
                 executed = true;
             }
             if (executed)
             {
+                setupCadModeRadioButtons(CadLgc.CadMode);
                 setupUndoRedoEnable();
             }
             return executed;

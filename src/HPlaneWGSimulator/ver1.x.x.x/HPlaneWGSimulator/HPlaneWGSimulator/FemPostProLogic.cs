@@ -215,9 +215,9 @@ namespace HPlaneWGSimulator
         /// </summary>
         /// <param name="filename"></param>
         /// <returns></returns>
-        public int GetCalculatedFreqCnt(string filename)
+        public int GetCalculatedFreqCnt(string filename, out int firstFreqNo, out int lastFreqNo)
         {
-            return FemOutputDatFile.GetCalculatedFreqCnt(filename);
+            return FemOutputDatFile.GetCalculatedFreqCnt(filename, out firstFreqNo, out lastFreqNo);
         }
 
         /// <summary>

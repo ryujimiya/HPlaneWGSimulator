@@ -74,7 +74,8 @@ namespace HPlaneWGSimulator
             int cnt = (int)((double)(maxFreq - minFreq) / deltaFreq);
             if (cnt < 2)
             {
-                return;
+                //return;
+                cnt = 1; // 1箇所で計算
             }
             Variables.CalcFreqencyPointCount = cnt;
             Variables.NormalizedFreqRange[0] = minFreq;

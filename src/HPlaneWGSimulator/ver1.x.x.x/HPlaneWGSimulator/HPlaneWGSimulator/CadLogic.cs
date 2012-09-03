@@ -17,14 +17,6 @@ namespace HPlaneWGSimulator
         // 型
         ////////////////////////////////////////////////////////////////////////
         /// <summary>
-        /// Cadモード
-        ///   None 操作なし
-        ///   Area マス目選択
-        ///   Port ポート境界選択
-        ///   Erase 消しゴム
-        /// </summary>
-        public enum CadModeType { None, Area, Port, Erase, IncidentPort, PortNumbering };
-        /// <summary>
         /// 領域選択フラグアレイの思い出具象クラス
         /// </summary>
         class CadLogicBaseMemento : MyUtilLib.Memento<CadLogicBase, CadLogicBase>
@@ -115,10 +107,6 @@ namespace HPlaneWGSimulator
         /// <summary>
         /// Cadモード
         /// </summary>
-        private CadModeType _CadMode = CadModeType.None;
-        /// <summary>
-        /// Cadモード
-        /// </summary>
         public CadModeType CadMode
         {
             get { return _CadMode; }
@@ -174,8 +162,13 @@ namespace HPlaneWGSimulator
         public CadLogic(Panel panel)
         {
             CadPanel = panel;
+
+            // 領域を決定する
             SetupRegionSize();
+            // コマンド管理インスタンスを生成(Undo/Redo用)
             CmdManager = new MyUtilLib.CommandManager(MaxUndoStackCnt);
+
+            // 初期化処理
             init();
         }
 
@@ -198,7 +191,7 @@ namespace HPlaneWGSimulator
         /// <summary>
         /// 初期化処理
         /// </summary>
-        private new void init()
+        protected new void init()
         {
             base.init();
 
@@ -1611,308 +1604,42 @@ namespace HPlaneWGSimulator
         /// </summary>
         public void SerializeCadData(string filename)
         {
-            try
-            {
-                using (StreamWriter sw = new StreamWriter(filename))
-                {
-                    int counter;
-                    string line;
-                    
-                    // 領域: 書き込む個数の計算
-                    counter = 0;
-                    for (int y = 0; y < MaxDiv.Height; y++)
-                    {
-                        for (int x = 0; x < MaxDiv.Width; x++)
-                        {
-                            if (AreaSelection[y, x])
-                            {
-                                counter++;
-                            }
-                        }
-                    }
-                    // 領域: 書き込み
-                    sw.WriteLine("AreaSelection,{0}", counter);
-                    for (int y = 0; y < MaxDiv.Height; y++)
-                    {
-                        for (int x = 0; x < MaxDiv.Width; x++)
-                        {
-                            if (AreaSelection[y, x])
-                            {
-                                // ver1.1.0.0から座標の後に媒質インデックスを追加
-                                sw.WriteLine("{0},{1},{2}", x, y, AreaToMediaIndex[y, x]);
-                            }
-                        }
-                    }
-                    // ポート境界: 書き込み個数の計算
-                    sw.WriteLine("EdgeList,{0}", EdgeList.Count);
-                    // ポート境界: 書き込み
-                    foreach (Edge edge in EdgeList)
-                    {
-                        sw.WriteLine("{0},{1},{2},{3},{4}", edge.No, edge.Points[0].X, edge.Points[0].Y, edge.Points[1].X, edge.Points[1].Y);
-                    }
-                    // 入射ポート番号
-                    sw.WriteLine("IncidentPortNo,{0}", IncidentPortNo);
-                    //////////////////////////////////////////
-                    //// Ver1.1.0.0からの追加情報
-                    //////////////////////////////////////////
-                    // 媒質情報の個数
-                    sw.WriteLine("Medias,{0}", Medias.Length);
-                    // 媒質情報の書き込み
-                    for(int i = 0; i < Medias.Length; i++)
-                    {
-                        MediaInfo media = Medias[i];
-                        line = string.Format("{0},", i);
-                        double[,] p = media.P;
-                        for (int m = 0; m < p.GetLength(0); m++)
-                        {
-                            for (int n = 0; n < p.GetLength(1); n++)
-                            {
-                                line += string.Format("{0},", p[m, n]);
-                            }
-                        }
-                        double[,] q = media.Q;
-                        for (int m = 0; m < q.GetLength(0); m++)
-                        {
-                            for (int n = 0; n < q.GetLength(1); n++)
-                            {
-                                line += string.Format("{0},", q[m, n]);
-                            }
-                        }
-                        line = line.Remove(line.Length - 1); // 最後の,を削除
-                        sw.WriteLine(line);
-                    }
+            isDirty = false;
 
-                    isDirty = false;
-                }
-            }
-            catch (Exception exception)
-            {
-                MessageBox.Show(exception.Message);
-            }
+            // ファイルへ書き込む
+            CadDatFile.SaveToFile(
+                filename,
+                AreaSelection, AreaToMediaIndex,
+                EdgeList,
+                IncidentPortNo,
+                Medias
+            );
         }
 
         /// <summary>
         /// Cadデータの読み込み
         /// </summary>
-        public void DeserializeCadData(string filename)
+        public bool DeserializeCadData(string filename)
         {
+            bool success = false;
+
             init();
             isDirty = false;
 
-            try
-            {
-                using (StreamReader sr = new StreamReader(filename))
-                {
-                    string line;
-                    string[] tokens;
-                    const char delimiter = ',';
-                    int cnt = 0;
+            success = CadDatFile.LoadFromFile(
+                filename,
+                ref AreaSelection, ref AreaToMediaIndex,
+                ref EdgeList, ref YBoundarySelection, ref XBoundarySelection,
+                ref IncidentPortNo,
+                ref Medias
+            );
 
-                    // 領域選択
-                    line = sr.ReadLine();
-                    tokens = line.Split(delimiter);
-                    if (tokens[0] != "AreaSelection")
-                    {
-                        MessageBox.Show("領域選択情報がありません", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
-                    cnt = int.Parse(tokens[1]);
-                    for (int i = 0; i < cnt; i++)
-                    {
-                        line = sr.ReadLine();
-                        tokens = line.Split(delimiter);
-                        if (tokens.Length != 2 && tokens.Length != 3)  // ver1.1.0.0で媒質インデックス追加
-                        {
-                            MessageBox.Show("領域選択情報が不正です", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            return;
-                        }
-                        int x = int.Parse(tokens[0]);
-                        int y = int.Parse(tokens[1]);
-                        int mediaIndex = DefMediaIndex;
-                        if (tokens.Length == 3)
-                        {
-                            mediaIndex = int.Parse(tokens[2]);
-                        }
-                        if ((x >= 0 && x < MaxDiv.Width) && (y >= 0 && y < MaxDiv.Height))
-                        {
-                            AreaSelection[y, x] = true;
-                        }
-                        else
-                        {
-                            MessageBox.Show("領域選択座標値が不正です", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            return;
-                        }
-                        // ver1.1.0.0で追加
-                        AreaToMediaIndex[y, x] = mediaIndex;
-                    }
-                    
-                    // ポート境界
-                    line = sr.ReadLine();
-                    tokens = line.Split(delimiter);
-                    if (tokens[0] != "EdgeList")
-                    {
-                        MessageBox.Show("境界選択情報がありません", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
-                    cnt = int.Parse(tokens[1]);
-                    for (int i = 0; i < cnt; i++)
-                    {
-                        line = sr.ReadLine();
-                        tokens = line.Split(delimiter);
-                        if (tokens.Length != 5)
-                        {
-                            MessageBox.Show("境界選択情報が不正です", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            return;
-                        }
-                        int edgeNo = int.Parse(tokens[0]);
-                        Point[] p = new Point[2];
-                        for (int k = 0; k < p.Length; k++)
-                        {
-                            p[k] = new Point();
-                            p[k].X = int.Parse(tokens[1 + k * 2]);
-                            p[k].Y = int.Parse(tokens[1 + k * 2 + 1]);
-                            
-                        }
-                        Size delta = new Size(0, 0);
-                        if (p[0].X == p[1].X)
-                        {
-                            // Y方向境界
-                            delta = new Size(0, 1);
-                        }
-                        else if (p[0].Y == p[1].Y)
-                        {
-                            // X方向境界
-                            delta = new Size(1, 0);
-                        }
-                        else
-                        {
-                            MessageBox.Show("境界選択情報が不正です", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            return;
-                        }
-                        Edge edge = new Edge(delta);
-                        edge.No = edgeNo;
-                        edge.Set(p[0], p[1]);
-                        EdgeList.Add(edge);
-                    }
-                    
-                    foreach (Edge edge in EdgeList)
-                    {
-                        if (edge.Delta.Width == 0)
-                        {
-                            // Y方向境界
-                            int x = edge.Points[0].X;
-                            int sty = edge.Points[0].Y;
-                            int edy = edge.Points[1].Y;
-                            for (int y = sty; y < edy; y++)
-                            {
-                                YBoundarySelection[y, x] = true;
-                            }
-                        }
-                        else if(edge.Delta.Height == 0)
-                        {
-                            // X方向境界
-                            int y = edge.Points[0].Y;
-                            int stx = edge.Points[0].X;
-                            int edx = edge.Points[1].X;
-                            for (int x = stx; x < edx; x++)
-                            {
-                                XBoundarySelection[y, x] = true;
-                            }
-                        }
-                        else
-                        {
-                            MessageBox.Show("Not implemented");
-                        }
-                    }
-
-                    line = sr.ReadLine();
-                    if (line.Length == 0)
-                    {
-                        MessageBox.Show("入射ポート番号がありません");
-                        return;
-                    }
-                    tokens = line.Split(delimiter);
-                    if (tokens[0] != "IncidentPortNo")
-                    {
-                        MessageBox.Show("入射ポート番号がありません");
-                        return;
-                    }
-                    IncidentPortNo = int.Parse(tokens[1]);
-
-                    //////////////////////////////////////////
-                    //// Ver1.1.0.0からの追加情報
-                    //////////////////////////////////////////
-                    line = sr.ReadLine();
-                    if (line == null || line.Length == 0)
-                    {
-                        // 媒質情報なし
-                        // ver1.0.0.0
-                    }
-                    else
-                    {
-                        // 媒質情報？
-                        // ver1.1.0.0
-                        tokens = line.Split(delimiter);
-                        if (tokens[0] != "Medias")
-                        {
-                            MessageBox.Show("媒質情報がありません");
-                            return;
-                        }
-                        cnt = int.Parse(tokens[1]);
-                        if (cnt > MaxMediaCount)
-                        {
-                            MessageBox.Show("媒質情報の個数が不正です");
-                            return;
-                        }
-                        for (int i = 0; i < cnt; i++)
-                        {
-                            line = sr.ReadLine();
-                            if (line.Length == 0)
-                            {
-                                MessageBox.Show("媒質情報が不正です");
-                                return;
-                            }
-                            tokens = line.Split(delimiter);
-                            if (tokens.Length != 1 + 9 + 9)
-                            {
-                                MessageBox.Show("媒質情報が不正です");
-                                return;
-                            }
-                            int mediaIndex = int.Parse(tokens[0]);
-                            System.Diagnostics.Debug.Assert(mediaIndex == i);
-
-                            double[,] p = new double[3, 3];
-                            for (int m = 0; m < p.GetLength(0); m++)
-                            {
-                                for (int n = 0; n < p.GetLength(1); n++)
-                                {
-                                    p[m, n] = double.Parse(tokens[1 + m * p.GetLength(1) + n]);
-                                }
-                            }
-                            Medias[i].SetP(p);
-
-                            double[,] q = new double[3, 3];
-                            for (int m = 0; m < q.GetLength(0); m++)
-                            {
-                                for (int n = 0; n < q.GetLength(1); n++)
-                                {
-                                    q[m, n] = double.Parse(tokens[1 + 9 + m * q.GetLength(1) + n]);
-                                }
-                            }
-                            Medias[i].SetQ(q);
-                        }
-                    }
-                }
-            }
-            catch (Exception exception)
-            {
-                MessageBox.Show(exception.Message);
-            }
 
             // Mementoの初期化
             CadLogicBaseMmnt = new CadLogicBaseMemento(this, this);
             // コマンド管理初期化
             CmdManager.Refresh();
+            return success;
         }
 
         /// <summary>

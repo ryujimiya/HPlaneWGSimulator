@@ -172,6 +172,7 @@ namespace HPlaneWGSimulator
             double w1 = getDistance(Nodes[port1NodeNumber1 - 1].Coord, Nodes[port1NodeNumber2 - 1].Coord);
 
             WaveguideWidth = w1;
+            Console.WriteLine("WaveguideWidth:{0}", w1);
         }
 
         /// <summary>
@@ -388,8 +389,17 @@ namespace HPlaneWGSimulator
             int b_row = nodeCnt;
             int b_col = 1;
             Console.WriteLine("run zgesv");
-            KrdLab.clapack.Function.zgesv(ref X, ref x_row, ref x_col, A, a_row, a_col, B, b_row, b_col);
-
+            try
+            {
+                KrdLab.clapack.Function.zgesv(ref X, ref x_row, ref x_col, A, a_row, a_col, B, b_row, b_col);
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception.Message + " " + exception.StackTrace);
+                MessageBox.Show(exception.Message);
+                MessageBox.Show(string.Format("計算中にエラーが発生しました。2W/λ = {0}", 2.0 * WaveguideWidth / waveLength));
+                return;
+            }
             Complex[] valuesAll = new Complex[nodeCnt];
             for (int ino = 0; ino < nodeCnt; ino++)
             {
@@ -922,6 +932,7 @@ namespace HPlaneWGSimulator
                 elementNodes[2] = 2 * eno + 1 + 1;
                 elements.Add(elementNodes);
             }
+            Console.WriteLine("force Nodes");
             // 強制境界節点と内部領域節点を分離
             foreach (int nodeNumber2d in nodes)
             {
@@ -929,6 +940,7 @@ namespace HPlaneWGSimulator
                 if (ForceNodeNumberH.ContainsKey(nodeNumber2d))
                 {
 //                    forceNodes.Add(nodeNumber);
+                    Console.WriteLine("{0}:    {1}    {2}", nodeNumber, Nodes[nodeNumber2d - 1].Coord[0], Nodes[nodeNumber2d - 1].Coord[1]); 
                 }
                 else
                 {

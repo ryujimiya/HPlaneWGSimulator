@@ -158,10 +158,12 @@ namespace HPlaneWGSimulator
         /// </summary>
         /// <param name="filename"></param>
         /// <returns></returns>
-        public static int GetCalculatedFreqCnt(string filename)
+        public static int GetCalculatedFreqCnt(string filename, out int firstFreq, out int lastFreq)
         {
             int freqCnt = 0;
 
+            firstFreq = 1;
+            lastFreq = 1;
             // ファイル本体の存在確認
             if (!File.Exists(filename))
             {
@@ -194,6 +196,12 @@ namespace HPlaneWGSimulator
                             return freqCnt;
                         }
                         long tmpFOfs = long.Parse(tokens[1]);
+                        if (freqCnt == 0)
+                        {
+                            firstFreq = tmpfreqNo;
+                        }
+                        lastFreq = tmpfreqNo;
+
                         freqCnt++;
                     }
                 }
