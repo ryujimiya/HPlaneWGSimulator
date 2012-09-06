@@ -52,6 +52,10 @@ namespace HPlaneWGSimulator
         /// <param name="src"></param>
         public void CP(FemElement src)
         {
+            if (src == this)
+            {
+                return;
+            }
             No = src.No;
             NodeNumbers = null;
             if (src.NodeNumbers != null)

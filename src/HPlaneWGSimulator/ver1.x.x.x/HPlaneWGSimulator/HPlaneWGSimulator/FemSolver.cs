@@ -297,9 +297,6 @@ namespace HPlaneWGSimulator
             double w1 = WaveguideWidth;
             int calcFreqCnt = Variables.CalcFreqencyPointCount;
             int maxMode = MaxModeCnt;
-//            double waveLength = 2.0 * w1 / 1.96;
-//            double waveLength = 2.0 * w1 / 1.5;
-//            double deltaf = 1.0 / calcFreqCnt;
             double deltaf = (Variables.NormalizedFreqRange[1] - Variables.NormalizedFreqRange[0]) / calcFreqCnt;
             // 始点と終点も計算するように変更
             for (int freqIndex = 0; freqIndex < calcFreqCnt + 1; freqIndex++)
@@ -524,8 +521,12 @@ namespace HPlaneWGSimulator
             {
                 int[] nodeNumbers = element.NodeNumbers;
                 int[] no_c = new int[nno];
-                double[,] coord_c = new double[nno, ndim];
                 MediaInfo media = Medias[element.MediaIndex];  // ver1.1.0.0 媒質情報の取得
+                double[,] media_P = media.P;
+                media_P = matrix_Inverse(media_P);
+                double[,] media_Q = media.Q;
+                // 節点座標(IFの都合上配列の配列形式の2次元配列を作成)
+                double[][] pp = new double[nno][];
                 for (int ino = 0; ino < nno; ino++)
                 {
                     int nodeNumber = nodeNumbers[ino];
@@ -533,34 +534,27 @@ namespace HPlaneWGSimulator
                     FemNode node = Nodes[nodeIndex];
 
                     no_c[ino] = nodeNumber;
-                    for (int n = 0; n < ndim; n++)
-                    {
-                        coord_c[ino, n] = node.Coord[n];
-                    }
-                }
-                // 節点座標(IFの都合上配列の配列形式の2次元配列を作成)
-                double[][] pp = new double[nno][];
-                for (int ino = 0; ino < nno; ino++)
-                {
                     pp[ino] = new double[ndim];
                     for (int n = 0; n < ndim; n++)
                     {
-                        pp[ino][n] = coord_c[ino, n];
+                        pp[ino][n] = node.Coord[n];
                     }
                 }
                 // 面積を求める
                 double area = KerEMatTri.TriArea(pp[0], pp[1], pp[2]);
+                //Console.WriteLine("Elem No {0} area:  {1}", element.No, area);
+                System.Diagnostics.Debug.Assert(area >= 0.0);
 
                 // 面積座標の微分を求める
                 //   dldx[k, n] k面積座標Lkのn方向微分
                 double[,] dldx = null;
                 double[] const_term = null;
                 KerEMatTri.TriDlDx(out dldx, out const_term, pp[0], pp[1], pp[2]);
-                
+
                 // 形状関数の微分の係数を求める
                 //    dndxC[ino,n,k]  ino節点のn方向微分のLk(k面積座標)の係数
                 //       dNino/dn = dndxC[ino, n, 0] * L0 + dndxC[ino, n, 1] * L1 + dndxC[ino, n, 2] * L2 + dndxC[ino, n, 3]
-                double[,,] dndxC = new double[nno, ndim, vertexCnt + 1]
+                double[, ,] dndxC = new double[nno, ndim, vertexCnt + 1]
                 {
                     {
                         {4.0 * dldx[0, 0], 0.0, 0.0, -1.0 * dldx[0, 0]},
@@ -572,7 +566,7 @@ namespace HPlaneWGSimulator
                     },
                     {
                         {0.0, 0.0, 4.0 * dldx[2, 0], -1.0 * dldx[2, 0]},
-                        {0.0, 0.0, 4.0 * dldx[2, 1], -1.0 * dldx[2, 1]},                        
+                        {0.0, 0.0, 4.0 * dldx[2, 1], -1.0 * dldx[2, 1]},
                     },
                     {
                         {4.0 * dldx[1, 0], 4.0 * dldx[0, 0], 0.0, 0.0},
@@ -591,14 +585,14 @@ namespace HPlaneWGSimulator
                 // ∫dN/dndN/dn dxdy
                 //     integralDNDX[n, ino, jno]  n = 0 --> ∫dN/dxdN/dx dxdy
                 //                                n = 1 --> ∫dN/dydN/dy dxdy
-                double[,,] integralDNDX = new double[ndim, nno, nno];
+                double[, ,] integralDNDX = new double[ndim, nno, nno];
                 for (int n = 0; n < ndim; n++)
                 {
                     for (int ino = 0; ino < nno; ino++)
                     {
                         for (int jno = 0; jno < nno; jno++)
                         {
-                            integralDNDX[n, ino, jno] 
+                            integralDNDX[n, ino, jno]
                                 = area / 6.0 * (dndxC[ino, n, 0] * dndxC[jno, n, 0] + dndxC[ino, n, 1] * dndxC[jno, n, 1] + dndxC[ino, n, 2] * dndxC[jno, n, 2])
                                       + area / 12.0 * (dndxC[ino, n, 0] * dndxC[jno, n, 1] + dndxC[ino, n, 0] * dndxC[jno, n, 2]
                                                           + dndxC[ino, n, 1] * dndxC[jno, n, 0] + dndxC[ino, n, 1] * dndxC[jno, n, 2]
@@ -628,8 +622,8 @@ namespace HPlaneWGSimulator
                 {
                     for (int jno = 0; jno < nno; jno++)
                     {
-                        emat[ino, jno] = media.P[2, 2] * integralDNDX[1, ino, jno] + media.P[1, 1] * integralDNDX[0, ino, jno]
-                                             - k0 * k0 * media.Q[2, 2] * integralN[ino, jno];
+                        emat[ino, jno] = media_P[0, 0] * integralDNDX[1, ino, jno] + media_P[1, 1] * integralDNDX[0, ino, jno]
+                                             - k0 * k0 * media_Q[2, 2] * integralN[ino, jno];
                     }
                 }
                 // 要素剛性行列にマージする
@@ -647,7 +641,7 @@ namespace HPlaneWGSimulator
                         mat[inoGlobal, jnoGlobal] += emat[ino, jno];
                     }
                 }
-            }        
+            }
         }
 
         /// <summary>
@@ -971,8 +965,8 @@ namespace HPlaneWGSimulator
             // 固有値、固有ベクトル
             eigenValues = new Complex[maxMode];
             eigenVecs = new Complex[maxMode, nodeCnt];
-            // 固有モード解析でのみ使用するuzz_1d, tzz_1d
-            double[,] tzz_1d = new double[nodeCnt, nodeCnt];
+            // 固有モード解析でのみ使用するuzz_1d, txx_1d
+            double[,] txx_1d = new double[nodeCnt, nodeCnt];
             double[,] uzz_1d = new double[nodeCnt, nodeCnt];
             // ryy_1dマトリクス (線要素)
             ryy_1d = new double[nodeCnt, nodeCnt];
@@ -982,7 +976,7 @@ namespace HPlaneWGSimulator
                 for (int j = 0; j < nodeCnt; j++)
                 {
                     ryy_1d[i, j] = 0.0;
-                    tzz_1d[i, j] = 0.0;
+                    txx_1d[i, j] = 0.0;
                     uzz_1d[i, j] = 0.0;
                 }
             }
@@ -995,6 +989,9 @@ namespace HPlaneWGSimulator
                     elementCoords[n] = coords[nodeIndex];
                 }
                 double elen = Math.Abs(elementCoords[1] - elementCoords[0]);
+                double[,] media_P = media.P;
+                media_P = matrix_Inverse(media_P);
+                double[,] media_Q = media.Q;
 //                for (int n = 0; n < nno; n++)
 //                {
 //                    Console.WriteLine("{0},{1}", elementNodes[n], elementCoords[n]);
@@ -1024,23 +1021,32 @@ namespace HPlaneWGSimulator
                         if (!toSorted.ContainsKey(jnoBoundary)) continue;
                         jnoSorted = toSorted[jnoBoundary];
 
-                        tzz_1d[inoSorted, jnoSorted] += /*media.P[2, 2]*/1.0 * integralDNDY[ino, jno];
-                        ryy_1d[inoSorted, jnoSorted] += /*media.P[1, 1]*/1.0 * integralN[ino, jno];
-                        uzz_1d[inoSorted, jnoSorted] += /*media.Q[2, 2]*/1.0 * integralN[ino, jno];
+                        txx_1d[inoSorted, jnoSorted] += media_P[0, 0] * integralDNDY[ino, jno];
+                        ryy_1d[inoSorted, jnoSorted] += media_P[1, 1] * integralN[ino, jno];
+                        uzz_1d[inoSorted, jnoSorted] += media_Q[2, 2] * integralN[ino, jno];
                     }
                 }
             }
 
-            // [A] = [Tzz] - k0 * k0 *[Uzz]
-            double[,] matA = minus(tzz_1d, product((k0 * k0), uzz_1d));
+            // [A] = [Txx] - k0 * k0 *[Uzz]
+            double[,] matA = minus(txx_1d, product((k0 * k0), uzz_1d));
+            // [Ryy]-1[A]
             matA = product(matrix_Inverse(ryy_1d), matA);
 
             Complex[] evals = null;
             Complex[,] evecs = null;
-            // 固有値、固有ベクトルを求める
-            solveEigen(matA, out evals, out evecs);
-            // 固有値のソート
-            sort1DEigenMode(evals, evecs);
+            try
+            {
+                // 固有値、固有ベクトルを求める
+                solveEigen(matA, out evals, out evecs);
+                // 固有値のソート
+                sort1DEigenMode(evals, evecs);
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception.Message + " " + exception.StackTrace);
+                System.Diagnostics.Debug.Assert(false);
+            }
             int tagtModeIdx = evals.Length - 1;
             for (int imode = 0; imode < maxMode; imode++)
             {
@@ -1077,9 +1083,6 @@ namespace HPlaneWGSimulator
                 eigenValues[imode] = betam;
                 //Console.WriteLine("eigenValues [ " + imode + "] = " + betam.Real + " + " + betam.Imaginary + " i " + " tagtModeIdx :" + tagtModeIdx + " " );
                 //Console.WriteLine("β/k0 [ " + imode + "] = " + betam.Real/k0 + " + " + betam.Imaginary/k0 + " i " + " tagtModeIdx :" + tagtModeIdx + " " );
-                // 理論値と比較
-                //Complex betamStrict = getRectangleWaveGuideBeta(k0, imode, waveGuideWidth, 3.0) ; // er = 3.0
-                //Console.WriteLine("betam(Strict) [ " + imode + "] = " + betamStrict.Real + " + " + betamStrict.Imaginary + " i ");
                 // 固有ベクトルの格納(規格化定数を掛ける)
                 for (int inoSorted = 0; inoSorted < nodeCnt; inoSorted++)
                 {
@@ -1269,6 +1272,19 @@ namespace HPlaneWGSimulator
                 }
             }
         }
+        private static void printMatrixNoZero(string tag, Complex[,] mat)
+        {
+            for (int i = 0; i < mat.GetLength(0); i++)
+            {
+                for (int j = 0; j < mat.GetLength(1); j++)
+                {
+                    Complex val = mat[i, j];
+                    if (Complex.Abs(val) < 1.0e-12) continue;
+                    Console.WriteLine(tag + "(" + i + ", " + j + ")" + " = "
+                                       + "(" + val.Real + "," + val.Imaginary + ") ");
+                }
+            }
+        }
         private static void printVec(string tag, double[] vec)
         {
             for (int i = 0; i < vec.Length; i++)
@@ -1452,6 +1468,60 @@ namespace HPlaneWGSimulator
             return matX;
         }
 
+        private static Complex[,] product(Complex[,] matA, double[,] matB)
+        {
+            System.Diagnostics.Debug.Assert(matA.GetLength(1) == matB.GetLength(0));
+            Complex[,] matX = new Complex[matA.GetLength(0), matB.GetLength(1)];
+            for (int i = 0; i < matX.GetLength(0); i++)
+            {
+                for (int j = 0; j < matX.GetLength(1); j++)
+                {
+                    matX[i, j] = 0.0;
+                    for (int k = 0; k < matA.GetLength(1); k++)
+                    {
+                        matX[i, j] += matA[i, k] * matB[k, j];
+                    }
+                }
+            }
+            return matX;
+        }
+
+        private static Complex[,] product(double[,] matA, Complex[,] matB)
+        {
+            System.Diagnostics.Debug.Assert(matA.GetLength(1) == matB.GetLength(0));
+            Complex[,] matX = new Complex[matA.GetLength(0), matB.GetLength(1)];
+            for (int i = 0; i < matX.GetLength(0); i++)
+            {
+                for (int j = 0; j < matX.GetLength(1); j++)
+                {
+                    matX[i, j] = 0.0;
+                    for (int k = 0; k < matA.GetLength(1); k++)
+                    {
+                        matX[i, j] += matA[i, k] * matB[k, j];
+                    }
+                }
+            }
+            return matX;
+        }
+
+        private static Complex[,] product(Complex[,] matA, Complex[,] matB)
+        {
+            System.Diagnostics.Debug.Assert(matA.GetLength(1) == matB.GetLength(0));
+            Complex[,] matX = new Complex[matA.GetLength(0), matB.GetLength(1)];
+            for (int i = 0; i < matX.GetLength(0); i++)
+            {
+                for (int j = 0; j < matX.GetLength(1); j++)
+                {
+                    matX[i, j] = 0.0;
+                    for (int k = 0; k < matA.GetLength(1); k++)
+                    {
+                        matX[i, j] += matA[i, k] * matB[k, j];
+                    }
+                }
+            }
+            return matX;
+        }
+
         // [X] = [A] + [B]
         private static double[,] plus(double[,] matA, double[,] matB)
         {
@@ -1578,6 +1648,7 @@ namespace HPlaneWGSimulator
             }
             return vecX;
         }
+
 
         // [X] = [A] + [B]
         private static Complex[,] plus(Complex[,] matA, Complex[,] matB)
