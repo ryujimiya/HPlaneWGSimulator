@@ -127,7 +127,7 @@ namespace HPlaneWGSimulator
                 points[ino] = new Point(x, y) + ofs;
             }
             // 三角形を描画
-            using (Pen selectedPen = (Pen)Pens.Black.Clone())
+            using (Pen selectedPen = new Pen(Color.Black, 1))
             {
                 //selectedPen.DashStyle = System.Drawing.Drawing2D.DashStyle.Dot;
                 g.DrawPolygon(selectedPen, points);

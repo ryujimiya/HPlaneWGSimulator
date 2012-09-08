@@ -51,6 +51,7 @@ namespace HPlaneWGSimulator
             double minFreq = double.Parse(textBoxMinFreq.Text);
             double maxFreq = double.Parse(textBoxMaxFreq.Text);
             double deltaFreq = double.Parse(textBoxDeltaFreq.Text);
+            /* 規格化周波数の制限は外す
             if (minFreq < Constants.DefNormalizedFreqRange[0] - 1.0e-12 || minFreq > Constants.DefNormalizedFreqRange[1] + 1.0e-12)
             {
                 MessageBox.Show(string.Format("開始規格化周波数は{0:F2}～{0:F2}で指定してください", Constants.DefNormalizedFreqRange[0], Constants.DefNormalizedFreqRange[1]));
@@ -61,6 +62,7 @@ namespace HPlaneWGSimulator
                 MessageBox.Show(string.Format("終了規格化周波数は{0:F2}～{0:F2}で指定してください", Constants.DefNormalizedFreqRange[0], Constants.DefNormalizedFreqRange[1]));
                 return;
             }
+             */
             if (maxFreq - minFreq < 0.1 - 1.0e-12)
             {
                 MessageBox.Show("開始と終了は0.1以上離してください");

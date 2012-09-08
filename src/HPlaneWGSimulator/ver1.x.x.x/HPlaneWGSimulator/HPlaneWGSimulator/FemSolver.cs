@@ -157,6 +157,83 @@ namespace HPlaneWGSimulator
         }
 
         /// <summary>
+        /// 辺と要素の対応マップ作成
+        /// </summary>
+        /// <param name="in_Elements"></param>
+        /// <param name="out_EdgeToElementNoH"></param>
+        public static void MkEdgeToElementNoH(IList<FemElement> in_Elements, ref Dictionary<string, IList<int>> out_EdgeToElementNoH)
+        {
+            // 辺と要素の対応マップ作成
+            // 2次三角形要素の辺の始点、終点ローカル番号
+            int[][] edgeStEdNoList = new int[6][]
+                        {
+                            new int[]{1, 4},
+                            new int[]{4, 2},
+                            new int[]{2, 5},
+                            new int[]{5, 3},
+                            new int[]{3, 6},
+                            new int[]{6, 1}
+                        };
+            out_EdgeToElementNoH.Clear();
+            foreach (FemElement element in in_Elements)
+            {
+                foreach (int[] edgeStEdNo in edgeStEdNoList)
+                {
+                    int stNodeNumber = element.NodeNumbers[edgeStEdNo[0] - 1];
+                    int edNodeNumber = element.NodeNumbers[edgeStEdNo[1] - 1];
+                    string edgeKey = "";
+                    if (stNodeNumber < edNodeNumber)
+                    {
+                        edgeKey = string.Format("{0}_{1}", stNodeNumber, edNodeNumber);
+                    }
+                    else
+                    {
+                        edgeKey = string.Format("{0}_{1}", edNodeNumber, stNodeNumber);
+                    }
+                    if (out_EdgeToElementNoH.ContainsKey(edgeKey))
+                    {
+                        out_EdgeToElementNoH[edgeKey].Add(element.No);
+                    }
+                    else
+                    {
+                        out_EdgeToElementNoH[edgeKey] = new List<int>();
+                        out_EdgeToElementNoH[edgeKey].Add(element.No);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 節点と要素番号のマップ作成
+        /// </summary>
+        /// <param name="in_Elements"></param>
+        /// <param name="out_NodeToElementNoH"></param>
+        public static void MkNodeToElementNoH(IList<FemElement> in_Elements, ref Dictionary<int, IList<int>> out_NodeToElementNoH)
+        {
+            //check
+            for (int ieleno = 0; ieleno < in_Elements.Count; ieleno++)
+            {
+                System.Diagnostics.Debug.Assert(in_Elements[ieleno].No == ieleno + 1);
+            }
+            // 節点と要素番号のマップ作成
+            foreach (FemElement element in in_Elements)
+            {
+                foreach (int nodeNumber in element.NodeNumbers)
+                {
+                    if (out_NodeToElementNoH.ContainsKey(nodeNumber))
+                    {
+                        out_NodeToElementNoH[nodeNumber].Add(element.No);
+                    }
+                    else
+                    {
+                        out_NodeToElementNoH[nodeNumber] = new List<int>();
+                        out_NodeToElementNoH[nodeNumber].Add(element.No);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// 導波管幅の決定
         /// </summary>
         private void setupWaveguideWidth()
@@ -178,10 +255,12 @@ namespace HPlaneWGSimulator
         /// <summary>
         /// Fem入力データの取得
         /// </summary>
-        /// <param name="outNodes"></param>
-        /// <param name="outElements"></param>
-        /// <param name="outPortNodes"></param>
-        /// <param name="outForceNodes"></param>
+        /// <param name="outNodes">節点リスト</param>
+        /// <param name="outElements">要素リスト</param>
+        /// <param name="outPorts">ポート節点番号リストのリスト</param>
+        /// <param name="outForceNodes">強制境界節点番号リスト</param>
+        /// <param name="outIncidentPortNo">入射ポート番号</param>
+        /// <param name="outWaveguideWidth">導波路の幅</param>
         public void GetFemInputInfo(
             out FemNode[] outNodes, out FemElement[] outElements,
             out IList<int[]> outPorts,
@@ -301,7 +380,15 @@ namespace HPlaneWGSimulator
             // 始点と終点も計算するように変更
             for (int freqIndex = 0; freqIndex < calcFreqCnt + 1; freqIndex++)
             {
-                double waveLength = 2.0 * w1 / (Variables.NormalizedFreqRange[0] + freqIndex * deltaf);
+                double waveLength;
+                if ((Variables.NormalizedFreqRange[0] + freqIndex * deltaf) < 1.0e-12)
+                {
+                    waveLength = 2.0 * w1 / (Variables.NormalizedFreqRange[0] + 1.0e-4);
+                }
+                else
+                {
+                    waveLength = 2.0 * w1 / (Variables.NormalizedFreqRange[0] + freqIndex * deltaf);
+                }
                 Console.WriteLine("2w/lamda = {0}", 2.0 * w1 / waveLength);
                 int freqNo = freqIndex + 1;
                 runEach(freqNo, outfilename, waveLength, maxMode);
@@ -434,7 +521,6 @@ namespace HPlaneWGSimulator
                 scatterVec);
         }
 
-
         /// <summary>
         /// ヘルムホルツ方程式の剛性行列を作成する
         /// </summary>
@@ -446,28 +532,6 @@ namespace HPlaneWGSimulator
             nodesRegion = null;
             mat = null;
 
-            // 波数
-            double k0 = 2.0 * pi / waveLength;
-            // 角周波数
-            double omega = k0 * c0;
-            /*
-            // 媒質情報
-            MediaInfo media = new MediaInfo
-            (
-                new double[3, 3]
-                {
-                    { 1.0/1.0, 0.0,     0.0     },
-                    { 0.0,     1.0/1.0, 0.0     },
-                    { 0.0,     0.0,     1.0/1.0 }
-                },
-                new double[3, 3]
-                {
-                    { 1.0, 0.0, 0.0 },
-                    { 0.0, 1.0, 0.0 },
-                    { 0.0, 0.0, 1.0 }
-                }
-            );
-            */
             // 2D節点番号リスト（ソート済み）
             IList<int> sortedNodes = new List<int>();
             // 2D節点番号→ソート済みリストインデックスのマップ
@@ -496,17 +560,12 @@ namespace HPlaneWGSimulator
                 }
             }
 
-            // 要素頂点数
-            const int vertexCnt = 3;
-            // 要素内節点数
-            const int nno = 6;  // 2次三角形要素
-            // 座標次元数
-            const int ndim = 2;
             // 総節点数
             int nodeCnt = sortedNodes.Count;
 
             // 全体節点を配列に格納
             nodesRegion = sortedNodes.ToArray();
+
             // 全体剛性行列初期化
             mat = new Complex[nodeCnt, nodeCnt];
             for (int i = 0; i < nodeCnt; i++)
@@ -516,45 +575,69 @@ namespace HPlaneWGSimulator
                     mat[i, j] = new Complex();
                 }
             }
-
             foreach (FemElement element in Elements)
             {
-                int[] nodeNumbers = element.NodeNumbers;
-                int[] no_c = new int[nno];
-                MediaInfo media = Medias[element.MediaIndex];  // ver1.1.0.0 媒質情報の取得
-                double[,] media_P = media.P;
-                media_P = matrix_Inverse(media_P);
-                double[,] media_Q = media.Q;
-                // 節点座標(IFの都合上配列の配列形式の2次元配列を作成)
-                double[][] pp = new double[nno][];
-                for (int ino = 0; ino < nno; ino++)
+                addElementMat(waveLength, toSorted, element, ref mat);
+            }
+        }
+
+        /// <summary>
+        /// ヘルムホルツ方程式に対する有限要素マトリクス作成
+        /// </summary>
+        /// <param name="waveLength">波長</param>
+        /// <param name="toSorted">ソートされた節点インデックス（ 2D節点番号→ソート済みリストインデックスのマップ）</param>
+        /// <param name="element">有限要素</param>
+        /// <param name="mat">マージされる全体行列</param>
+        private void addElementMat(double waveLength, Dictionary<int, int> toSorted, FemElement element, ref Complex[,] mat)
+        {
+            // 波数
+            double k0 = 2.0 * pi / waveLength;
+            // 角周波数
+            double omega = k0 * c0;
+
+            // 要素頂点数
+            const int vertexCnt = 3;
+            // 要素内節点数
+            const int nno = 6;  // 2次三角形要素
+            // 座標次元数
+            const int ndim = 2;
+
+            int[] nodeNumbers = element.NodeNumbers;
+            int[] no_c = new int[nno];
+            MediaInfo media = Medias[element.MediaIndex];  // ver1.1.0.0 媒質情報の取得
+            double[,] media_P = media.P;
+            media_P = matrix_Inverse(media_P);
+            double[,] media_Q = media.Q;
+            // 節点座標(IFの都合上配列の配列形式の2次元配列を作成)
+            double[][] pp = new double[nno][];
+            for (int ino = 0; ino < nno; ino++)
+            {
+                int nodeNumber = nodeNumbers[ino];
+                int nodeIndex = nodeNumber - 1;
+                FemNode node = Nodes[nodeIndex];
+
+                no_c[ino] = nodeNumber;
+                pp[ino] = new double[ndim];
+                for (int n = 0; n < ndim; n++)
                 {
-                    int nodeNumber = nodeNumbers[ino];
-                    int nodeIndex = nodeNumber - 1;
-                    FemNode node = Nodes[nodeIndex];
-
-                    no_c[ino] = nodeNumber;
-                    pp[ino] = new double[ndim];
-                    for (int n = 0; n < ndim; n++)
-                    {
-                        pp[ino][n] = node.Coord[n];
-                    }
+                    pp[ino][n] = node.Coord[n];
                 }
-                // 面積を求める
-                double area = KerEMatTri.TriArea(pp[0], pp[1], pp[2]);
-                //Console.WriteLine("Elem No {0} area:  {1}", element.No, area);
-                System.Diagnostics.Debug.Assert(area >= 0.0);
+            }
+            // 面積を求める
+            double area = KerEMatTri.TriArea(pp[0], pp[1], pp[2]);
+            //Console.WriteLine("Elem No {0} area:  {1}", element.No, area);
+            System.Diagnostics.Debug.Assert(area >= 0.0);
 
-                // 面積座標の微分を求める
-                //   dldx[k, n] k面積座標Lkのn方向微分
-                double[,] dldx = null;
-                double[] const_term = null;
-                KerEMatTri.TriDlDx(out dldx, out const_term, pp[0], pp[1], pp[2]);
+            // 面積座標の微分を求める
+            //   dldx[k, n] k面積座標Lkのn方向微分
+            double[,] dldx = null;
+            double[] const_term = null;
+            KerEMatTri.TriDlDx(out dldx, out const_term, pp[0], pp[1], pp[2]);
 
-                // 形状関数の微分の係数を求める
-                //    dndxC[ino,n,k]  ino節点のn方向微分のLk(k面積座標)の係数
-                //       dNino/dn = dndxC[ino, n, 0] * L0 + dndxC[ino, n, 1] * L1 + dndxC[ino, n, 2] * L2 + dndxC[ino, n, 3]
-                double[, ,] dndxC = new double[nno, ndim, vertexCnt + 1]
+            // 形状関数の微分の係数を求める
+            //    dndxC[ino,n,k]  ino節点のn方向微分のLk(k面積座標)の係数
+            //       dNino/dn = dndxC[ino, n, 0] * L0 + dndxC[ino, n, 1] * L1 + dndxC[ino, n, 2] * L2 + dndxC[ino, n, 3]
+            double[, ,] dndxC = new double[nno, ndim, vertexCnt + 1]
                 {
                     {
                         {4.0 * dldx[0, 0], 0.0, 0.0, -1.0 * dldx[0, 0]},
@@ -582,31 +665,31 @@ namespace HPlaneWGSimulator
                     },
                 };
 
-                // ∫dN/dndN/dn dxdy
-                //     integralDNDX[n, ino, jno]  n = 0 --> ∫dN/dxdN/dx dxdy
-                //                                n = 1 --> ∫dN/dydN/dy dxdy
-                double[, ,] integralDNDX = new double[ndim, nno, nno];
-                for (int n = 0; n < ndim; n++)
+            // ∫dN/dndN/dn dxdy
+            //     integralDNDX[n, ino, jno]  n = 0 --> ∫dN/dxdN/dx dxdy
+            //                                n = 1 --> ∫dN/dydN/dy dxdy
+            double[, ,] integralDNDX = new double[ndim, nno, nno];
+            for (int n = 0; n < ndim; n++)
+            {
+                for (int ino = 0; ino < nno; ino++)
                 {
-                    for (int ino = 0; ino < nno; ino++)
+                    for (int jno = 0; jno < nno; jno++)
                     {
-                        for (int jno = 0; jno < nno; jno++)
-                        {
-                            integralDNDX[n, ino, jno]
-                                = area / 6.0 * (dndxC[ino, n, 0] * dndxC[jno, n, 0] + dndxC[ino, n, 1] * dndxC[jno, n, 1] + dndxC[ino, n, 2] * dndxC[jno, n, 2])
-                                      + area / 12.0 * (dndxC[ino, n, 0] * dndxC[jno, n, 1] + dndxC[ino, n, 0] * dndxC[jno, n, 2]
-                                                          + dndxC[ino, n, 1] * dndxC[jno, n, 0] + dndxC[ino, n, 1] * dndxC[jno, n, 2]
-                                                          + dndxC[ino, n, 2] * dndxC[jno, n, 0] + dndxC[ino, n, 2] * dndxC[jno, n, 1])
-                                      + area / 3.0 * (dndxC[ino, n, 0] * dndxC[jno, n, 3] + dndxC[ino, n, 1] * dndxC[jno, n, 3]
-                                                          + dndxC[ino, n, 2] * dndxC[jno, n, 3]
-                                                          + dndxC[ino, n, 3] * dndxC[jno, n, 0] + dndxC[ino, n, 3] * dndxC[jno, n, 1]
-                                                          + dndxC[ino, n, 3] * dndxC[jno, n, 2])
-                                      + area * dndxC[ino, n, 3] * dndxC[jno, n, 3];
-                        }
+                        integralDNDX[n, ino, jno]
+                            = area / 6.0 * (dndxC[ino, n, 0] * dndxC[jno, n, 0] + dndxC[ino, n, 1] * dndxC[jno, n, 1] + dndxC[ino, n, 2] * dndxC[jno, n, 2])
+                                  + area / 12.0 * (dndxC[ino, n, 0] * dndxC[jno, n, 1] + dndxC[ino, n, 0] * dndxC[jno, n, 2]
+                                                      + dndxC[ino, n, 1] * dndxC[jno, n, 0] + dndxC[ino, n, 1] * dndxC[jno, n, 2]
+                                                      + dndxC[ino, n, 2] * dndxC[jno, n, 0] + dndxC[ino, n, 2] * dndxC[jno, n, 1])
+                                  + area / 3.0 * (dndxC[ino, n, 0] * dndxC[jno, n, 3] + dndxC[ino, n, 1] * dndxC[jno, n, 3]
+                                                      + dndxC[ino, n, 2] * dndxC[jno, n, 3]
+                                                      + dndxC[ino, n, 3] * dndxC[jno, n, 0] + dndxC[ino, n, 3] * dndxC[jno, n, 1]
+                                                      + dndxC[ino, n, 3] * dndxC[jno, n, 2])
+                                  + area * dndxC[ino, n, 3] * dndxC[jno, n, 3];
                     }
                 }
-                // ∫N N dxdy
-                double[,] integralN = new double[nno, nno]
+            }
+            // ∫N N dxdy
+            double[,] integralN = new double[nno, nno]
                 {
                     {  6.0 * area / 180.0, -1.0 * area / 180.0, -1.0 * area / 180.0,                 0.0, -4.0 * area / 180.0,                 0.0},
                     { -1.0 * area / 180.0,  6.0 * area / 180.0, -1.0 * area / 180.0,                 0.0,                 0.0, -4.0 * area / 180.0},
@@ -616,30 +699,30 @@ namespace HPlaneWGSimulator
                     {                 0.0, -4.0 * area / 180.0,                 0.0, 16.0 * area / 180.0, 16.0 * area / 180.0, 32.0 * area / 180.0},
                 };
 
-                // 要素剛性行列を作る
-                Complex[,] emat = new Complex[nno, nno];
-                for (int ino = 0; ino < nno; ino++)
+            // 要素剛性行列を作る
+            Complex[,] emat = new Complex[nno, nno];
+            for (int ino = 0; ino < nno; ino++)
+            {
+                for (int jno = 0; jno < nno; jno++)
                 {
-                    for (int jno = 0; jno < nno; jno++)
-                    {
-                        emat[ino, jno] = media_P[0, 0] * integralDNDX[1, ino, jno] + media_P[1, 1] * integralDNDX[0, ino, jno]
-                                             - k0 * k0 * media_Q[2, 2] * integralN[ino, jno];
-                    }
+                    emat[ino, jno] = media_P[0, 0] * integralDNDX[1, ino, jno] + media_P[1, 1] * integralDNDX[0, ino, jno]
+                                         - k0 * k0 * media_Q[2, 2] * integralN[ino, jno];
                 }
-                // 要素剛性行列にマージする
-                for (int ino = 0; ino < nno; ino++)
-                {
-                    int iNodeNumber = no_c[ino];
-                    if (ForceNodeNumberH.ContainsKey(iNodeNumber)) continue;
-                    int inoGlobal = toSorted[iNodeNumber];
-                    for (int jno = 0; jno < nno; jno++)
-                    {
-                        int jNodeNumber = no_c[jno];
-                        if (ForceNodeNumberH.ContainsKey(jNodeNumber)) continue;
-                        int jnoGlobal = toSorted[jNodeNumber];
+            }
 
-                        mat[inoGlobal, jnoGlobal] += emat[ino, jno];
-                    }
+            // 要素剛性行列にマージする
+            for (int ino = 0; ino < nno; ino++)
+            {
+                int iNodeNumber = no_c[ino];
+                if (ForceNodeNumberH.ContainsKey(iNodeNumber)) continue;
+                int inoGlobal = toSorted[iNodeNumber];
+                for (int jno = 0; jno < nno; jno++)
+                {
+                    int jNodeNumber = no_c[jno];
+                    if (ForceNodeNumberH.ContainsKey(jNodeNumber)) continue;
+                    int jnoGlobal = toSorted[jNodeNumber];
+
+                    mat[inoGlobal, jnoGlobal] += emat[ino, jno];
                 }
             }
         }
@@ -853,22 +936,6 @@ namespace HPlaneWGSimulator
             double k0 = 2.0 * pi / waveLength;
             // 角周波数
             double omega = k0 * c0;
-            // 媒質情報
-            MediaInfo media = new MediaInfo
-            (
-                new double[3, 3]
-                {
-                    { 1.0/1.0, 0.0,     0.0     },
-                    { 0.0,     1.0/1.0, 0.0     },
-                    { 0.0,     0.0,     1.0/1.0 }
-                },
-                new double[3, 3]
-                {
-                    { 1.0, 0.0, 0.0 },
-                    { 0.0, 1.0, 0.0 },
-                    { 0.0, 0.0, 1.0 }
-                }
-            );
             // 節点番号リスト(要素インデックス: 1D節点番号 - 1 要素:2D節点番号)
             IList<int> nodes = Ports[portNo - 1];
             // 2D→1D節点番号マップ
@@ -876,7 +943,7 @@ namespace HPlaneWGSimulator
             // 節点座標リスト
             IList<double> coords = new List<double>();
             // 要素リスト
-            IList<int[]> elements = new List<int[]>();
+            IList<FemElement> elements = new List<FemElement>();
             // 1D強制境界節点リスト
 //            IList<int> forceNodes = new List<int>();
             // 1D節点番号リスト（ソート済み）
@@ -911,20 +978,24 @@ namespace HPlaneWGSimulator
                 double x = getDistance(coord, coord0);
                 //Console.WriteLine("{0},{1},{2},{3}", nodeIndex, coord[0], coord[1], x);
                 coords.Add(x);
-            }            
+            }
+
             // 要素リスト作成
             int elemCnt = (nodes.Count - 1) / 2 ;
-            for (int eno = 0; eno < elemCnt; eno++)
+            for (int elemIndex = 0; elemIndex < elemCnt; elemIndex++)
             {
                 // 線要素の要素内節点
                 // 節点番号はポート上の1D節点番号(1起点の番号)
                 //  1   3   2
                 //  +---+---+   並びに注意:頂点→内部の点
-                int[] elementNodes = new int[nno];
-                elementNodes[0] = 2 * eno     + 1;
-                elementNodes[1] = 2 * eno + 2 + 1;
-                elementNodes[2] = 2 * eno + 1 + 1;
-                elements.Add(elementNodes);
+                FemElement element = new FemElement();
+                element.No = elemIndex + 1;
+                element.NodeNumbers = new int[nno];
+                element.NodeNumbers[0] = 2 * elemIndex     + 1;
+                element.NodeNumbers[1] = 2 * elemIndex + 2 + 1;
+                element.NodeNumbers[2] = 2 * elemIndex + 1 + 1;
+                element.MediaIndex = 0;
+                elements.Add(element);
             }
             Console.WriteLine("force Nodes");
             // 強制境界節点と内部領域節点を分離
@@ -980,52 +1051,11 @@ namespace HPlaneWGSimulator
                     uzz_1d[i, j] = 0.0;
                 }
             }
-            foreach (int[] elementNodes in elements)
+            for (int elemIndex = 0; elemIndex < elements.Count; elemIndex++)
             {
-                double[] elementCoords = new double[nno];
-                for (int n = 0; n < nno; n++)
-                {
-                    int nodeIndex = elementNodes[n] - 1;
-                    elementCoords[n] = coords[nodeIndex];
-                }
-                double elen = Math.Abs(elementCoords[1] - elementCoords[0]);
-                double[,] media_P = media.P;
-                media_P = matrix_Inverse(media_P);
-                double[,] media_Q = media.Q;
-//                for (int n = 0; n < nno; n++)
-//                {
-//                    Console.WriteLine("{0},{1}", elementNodes[n], elementCoords[n]);
-//                }
-                double[,] integralN = new double[nno, nno]
-                {
-                    {  4.0 / 30.0 * elen, -1.0 / 30.0 * elen,  2.0 / 30.0 * elen },
-                    { -1.0 / 30.0 * elen,  4.0 / 30.0 * elen,  2.0 / 30.0 * elen },
-                    {  2.0 / 30.0 * elen,  2.0 / 30.0 * elen, 16.0 / 30.0 * elen },
-                };
-                double[,] integralDNDY = new double[nno, nno]
-                {
-                    {  7.0 / (3.0 * elen),  1.0 / (3.0 * elen), -8.0 / (3.0 * elen) },
-                    {  1.0 / (3.0 * elen),  7.0 / (3.0 * elen), -8.0 / (3.0 * elen) },
-                    { -8.0 / (3.0 * elen), -8.0 / (3.0 * elen), 16.0 / (3.0 * elen) },
-                };
-                for (int ino = 0; ino < nno; ino++)
-                {
-                    int inoBoundary = elementNodes[ino];
-                    int inoSorted;
-                    if (!toSorted.ContainsKey(inoBoundary)) continue;
-                    inoSorted = toSorted[inoBoundary];
-                    for (int jno = 0; jno < nno; jno++)
-                    {
-                        int jnoBoundary = elementNodes[jno];
-                        int jnoSorted;
-                        if (!toSorted.ContainsKey(jnoBoundary)) continue;
-                        jnoSorted = toSorted[jnoBoundary];
-
-                        txx_1d[inoSorted, jnoSorted] += media_P[0, 0] * integralDNDY[ino, jno];
-                        ryy_1d[inoSorted, jnoSorted] += media_P[1, 1] * integralN[ino, jno];
-                        uzz_1d[inoSorted, jnoSorted] += media_Q[2, 2] * integralN[ino, jno];
-                    }
-                }
+                // ２次線要素
+                FemElement element = elements[elemIndex];
+                addElementMatOf1dEigenValueProblem(element, coords, toSorted, ref txx_1d, ref ryy_1d, ref uzz_1d);
             }
 
             // [A] = [Txx] - k0 * k0 *[Uzz]
@@ -1092,6 +1122,71 @@ namespace HPlaneWGSimulator
                 }
 
                 tagtModeIdx--;
+            }
+        }
+
+        /// <summary>
+        /// 1Dヘルムホルツ方程式固有値問題の要素行列を加算する
+        /// </summary>
+        /// <param name="element">線要素</param>
+        /// <param name="coords">座標リスト</param>
+        /// <param name="toSorted">節点番号→ソート済み節点インデックスマップ</param>
+        /// <param name="txx_1d">txx行列</param>
+        /// <param name="ryy_1d">ryy行列</param>
+        /// <param name="uzz_1d">uzz行列</param>
+        private void addElementMatOf1dEigenValueProblem(FemElement element, IList<double> coords, Dictionary<int, int> toSorted, ref double[,] txx_1d, ref double[,] ryy_1d, ref double[,] uzz_1d)
+        {
+            // ２次線要素
+            const int nno = 3;
+            
+            int[] nodeNumbers = element.NodeNumbers;
+            System.Diagnostics.Debug.Assert(nno == nodeNumbers.Length);
+
+            // 座標の取得
+            double[] elementCoords = new double[nno];
+            for (int n = 0; n < nno; n++)
+            {
+                int nodeIndex = nodeNumbers[n] - 1;
+                elementCoords[n] = coords[nodeIndex];
+            }
+            // 線要素の長さ
+            double elen = Math.Abs(elementCoords[1] - elementCoords[0]);
+            // 媒質インデックス
+            int mediaIndex = element.MediaIndex;
+            // 媒質
+            MediaInfo media = Medias[mediaIndex];
+            double[,] media_P = media.P;
+            media_P = matrix_Inverse(media_P);
+            double[,] media_Q = media.Q;
+            double[,] integralN = new double[nno, nno]
+                {
+                    {  4.0 / 30.0 * elen, -1.0 / 30.0 * elen,  2.0 / 30.0 * elen },
+                    { -1.0 / 30.0 * elen,  4.0 / 30.0 * elen,  2.0 / 30.0 * elen },
+                    {  2.0 / 30.0 * elen,  2.0 / 30.0 * elen, 16.0 / 30.0 * elen },
+                };
+            double[,] integralDNDY = new double[nno, nno]
+                {
+                    {  7.0 / (3.0 * elen),  1.0 / (3.0 * elen), -8.0 / (3.0 * elen) },
+                    {  1.0 / (3.0 * elen),  7.0 / (3.0 * elen), -8.0 / (3.0 * elen) },
+                    { -8.0 / (3.0 * elen), -8.0 / (3.0 * elen), 16.0 / (3.0 * elen) },
+                };
+            for (int ino = 0; ino < nno; ino++)
+            {
+                int inoBoundary = nodeNumbers[ino];
+                int inoSorted;
+                if (!toSorted.ContainsKey(inoBoundary)) continue;
+                inoSorted = toSorted[inoBoundary];
+                for (int jno = 0; jno < nno; jno++)
+                {
+                    int jnoBoundary = nodeNumbers[jno];
+                    int jnoSorted;
+                    if (!toSorted.ContainsKey(jnoBoundary)) continue;
+                    jnoSorted = toSorted[jnoBoundary];
+
+                    txx_1d[inoSorted, jnoSorted] += media_P[0, 0] * integralDNDY[ino, jno];
+                    ryy_1d[inoSorted, jnoSorted] += media_P[1, 1] * integralN[ino, jno];
+                    uzz_1d[inoSorted, jnoSorted] += media_Q[2, 2] * integralN[ino, jno];
+                }
             }
         }
 

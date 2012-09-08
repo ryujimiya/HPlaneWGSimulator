@@ -1049,6 +1049,181 @@ namespace KrdLab {
 				return ret;
 			}
 
+			/// <summary>
+			/// <para>固有値分解</para>
+			/// <para>計算された固有ベクトルは，大きさ（ユークリッドノルム）が 1 に規格化されている．</para>
+			/// </summary>
+			/// <param name="X">固有値分解される行列（計算の過程で上書きされる）</param>
+			/// <param name="x_row">行列 <paramref name="X"/> の行数</param>
+			/// <param name="x_col">行列 <paramref name="X"/> の列数</param>
+			/// <param name="evals">固有値</param>
+			/// <param name="evecs">固有ベクトル</param>
+			/// <returns>常に 0 が返ってくる．</returns>
+			/// <remarks>
+			/// <para>対応するCLAPACK関数（CLAPACK/BLAS/SRC/zgeev.c）</para>
+			/// <code>
+            /// int zgeev_(char *jobvl, char *jobvr, integer *n, 
+            ///            doublecomplex *a, integer *lda, doublecomplex *w, doublecomplex *vl, 
+            ///            integer *ldvl, doublecomplex *vr, integer *ldvr, doublecomplex *work, 
+            ///            integer *lwork, doublereal *rwork, integer *info)
+			/// </code>
+			/// </remarks>
+			static int zgeev(array<System::Numerics::Complex^>^ X, int x_row, int x_col,
+							 array<System::Numerics::Complex^>^% evals,
+							 array< array<System::Numerics::Complex^>^ >^% evecs)
+			{
+				char jobvl = 'N';
+				// 左固有ベクトルを
+				//   if jobvl == 'V' then 計算する
+				//   if jobvl == 'N' then 計算しない
+
+				char jobvr = 'V';
+				// 右固有ベクトルを
+				//   if jobvr == 'V' then 計算する
+				//   if jobvr == 'N' then 計算しない
+
+				integer n = x_col;
+				// 行列 X の大きさ（N×Nなので，片方だけでよい）
+				
+				integer lda = n;
+				// the leading dimension of the array A. lda >= max(1, N).
+
+				/////pin_ptr<doublereal> a = &X[0];
+                doublecomplex* a = new doublecomplex[x_row * x_col];
+                for (int i = 0; i < x_row * x_col; i++)
+                {
+                    doublecomplex v;
+                    v.r = X[i]->Real;
+                    v.i = X[i]->Imaginary;
+                    a[i] = v;                    
+                }
+
+                // [lda, n] N×N の行列 X
+				// 配列 a （行列 X）は，計算の過程で上書きされる．			
+				
+				doublecomplex* w = new doublecomplex[n];
+				
+
+				/*
+				 * ※左固有ベクトルは計算しない
+				 */
+				
+
+				integer ldvl = 1;
+				// 必ず 1 <= ldvl を満たす必要がある．
+				// if jobvl == 'V' then N <= ldvl
+
+				doublecomplex* vl = nullptr;
+				// vl is not referenced, because jobvl == 'N'.
+				
+				/*
+				 * ※右固有ベクトルは計算する
+				 */
+
+				integer ldvr = n;
+				// 必ず 1 <= ldvr を満たす必要がある．
+				// if jobvr == 'V' then N <= ldvr
+
+				doublecomplex* vr = new doublecomplex[ldvr * n];
+				// if jobvr == 'V' then 右固有ベクトルが vr の各列に，固有値と同じ順序で格納される．
+				// if jobvr == 'N' then vr is not referenced.
+				//
+				// wi[i] が 0 でないとき（固有値が複素共役対のとき）
+				//     実部          虚部
+				// vr[   0, i]  vr[   0, i+1]
+				// vr[   1, i]  vr[   1, i+1]
+				//            ...
+				// vr[ldvr, i]  vr[ldvr, i+1]
+				// のように格納される．
+				// （↓ソースのコメントより）
+				// If the j-th eigenvalue is real, then v(j) = VR(:,j), the j-th column of VR.
+				// If the j-th and (j+1)-st eigenvalues form a complex conjugate pair, then v(j) = VR(:,j) + i*VR(:,j+1) and v(j+1) = VR(:,j) - i*VR(:,j+1).
+				
+				
+				//
+				// その他
+
+				integer lwork = 4*n;
+				// max(1, 3*N) <= lwork
+				// if jobvl == 'V' or jobvr == 'V' then 4*N <= lwork
+				// 良いパフォーマンスを得るために，大抵の場合 lwork は大きくすべきだ．
+				doublecomplex* work = new doublecomplex[lwork];
+				// if info == 0 then work[0] returns the optimal lwork.
+
+                doublereal* rwork = new doublereal[2 * n];
+				
+				integer info = 0;
+				// if info == 0 then 正常終了
+				// if info <  0 then -info 番目の引数の値が間違っている．
+				// if info >  0 then QRアルゴリズムは，全ての固有値を計算できなかった．
+				//                   固有ベクトルは計算されていない．
+				//                   wr[info+1:N] と wl[info+1:N] には，収束した固有値が含まれている．
+				
+				
+				int ret;
+				try
+				{
+					// CLAPACKルーチン
+					ret = zgeev_(&jobvl, &jobvr, &n, a, &lda, w, vl, &ldvl, vr, &ldvr, work, &lwork, rwork, &info);
+
+					if(info == 0)
+					{
+						//
+						// 固有値を格納
+						evals = gcnew array<System::Numerics::Complex^>(n);
+
+						//this->eigenValues = gcnew Generic::List<double>();
+						//this->imaginalyEigenValues = gcnew Generic::List<double>();
+						
+						for(int i=0; i<n; ++i)
+						{
+                            evals[i] = gcnew System::Numerics::Complex(w[i].r, w[i].i);
+						}
+						
+						//
+						// 固有ベクトルを格納
+						evecs = gcnew array< array<System::Numerics::Complex^>^ >(n);
+						
+						//this->eigenVectors = gcnew Generic::List<Vector^>();
+						//this->imaginalyEigenVectors = gcnew Generic::List<Vector^>();
+						
+						for(int i=0; i<n; ++i)
+						{
+						    // 通常の格納処理
+							evecs[i] = gcnew array<System::Numerics::Complex^>(ldvr);
+
+							for(int j=0; j<ldvr; ++j)
+							{
+                                doublecomplex v = vr[i*ldvr + j];
+								evecs[i][j] = gcnew System::Numerics::Complex(v.r, v.i);
+							}
+						}// end for i
+					}// end if info == 0
+					else
+					{
+						if(info < 0)
+						{
+							throw gcnew IllegalClapackArgumentException(
+								"Error occurred: " + -info
+									+ "-th argument had an illegal value in the clapack.Function.dgeev", -info);
+						}
+						else
+						{
+							throw gcnew IllegalClapackResultException("Error occurred: dgeev_", info);
+						}
+					}
+				}
+				finally
+				{
+					// unmanaged code の後始末
+					delete[] w; w = nullptr;
+					delete[] vr; vr = nullptr;
+					delete[] work; work = nullptr;
+                    delete[] rwork; rwork = nullptr;
+				}
+
+				return ret;
+			}
 		};
 
 	}// end namespace clapack

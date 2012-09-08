@@ -678,9 +678,12 @@ namespace HPlaneWGSimulator
                 PostPro.DrawField(g, FValuePanel);
                 if (PostPro != null && btnCalc.Text == "計算キャンセル")
                 {
+                    //見づらいので削除
                     // 計算実行中はメッシュ表示
-                    PostPro.DrawMesh(g, FValuePanel, true);
+                    //PostPro.DrawMesh(g, FValuePanel, true);
                 }
+                // 媒質の境界を表示
+                PostPro.DrawMediaB(g, FValuePanel, true);
             }
         }
 
@@ -1384,6 +1387,9 @@ namespace HPlaneWGSimulator
                 int firstFreqNo;
                 int lastFreqNo;
                 int cnt = PostPro.GetCalculatedFreqCnt(FemOutputDatFilePath, out firstFreqNo, out lastFreqNo);
+                double firstNormalizedFreq = Variables.NormalizedFreqRange[0];
+                double lastNormalizedFreq = Variables.NormalizedFreqRange[1];
+                double freqDelta = (Variables.NormalizedFreqRange[1] - Variables.NormalizedFreqRange[0]) / Variables.CalcFreqencyPointCount;
                 for (int freqIndex = firstFreqNo - 1; freqIndex <= lastFreqNo - 1; freqIndex++)
                 {
                     int freqNo = freqIndex + 1;
@@ -1394,6 +1400,17 @@ namespace HPlaneWGSimulator
                         continue;  // 計算失敗を考慮
                     }
                     loadcnt++; // 計算失敗を考慮
+
+                    double normalizedFreq = PostPro.GetNormalizedFrequency();
+                    if (loadcnt == 1)
+                    {
+                        firstNormalizedFreq = normalizedFreq;
+                    }
+                    else if (loadcnt == 2)
+                    {
+                        freqDelta = (normalizedFreq - firstNormalizedFreq) / (freqNo - firstFreqNo);
+                    }
+                    lastNormalizedFreq = normalizedFreq;
 
                     // Sマトリックス周波数特性グラフに計算した点を追加
                     PostPro.AddScatterMatrixToChart(SMatChart);
@@ -1408,6 +1425,16 @@ namespace HPlaneWGSimulator
                     //描画の途中経過を表示
                     Application.DoEvents();
                 }
+                // 計算開始、終了、計算間隔の再設定
+                freqDelta = Math.Round(freqDelta, 2);  // 小数点2桁まで
+                firstNormalizedFreq = Math.Round(firstNormalizedFreq, 1); // 小数点1桁まで
+                lastNormalizedFreq = Math.Round(lastNormalizedFreq, 1); // 小数点1桁まで
+                Variables.NormalizedFreqRange[0] = (firstNormalizedFreq < Constants.DefNormalizedFreqRange[0]) ? firstNormalizedFreq : Constants.DefNormalizedFreqRange[0];
+                Variables.NormalizedFreqRange[1] = (lastNormalizedFreq > Constants.DefNormalizedFreqRange[1]) ? lastNormalizedFreq : Constants.DefNormalizedFreqRange[1];
+                int calcCnt = (int)((double)(Variables.NormalizedFreqRange[1] - Variables.NormalizedFreqRange[0]) / freqDelta);
+                Variables.CalcFreqencyPointCount = calcCnt > 1 ? calcCnt : 1;
+                PostPro.SetChartFreqRange(SMatChart);
+                PostPro.SetChartFreqRange(BetaChart);
 
                 // 周波数
                 //FreqNo = 1;

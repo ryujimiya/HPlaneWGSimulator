@@ -70,10 +70,6 @@ namespace HPlaneWGSimulator
         /// </summary>
         private int[] NodesRegion;
         /// <summary>
-        /// 領域内節点の節点番号→インデックスマップ
-        /// </summary>
-        private Dictionary<int, int> NodesRegionToIndex = new Dictionary<int,int>();
-        /// <summary>
         /// フィールド値リスト
         /// </summary>
         private Complex[] ValuesAll = null;
@@ -93,6 +89,11 @@ namespace HPlaneWGSimulator
         /// フィールド値凡例の色パネル
         /// </summary>
         Panel FValueLegendColorPanel = null;
+        /// <summary>
+        /// 媒質境界の辺のリスト
+        ///   辺は"節点番号_節点番号"として格納
+        /// </summary>
+        private IList<string> MediaBEdgeList = new List<string>();
 
         /// <summary>
         /// コンストラクタ
@@ -124,10 +125,10 @@ namespace HPlaneWGSimulator
             WaveLength = 0;
             MaxMode = 0;
             NodesBoundaryList.Clear();
+            MediaBEdgeList.Clear();
             EigenValuesList.Clear();
             EigenVecsList.Clear();
             NodesRegion = null;
-            NodesRegionToIndex.Clear();
             ValuesAll = null;
             ScatterMat = null;
         }
@@ -248,22 +249,60 @@ namespace HPlaneWGSimulator
                 System.Diagnostics.Debug.Assert(incidentPortNo == IncidentPortNo);
 
                 // 追加処理
-                // 節点番号→インデックスのマップ作成
-                for (int ino = 0; ino < NodesRegion.Length; ino++)
-                {
-                    int nodeNumber = NodesRegion[ino];
-                    if (!NodesRegionToIndex.ContainsKey(nodeNumber))
-                    {
-                        NodesRegionToIndex.Add(nodeNumber, ino);
-                    }
-                }
-                // 要素リストにフィールド値を格納
-                foreach (FemElement element in Elements)
-                {
-                    element.SetFieldValueFromAllValues(ValuesAll, NodesRegionToIndex);
-                }
+                setupFieldValueToElements();
+
+                // 媒質境界の辺を取得する
+                setupMediaBEdgeList();
             }
             return ret;
+        }
+
+        /// <summary>
+        /// 要素にフィールド値をセットする
+        /// </summary>
+        private void setupFieldValueToElements()
+        {
+            /// 領域内節点の節点番号→インデックスマップ
+            Dictionary<int, int> nodesRegionToIndex = new Dictionary<int, int>();
+            // 節点番号→インデックスのマップ作成
+            for (int ino = 0; ino < NodesRegion.Length; ino++)
+            {
+                int nodeNumber = NodesRegion[ino];
+                if (!nodesRegionToIndex.ContainsKey(nodeNumber))
+                {
+                    nodesRegionToIndex.Add(nodeNumber, ino);
+                }
+            }
+            // 要素リストにフィールド値を格納
+            foreach (FemElement element in Elements)
+            {
+                element.SetFieldValueFromAllValues(ValuesAll, nodesRegionToIndex);
+            }
+        }
+
+        /// <summary>
+        /// 媒質境界の辺を取得
+        /// </summary>
+        private void setupMediaBEdgeList()
+        {
+            // 辺と要素番号の対応マップを取得
+            Dictionary<string, IList<int>> edgeToElementNoH = new Dictionary<string, IList<int>>();
+            FemSolver.MkEdgeToElementNoH(Elements, ref edgeToElementNoH);
+
+            MediaBEdgeList.Clear();
+            // 媒質の境界の辺を取得
+            foreach (KeyValuePair<string, IList<int>> pair in edgeToElementNoH)
+            {
+                string edgeKeyStr = pair.Key;
+                IList<int> elementNoList = pair.Value;
+                if (elementNoList.Count >= 2)
+                {
+                    if (Elements[elementNoList[0] - 1].MediaIndex != Elements[elementNoList[1] - 1].MediaIndex)
+                    {
+                        MediaBEdgeList.Add(edgeKeyStr);
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -329,10 +368,6 @@ namespace HPlaneWGSimulator
             {
                 return isReady;
             }
-            if (NodesRegionToIndex.Count == 0)
-            {
-                return isReady;
-            }
             if (ValuesAll == null)
             {
                 return isReady;
@@ -345,7 +380,7 @@ namespace HPlaneWGSimulator
             isReady = true;
             return isReady;
         }
-
+        
         /// <summary>
         /// メッシュ描画
         /// </summary>
@@ -500,6 +535,62 @@ namespace HPlaneWGSimulator
         }
 
         /// <summary>
+        /// 媒質の境界を描画する
+        /// </summary>
+        /// <param name="g"></param>
+        /// <param name="panel"></param>
+        public void DrawMediaB(Graphics g, Panel panel, bool fitFlg = false)
+        {
+            if (!isInputDataReady())
+            {
+                return;
+            }
+            // 線の色
+            Color lineColor = Color.Black;
+            // 線の太さ
+            int lineWidth = 1;
+            Size ofs;
+            Size delta;
+            Size regionSize;
+            if (!fitFlg)
+            {
+                getDrawRegion(panel, out delta, out ofs, out regionSize);
+            }
+            else
+            {
+                getFitDrawRegion(panel, out delta, out ofs, out regionSize);
+            }
+            foreach (string edgeKeyStr in MediaBEdgeList)
+            {
+                string[] tokens = edgeKeyStr.Split('_');
+                System.Diagnostics.Debug.Assert(tokens.Length == 2);
+                if (tokens.Length != 2)
+                {
+                    continue;
+                }
+                int[] nodeNumbers = { int.Parse(tokens[0]), int.Parse(tokens[1]) };
+                double[][] pps = new double[2][]
+                {
+                    Nodes[nodeNumbers[0] - 1].Coord,
+                    Nodes[nodeNumbers[1] - 1].Coord
+                };
+                Point[] points = new Point[2];
+                for (int ino = 0; ino < 2; ino++)
+                {
+                    points[ino] = new Point();
+                    points[ino].X = (int)((double)pps[ino][0] * delta.Width);
+                    points[ino].Y = (int)(regionSize.Height - (double)pps[ino][1] * delta.Height);
+                    points[ino] += ofs;
+                }
+                using (Pen pen = new Pen(lineColor, lineWidth))
+                {
+                    pen.DashStyle = System.Drawing.Drawing2D.DashStyle.Dot;
+                    g.DrawLine(pen, points[0], points[1]);
+                }
+            }
+        }
+
+        /// <summary>
         /// フィールド値凡例の初期化
         /// </summary>
         /// <param name="legendPanel"></param>
@@ -640,11 +731,7 @@ namespace HPlaneWGSimulator
             chart1.Titles[0].Text = "散乱係数周波数特性";
             chart1.ChartAreas[0].Axes[0].Title = "2W/λ";
             chart1.ChartAreas[0].Axes[1].Title = string.Format("|Si{0}|", IncidentPortNo);
-            //chart1.ChartAreas[0].Axes[0].Minimum = 1.0;
-            //chart1.ChartAreas[0].Axes[0].Maximum = 2.0;
-            chart1.ChartAreas[0].Axes[0].Minimum = Constants.DefNormalizedFreqRange[0];
-            chart1.ChartAreas[0].Axes[0].Maximum = Constants.DefNormalizedFreqRange[1];
-            chart1.ChartAreas[0].Axes[0].Interval = 0.2;
+            SetChartFreqRange(chart1);
             chart1.ChartAreas[0].Axes[1].Minimum = 0.0;
             chart1.ChartAreas[0].Axes[1].Maximum = 1.0;
             chart1.ChartAreas[0].Axes[1].Interval = 0.2;
@@ -663,6 +750,54 @@ namespace HPlaneWGSimulator
             }
             // 計算されたグラフのプロパティ値をAutoに設定
             chart1.ResetAutoValues();
+        }
+
+        /// <summary>
+        /// チャートの周波数範囲をセットする
+        /// </summary>
+        /// <param name="chart1"></param>
+        public void SetChartFreqRange(Chart chart1)
+        {
+            //chart1.ChartAreas[0].Axes[0].Minimum = 1.0;
+            //chart1.ChartAreas[0].Axes[0].Maximum = 2.0;
+            //chart1.ChartAreas[0].Axes[0].Minimum = Constants.DefNormalizedFreqRange[0];
+            //chart1.ChartAreas[0].Axes[0].Maximum = Constants.DefNormalizedFreqRange[1];
+            double minFreq = Variables.NormalizedFreqRange[0];
+            minFreq = Math.Floor(minFreq * 10.0) * 0.1;
+            double maxFreq = Variables.NormalizedFreqRange[1];
+            maxFreq = Math.Ceiling(maxFreq * 10.0) * 0.1;
+            chart1.ChartAreas[0].Axes[0].Minimum = minFreq;
+            chart1.ChartAreas[0].Axes[0].Maximum = maxFreq;
+            chart1.ChartAreas[0].Axes[0].Interval = (maxFreq - minFreq >= 0.9)? 0.2 : 0.1;
+        }
+
+        /// <summary>
+        /// 散乱係数周波数特性チャートのY軸最大値を調整する
+        /// </summary>
+        /// <param name="chart1"></param>
+        public void AdjustSMatChartYAxisMax(Chart chart1)
+        {
+            double maxValue = 0.0;
+            foreach (Series series in chart1.Series)
+            {
+                foreach (DataPoint dataPoint in series.Points)
+                {
+                    double workMax = dataPoint.YValues.Max();
+                    if (workMax > maxValue)
+                    {
+                        maxValue = workMax;
+                    }
+                }
+            }
+            if (maxValue <= 1.0)
+            {
+                // 散乱係数が1.0以下の正常な場合は、最大値を1.0固定で指定する
+                chart1.ChartAreas[0].Axes[1].Maximum = 1.0;
+            }
+            else
+            {
+                chart1.ChartAreas[0].Axes[1].Maximum = maxValue;
+            }
         }
 
         /// <summary>
@@ -691,6 +826,7 @@ namespace HPlaneWGSimulator
                 //series.Points.AddXY(2.0 * WaveguideWidth / WaveLength, Complex.Abs(si1));
                 series.Points.AddXY(GetNormalizedFrequency(), Complex.Abs(si1));
             }
+            AdjustSMatChartYAxisMax(chart1);
         }
 
         /// <summary>
@@ -712,11 +848,7 @@ namespace HPlaneWGSimulator
             chart1.Titles[0].Text = "規格化伝搬定数周波数特性";
             chart1.ChartAreas[0].Axes[0].Title = "2W/λ";
             chart1.ChartAreas[0].Axes[1].Title = "β/ k0";
-            //chart1.ChartAreas[0].Axes[0].Minimum = 1.0;
-            //chart1.ChartAreas[0].Axes[0].Maximum = 2.0;
-            chart1.ChartAreas[0].Axes[0].Minimum = Constants.DefNormalizedFreqRange[0];
-            chart1.ChartAreas[0].Axes[0].Maximum = Constants.DefNormalizedFreqRange[1];
-            chart1.ChartAreas[0].Axes[0].Interval = 0.2;
+            SetChartFreqRange(chart1);
             chart1.ChartAreas[0].Axes[1].Minimum = 0.0;
             //chart1.ChartAreas[0].Axes[1].Maximum = 1.0; // 誘電体比誘電率の最大となるので可変
             chart1.ChartAreas[0].Axes[1].Interval = 0.2;
