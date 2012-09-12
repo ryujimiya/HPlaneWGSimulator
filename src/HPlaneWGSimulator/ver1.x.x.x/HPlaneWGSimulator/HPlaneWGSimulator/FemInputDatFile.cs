@@ -17,13 +17,16 @@ namespace HPlaneWGSimulator
         /// <summary>
         ///  Fem入力データをファイルから読み込み
         /// </summary>
-        /// <param name="filename"></param>
-        /// <param name="nodes"></param>
-        /// <param name="elements"></param>
-        /// <param name="ports"></param>
-        /// <param name="forceBCNodes"></param>
-        /// <param name="incidentPortNo"></param>
-        /// <param name="medias"></param>
+        /// <param name="filename">ファイル名(*.fem)</param>
+        /// <param name="nodes">節点リスト</param>
+        /// <param name="elements">要素リスト</param>
+        /// <param name="ports">ポートの節点番号リストのリスト</param>
+        /// <param name="forceBCNodes">強制境界節点番号リスト</param>
+        /// <param name="incidentPortNo">入射ポート番号</param>
+        /// <param name="medias">媒質情報リスト</param>
+        /// <param name="firstWaveLength">計算開始波長</param>
+        /// <param name="lastWaveLength">計算終了波長</param>
+        /// <param name="calcCnt">計算件数</param>
         /// <returns></returns>
         public static bool LoadFromFile(
             string filename,
@@ -32,7 +35,10 @@ namespace HPlaneWGSimulator
             out IList<IList<int>> ports,
             out IList<int> forceBCNodes,
             out int incidentPortNo,
-            out MediaInfo[] medias
+            out MediaInfo[] medias,
+            out double firstWaveLength,
+            out double lastWaveLength,
+            out int calcCnt
             )
         {
             // 要素内節点数(2次三角形要素)
@@ -50,6 +56,9 @@ namespace HPlaneWGSimulator
                 media.BackColor = CadLogic.MediaBackColors[i];
                 medias[i] = media;
             }
+            firstWaveLength = 0.0;
+            lastWaveLength = 0.0;
+            calcCnt = 0;
 
             if (!File.Exists(filename))
             {
@@ -265,6 +274,22 @@ namespace HPlaneWGSimulator
                             medias[i].SetQ(q);
                         }
                     }
+                    line = sr.ReadLine();
+                    if (line == null || line.Length == 0)
+                    {
+                    }
+                    else
+                    {
+                        tokens = line.Split(delimiter);
+                        if (tokens.Length != 4 || tokens[0] != "WaveLengthRange")
+                        {
+                            MessageBox.Show("計算対象周波数情報がありません");
+                            return false;
+                        }
+                        firstWaveLength = double.Parse(tokens[1]);
+                        lastWaveLength = double.Parse(tokens[2]);
+                        calcCnt = int.Parse(tokens[3]);
+                    }
                 }
             }
             catch (Exception exception)
@@ -280,16 +305,19 @@ namespace HPlaneWGSimulator
         /// Fem入力データファイルへ保存
         ///   I/FがCadの内部データ寄りになっているので、変更したいが後回し
         /// </summary>
-        /// <param name="filename"></param>
-        /// <param name="nodeCnt"></param>
-        /// <param name="doubleCoords"></param>
-        /// <param name="elementCnt"></param>
-        /// <param name="elements"></param>
-        /// <param name="portCnt"></param>
-        /// <param name="portList"></param>
-        /// <param name="forceBCNodeNumbers"></param>
-        /// <param name="incidentPortNo"></param>
-        /// <param name="medias"></param>
+        /// <param name="filename">ファイル名(*.fem)</param>
+        /// <param name="nodeCnt">節点数</param>
+        /// <param name="doubleCoords">節点座標リスト</param>
+        /// <param name="elementCnt">要素数</param>
+        /// <param name="elements">要素リスト</param>
+        /// <param name="portCnt">ポート数</param>
+        /// <param name="portList">ポートの節点番号リストのリスト</param>
+        /// <param name="forceBCNodeNumbers">強制境界節点番号のリスト</param>
+        /// <param name="incidentPortNo">入射ポート番号</param>
+        /// <param name="medias">媒質情報リスト</param>
+        /// <param name="firstWaveLength">計算開始波長</param>
+        /// <param name="lastWaveLength">計算終了波長</param>
+        /// <param name="calcCnt">計算周波数件数</param>
         public static void SaveToFileFromCad
             (string filename,
             int nodeCnt, IList<double[]> doubleCoords,
@@ -297,7 +325,10 @@ namespace HPlaneWGSimulator
             int portCnt, IList<IList<int>> portList,
             int[] forceBCNodeNumbers,
             int incidentPortNo,
-            MediaInfo[] medias)
+            MediaInfo[] medias,
+            double firstWaveLength,
+            double lastWaveLength,
+            int calcCnt)
         {
             //////////////////////////////////////////
             // ファイル出力
@@ -386,13 +417,132 @@ namespace HPlaneWGSimulator
                         line = line.Remove(line.Length - 1); // 最後の,を削除
                         sw.WriteLine(line);
                     }
+                    // 計算対象周波数
+                    sw.WriteLine("WaveLengthRange,{0},{1},{2}", firstWaveLength, lastWaveLength, calcCnt);
                 }
             }
             catch (Exception exception)
             {
                 MessageBox.Show(exception.Message);
             }
+        }
 
+        /// <summary>
+        ///  Fem入力データをファイルへ書き込み
+        /// </summary>
+        /// <param name="filename">ファイル名(*.fem)</param>
+        /// <param name="nodes">節点リスト</param>
+        /// <param name="elements">要素リスト</param>
+        /// <param name="ports">ポートの節点番号リストのリスト</param>
+        /// <param name="forceBCNodes">強制境界節点番号リスト</param>
+        /// <param name="incidentPortNo">入射ポート番号</param>
+        /// <param name="medias">媒質情報リスト</param>
+        /// <param name="firstWaveLength">計算開始波長</param>
+        /// <param name="lastWaveLength">計算終了波長</param>
+        /// <param name="calcCnt">計算件数</param>
+        /// <returns></returns>
+        public static void SaveToFile
+            (string filename,
+            IList<FemNode> nodes,
+            IList<FemElement> elements,
+            IList<IList<int>> ports,
+            IList<int> forceBCNodes,
+            int incidentPortNo,
+            MediaInfo[] medias,
+            double firstWaveLength,
+            double lastWaveLength,
+            int calcCnt
+            )
+        {
+            int nodeCnt = nodes.Count;
+            IList<double[]> doubleCoords = new List<double[]>();
+            foreach (FemNode femNode in nodes)
+            {
+                doubleCoords.Add(femNode.Coord);
+            }
+            int elementCnt = elements.Count;
+            IList<int[]> in_elements = new List<int[]>();
+            foreach (FemElement femElement in elements)
+            {
+                int cnt = 2 + femElement.NodeNumbers.Length;
+                int[] in_element = new int[cnt];
+                in_element[0] = femElement.No;
+                in_element[1] = femElement.MediaIndex;
+                for (int ino = 0; ino < femElement.NodeNumbers.Length; ino++)
+                {
+                    in_element[2 + ino] = femElement.NodeNumbers[ino];
+                }
+                in_elements.Add(in_element);
+            }
+            int portCnt = ports.Count;
+            int[] forceBCNodeNumbers = forceBCNodes.ToArray();
+
+            SaveToFileFromCad(
+                filename,
+                nodeCnt, doubleCoords,
+                elementCnt, in_elements,
+                portCnt, ports,
+                forceBCNodeNumbers,
+                incidentPortNo,
+                medias,
+                firstWaveLength,
+                lastWaveLength,
+                calcCnt);
+        }
+
+
+        /// <summary>
+        /// 入力ファイル作成時に決まらない情報を更新する
+        /// </summary>
+        /// <param name="filename">ファイル名(*.fem)</param>
+        /// <param name="firstWaveLength">計算対象開始波長</param>
+        /// <param name="lastWaveLength">計算対象終了波長</param>
+        /// <param name="calcCnt">計算対象周波数件数</param>
+        public static bool UpdateToFile(string filename, double firstWaveLength, double lastWaveLength, int calcCnt)
+        {
+            bool success = false;
+            if (!File.Exists(filename))
+            {
+                return success;
+            }
+            IList<FemNode> nodes = null;
+            IList<FemElement> elements = null;
+            IList<IList<int>> ports = null;
+            IList<int> forceBCNodes = null;
+            int incidentPortNo = 0;
+            MediaInfo[] medias = null;
+            double dummyFirstWaveLength = 0.0;
+            double dummyLastWaveLength = 0.0;
+            int dummyCalcCnt = 0;
+            bool loadRet = FemInputDatFile.LoadFromFile(
+                filename,
+                out nodes,
+                out elements,
+                out ports,
+                out forceBCNodes,
+                out incidentPortNo,
+                out medias,
+                out dummyFirstWaveLength,
+                out dummyLastWaveLength,
+                out dummyCalcCnt
+            );
+            if (loadRet)
+            {
+                SaveToFile(
+                    filename,
+                    nodes,
+                    elements,
+                    ports,
+                    forceBCNodes,
+                    incidentPortNo,
+                    medias,
+                    firstWaveLength,
+                    lastWaveLength,
+                    calcCnt
+                );
+                success = true;
+            }
+            return success;
         }
     }
 }

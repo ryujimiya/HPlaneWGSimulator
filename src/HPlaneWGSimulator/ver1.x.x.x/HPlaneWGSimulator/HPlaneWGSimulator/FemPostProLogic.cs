@@ -27,6 +27,11 @@ namespace HPlaneWGSimulator
         /// </summary>
         private const int ShowMaxMode = 1;
 
+        /// <summary>
+        /// 1度だけの初期化済み?
+        /// </summary>
+        private bool IsInitializedOnce = false;
+        
         /////////////////////////////////////////////////////////////////
         // 入力データ
         /////////////////////////////////////////////////////////////////
@@ -56,7 +61,7 @@ namespace HPlaneWGSimulator
         /// <summary>
         /// ポートの節点リスト
         /// </summary>
-        private IList<int[]> NodesBoundaryList = new List<int[]>();
+        //private IList<int[]> NodesBoundaryList = new List<int[]>(); //メモリ節約の為、削除
         /// <summary>
         /// ポートの固有値リスト
         /// </summary>
@@ -68,11 +73,19 @@ namespace HPlaneWGSimulator
         /// <summary>
         /// 領域内節点リスト
         /// </summary>
-        private int[] NodesRegion;
+        //private int[] NodesRegion; //メモリ節約の為、ローカル変数で処理するようにしたため削除
         /// <summary>
         /// フィールド値リスト
         /// </summary>
-        private Complex[] ValuesAll = null;
+        //private Complex[] ValuesAll = null; //メモリ節約の為、ローカル変数で処理するようにしたため削除
+        /// <summary>
+        /// フィールド値の絶対値の最小値
+        /// </summary>
+        private double MinfValue = 0.0;
+        /// <summary>
+        /// フィールド値の絶対値の最大値
+        /// </summary>
+        private double MaxfValue = 1.0;
         /// <summary>
         /// 散乱行列
         /// </summary>
@@ -81,6 +94,30 @@ namespace HPlaneWGSimulator
         /// 導波管幅
         /// </summary>
         private double WaveguideWidth = 0.0;
+        /// <summary>
+        /// 計算開始波長
+        /// </summary>
+        public double FirstWaveLength
+        {
+            get;
+            private set;
+        }
+        /// <summary>
+        /// 計算終了波長
+        /// </summary>
+        public double LastWaveLength
+        {
+            get;
+            private set;
+        }
+        /// <summary>
+        /// 計算する周波数の個数
+        /// </summary>
+        public int CalcFreqCnt
+        {
+            get;
+            private set;
+        }
         /// <summary>
         /// フィールド値カラーパレット
         /// </summary>
@@ -100,6 +137,7 @@ namespace HPlaneWGSimulator
         /// </summary>
         public FemPostProLogic()
         {
+            IsInitializedOnce = false;
             initInput();
             initOutput();
         }
@@ -113,8 +151,11 @@ namespace HPlaneWGSimulator
             Elements = null;
             Ports = null;
             ForceNodes = null;
-            WaveguideWidth = 0.0;
+            WaveguideWidth = FemSolver.DefWaveguideWidth;
             IncidentPortNo = 1;
+            CalcFreqCnt = 0;
+            FirstWaveLength = 0.0;
+            LastWaveLength = 0.0;
         }
 
         /// <summary>
@@ -124,22 +165,16 @@ namespace HPlaneWGSimulator
         {
             WaveLength = 0;
             MaxMode = 0;
-            NodesBoundaryList.Clear();
+            //NodesBoundaryList.Clear();
             MediaBEdgeList.Clear();
             EigenValuesList.Clear();
             EigenVecsList.Clear();
-            NodesRegion = null;
-            ValuesAll = null;
-            ScatterMat = null;
-        }
+            //NodesRegion = null;
+            //ValuesAll = null;
+            MaxfValue = 1.0;
+            MinfValue = 0.0;
 
-        /// <summary>
-        /// 入出力データの初期化
-        /// </summary>
-        public void InitData()
-        {
-            initInput();
-            initOutput();
+            ScatterMat = null;
         }
 
         /// <summary>
@@ -171,36 +206,6 @@ namespace HPlaneWGSimulator
         }
 
         /// <summary>
-        /// 入力データのセット
-        /// </summary>
-        /// <param name="solver"></param>
-        public void SetInputData(FemSolver solver)
-        {
-            // 入力データの初期化
-            initInput();
-            // 入力データの取得
-            solver.GetFemInputInfo(out Nodes, out Elements, out Ports, out ForceNodes, out IncidentPortNo, out WaveguideWidth);
-            if (Nodes == null || Elements == null || Ports == null || ForceNodes == null || Math.Abs(WaveguideWidth) < 1.0e-12 )
-            {
-                MessageBox.Show("入力データを取得できません", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
-            // 各要素に節点情報を補完する
-            foreach(FemElement element in Elements)
-            {
-                element.SetNodesFromAllNodes(Nodes);
-            }
-            // ポート1の導波管幅
-            /*導波管幅は、FemSolverで算出済みの値を取得する
-            int port1NodeNumber1 = Ports[0][0];
-            int port1NodeNumber2 = Ports[0][Ports[0].Length - 1];
-            WaveguideWidth = getDistance(Nodes[port1NodeNumber1 - 1].Coord, Nodes[port1NodeNumber2 - 1].Coord);
-            */
-
-            initOutput();
-        }
-
-        /// <summary>
         /// 2点間距離の計算
         /// </summary>
         /// <param name="p"></param>
@@ -222,12 +227,80 @@ namespace HPlaneWGSimulator
         }
 
         /// <summary>
+        /// 入出力データの初期化
+        /// </summary>
+        private void initDataOnce(
+            Panel FValueLegendPanel,
+            Label labelFreqValue
+        )
+        {
+            if (IsInitializedOnce) return;
+
+            // フィールド値凡例パネルの初期化
+            InitFValueLegend(FValueLegendPanel, labelFreqValue);
+            
+            IsInitializedOnce = true;
+        }
+
+        /// <summary>
+        /// 入出力データの初期化
+        /// </summary>
+        public void InitData(
+            FemSolver solver,
+            Panel CadPanel,
+            Panel FValuePanel,
+            Panel FValueLegendPanel, Label labelFreqValue,
+            Chart SMatChart,
+            Chart BetaChart,
+            Chart EigenVecChart
+            )
+        {
+            initInput();
+            initOutput();
+
+            // 一度だけの初期化処理
+            initDataOnce(FValueLegendPanel, labelFreqValue);
+
+            // ポストプロセッサに入力データをコピー
+            // 入力データの取得
+            solver.GetFemInputInfo(out Nodes, out Elements, out Ports, out ForceNodes, out IncidentPortNo, out WaveguideWidth);
+            // チャートの設定用に開始終了波長を取得
+            FirstWaveLength = solver.FirstWaveLength;
+            LastWaveLength = solver.LastWaveLength;
+            CalcFreqCnt = solver.CalcFreqCnt;
+            if (isInputDataReady())
+            {
+                // 各要素に節点情報を補完する
+                foreach(FemElement element in Elements)
+                {
+                    element.SetNodesFromAllNodes(Nodes);
+                }
+            }
+
+            // メッシュ描画
+            //using (Graphics g = CadPanel.CreateGraphics())
+            //{
+            //    DrawMesh(g, CadPanel);
+            //}
+            //CadPanel.Invalidate();
+
+            // チャート初期化
+            ResetSMatChart(SMatChart);
+            // 等高線図
+            FValuePanel.Invalidate();
+            // 固有値チャート初期化
+            // この段階ではMaxModeの値が0なので、後に計算値ロード後一回だけ初期化する
+            ResetEigenValueChart(BetaChart);
+            // 固有ベクトル表示(空のデータで初期化)
+            SetEigenVecToChart(EigenVecChart);
+        }
+
+        /// <summary>
         /// 出力結果ファイル読み込み
         /// </summary>
         /// <param name="filename"></param>
         public bool LoadOutput(string filename, int freqNo)
         {
-
             initOutput();
             if (!isInputDataReady())
             {
@@ -236,11 +309,14 @@ namespace HPlaneWGSimulator
             }
 
             int incidentPortNo = 0;
+            IList<int[]> nodesBoundaryList = null;
+            int[] nodesRegion = null;
+            Complex[] valuesAll = null;
             bool ret = FemOutputDatFile.LoadFromFile(
                 filename, freqNo,
                 out WaveLength, out MaxMode, out incidentPortNo,
-                out NodesBoundaryList, out EigenValuesList, out EigenVecsList,
-                out NodesRegion, out ValuesAll,
+                out nodesBoundaryList, out EigenValuesList, out EigenVecsList,
+                out nodesRegion, out valuesAll,
                 out ScatterMat);
 
             if (ret)
@@ -248,8 +324,47 @@ namespace HPlaneWGSimulator
                 //System.Diagnostics.Debug.Assert(maxMode == MaxMode);
                 System.Diagnostics.Debug.Assert(incidentPortNo == IncidentPortNo);
 
-                // 追加処理
-                setupFieldValueToElements();
+                // メモリ節約の為必要なモード数だけ取り出す
+                if (EigenValuesList != null)
+                {
+                    for (int portIndex = 0; portIndex < EigenValuesList.Count; portIndex++)
+                    {
+                        Complex[] eigenValues = EigenValuesList[portIndex];
+                        Complex[] eigenValues2 = new Complex[ShowMaxMode];
+                        for (int imode = 0; imode < eigenValues.Length; imode++)
+                        {
+                            if (imode >= ShowMaxMode) break;
+                            eigenValues2[imode] = eigenValues[imode];
+                        }
+                        // 入れ替える
+                        EigenValuesList[portIndex] = eigenValues2;
+                        eigenValues = null;
+                        eigenValues2 = null;
+                    }
+                }
+                if (EigenVecsList != null)
+                {
+                    for (int portIndex = 0; portIndex < EigenVecsList.Count; portIndex++)
+                    {
+                        Complex[,] eigenVecs = EigenVecsList[portIndex];
+                        Complex[,] eigenVecs2 = new Complex[ShowMaxMode, eigenVecs.GetLength(1)];
+                        for (int imode = 0; imode < eigenVecs.GetLength(0); imode++)
+                        {
+                            if (imode >= ShowMaxMode) break;
+                            for (int ino = 0; ino < eigenVecs.GetLength(1); ino++)
+                            {
+                                eigenVecs2[imode, ino] = eigenVecs[imode, ino];
+                            }
+                        }
+                        // 入れ替える
+                        EigenVecsList[portIndex] = eigenVecs2;
+                        eigenVecs = null;
+                        eigenVecs2 = null;
+                    }
+                }
+
+                // 要素にフィールド値をセットする
+                setupFieldValueToElements(nodesRegion, valuesAll);
 
                 // 媒質境界の辺を取得する
                 setupMediaBEdgeList();
@@ -260,14 +375,16 @@ namespace HPlaneWGSimulator
         /// <summary>
         /// 要素にフィールド値をセットする
         /// </summary>
-        private void setupFieldValueToElements()
+        /// <param name="nodesRegion">節点番号リスト</param>
+        /// <param name="valuesAll">節点のフィールド値のリスト</param>
+        private void setupFieldValueToElements(int[] nodesRegion, Complex[] valuesAll)
         {
             /// 領域内節点の節点番号→インデックスマップ
             Dictionary<int, int> nodesRegionToIndex = new Dictionary<int, int>();
             // 節点番号→インデックスのマップ作成
-            for (int ino = 0; ino < NodesRegion.Length; ino++)
+            for (int ino = 0; ino < nodesRegion.Length; ino++)
             {
-                int nodeNumber = NodesRegion[ino];
+                int nodeNumber = nodesRegion[ino];
                 if (!nodesRegionToIndex.ContainsKey(nodeNumber))
                 {
                     nodesRegionToIndex.Add(nodeNumber, ino);
@@ -276,8 +393,27 @@ namespace HPlaneWGSimulator
             // 要素リストにフィールド値を格納
             foreach (FemElement element in Elements)
             {
-                element.SetFieldValueFromAllValues(ValuesAll, nodesRegionToIndex);
+                element.SetFieldValueFromAllValues(valuesAll, nodesRegionToIndex);
             }
+
+            // 等高線図描画の為に最大、最小値を取得する
+            // フィールド値の絶対値の最小、最大
+            double minfValue = double.MaxValue;
+            double maxfValue = double.MinValue;
+            foreach (Complex fValue in valuesAll)
+            {
+                double v = Complex.Abs(fValue);
+                if (v > maxfValue)
+                {
+                    maxfValue = v;
+                }
+                if (v < minfValue)
+                {
+                    minfValue = v;
+                }
+            }
+            MinfValue = minfValue;
+            MaxfValue = maxfValue;
         }
 
         /// <summary>
@@ -329,7 +465,11 @@ namespace HPlaneWGSimulator
             {
                 return isReady;
             }
-            if (Math.Abs(WaveguideWidth) < 1.0e-12)
+            if (Math.Abs(WaveguideWidth - FemSolver.DefWaveguideWidth) < Constants.PrecisionLowerLimit)
+            {
+                return isReady;
+            }
+            if (Ports.Count == 0)
             {
                 return isReady;
             }
@@ -352,10 +492,10 @@ namespace HPlaneWGSimulator
             {
                 return isReady;
             }
-            if (NodesBoundaryList.Count == 0)
-            {
-                return isReady;
-            }
+            //if (NodesBoundaryList.Count == 0)
+            //{
+            //    return isReady;
+            //}
             if (EigenValuesList.Count == 0)
             {
                 return isReady;
@@ -364,14 +504,14 @@ namespace HPlaneWGSimulator
             {
                 return isReady;
             }
-            if (NodesRegion == null)
-            {
-                return isReady;
-            }
-            if (ValuesAll == null)
-            {
-                return isReady;
-            }
+            //if (NodesRegion == null)
+            //{
+            //    return isReady;
+            //}
+            //if (ValuesAll == null)
+            //{
+            //    return isReady;
+            //}
             if (ScatterMat == null)
             {
                 return isReady;
@@ -380,6 +520,53 @@ namespace HPlaneWGSimulator
             isReady = true;
             return isReady;
         }
+        
+        /// <summary>
+        /// 出力をGUIへセットする
+        /// </summary>
+        /// <param name="addFlg">周波数特性グラフに読み込んだ周波数のデータを追加する？</param>
+        public void SetOutputToGui(
+            string FemOutputDatFilePath,
+            Panel CadPanel,
+            Panel FValuePanel,
+            Panel FValueLegendPanel, Label labelFreqValue,
+            Chart SMatChart,
+            Chart BetaChart,
+            Chart EigenVecChart,
+            bool addFlg = true)
+        {
+            if (!isInputDataReady())
+            {
+                return;
+            }
+            if (!isOutputDataReady())
+            {
+                return;
+            }
+            
+            if (addFlg)
+            {
+                // Sマトリックス周波数特性グラフに計算した点を追加
+                AddScatterMatrixToChart(SMatChart);
+                int firstFreqNo;
+                int lastFreqNo;
+                if (GetCalculatedFreqCnt(FemOutputDatFilePath, out firstFreqNo, out lastFreqNo) == 1) 
+                {
+                    // 固有値チャート初期化(モード数が変わっているので再度初期化する)
+                    ResetEigenValueChart(BetaChart);
+                }
+                // 固有値(伝搬定数)周波数特性グラフに計算した点を追加
+                AddEigenValueToChart(BetaChart);
+            }
+
+            // 等高線図の凡例
+            UpdateFValueLegend(FValueLegendPanel, labelFreqValue);
+            // 等高線図
+            FValuePanel.Invalidate();
+            // 固有ベクトル表示
+            SetEigenVecToChart(EigenVecChart);
+        }
+        
         
         /// <summary>
         /// メッシュ描画
@@ -507,25 +694,10 @@ namespace HPlaneWGSimulator
             Size regionSize;
             getFitDrawRegion(panel, out delta, out ofs, out regionSize);
 
-            // フィールド値の絶対値の最小、最大
-            double minfValue = double.MaxValue;
-            double maxfValue = double.MinValue;
-            foreach (Complex fValue in ValuesAll)
-            {
-                double v = Complex.Abs(fValue);
-                if (v > maxfValue)
-                {
-                    maxfValue = v;
-                }
-                if (v < minfValue)
-                {
-                    minfValue = v;
-                }
-            }
             // カラーマップに最小、最大を設定
-            //FValueColorMap.Min = minValue;
+            //FValueColorMap.Min = MinfValue;
             FValueColorMap.Min = 0.0;
-            FValueColorMap.Max = maxfValue;
+            FValueColorMap.Max = MaxfValue;
 
             // 等高線描画
             foreach (FemElement element in Elements)
@@ -683,7 +855,7 @@ namespace HPlaneWGSimulator
         /// <param name="labelFreqValue"></param>
         public void UpdateFValueLegend(Panel legendPanel, Label labelFreqValue)
         {
-            if (Math.Abs(WaveLength) < 1.0e-15)
+            if (Math.Abs(WaveLength) < Constants.PrecisionLowerLimit)
             {
                 labelFreqValue.Text = "---";
             }
@@ -724,14 +896,19 @@ namespace HPlaneWGSimulator
         /// 反射、透過係数周波数特性グラフの初期化
         /// </summary>
         /// <param name="chart1"></param>
-        public void ResetChart(Chart chart1)
+        public void ResetSMatChart(Chart chart1)
         {
+            double normalizedFreq1 = FemSolver.GetNormalizedFreq(FirstWaveLength, WaveguideWidth);
+            normalizedFreq1 = Math.Round(normalizedFreq1, 2);
+            double normalizedFreq2 = FemSolver.GetNormalizedFreq(LastWaveLength, WaveguideWidth);
+            normalizedFreq2 = Math.Round(normalizedFreq2, 2);
+
             // チャート初期化
             setupChartColor(chart1);
             chart1.Titles[0].Text = "散乱係数周波数特性";
             chart1.ChartAreas[0].Axes[0].Title = "2W/λ";
             chart1.ChartAreas[0].Axes[1].Title = string.Format("|Si{0}|", IncidentPortNo);
-            SetChartFreqRange(chart1);
+            SetChartFreqRange(chart1, normalizedFreq1, normalizedFreq2);
             chart1.ChartAreas[0].Axes[1].Minimum = 0.0;
             chart1.ChartAreas[0].Axes[1].Maximum = 1.0;
             chart1.ChartAreas[0].Axes[1].Interval = 0.2;
@@ -756,19 +933,47 @@ namespace HPlaneWGSimulator
         /// チャートの周波数範囲をセットする
         /// </summary>
         /// <param name="chart1"></param>
-        public void SetChartFreqRange(Chart chart1)
+        public void SetChartFreqRange(Chart chart1, double normalizedFreq1, double normalizedFreq2)
         {
             //chart1.ChartAreas[0].Axes[0].Minimum = 1.0;
             //chart1.ChartAreas[0].Axes[0].Maximum = 2.0;
             //chart1.ChartAreas[0].Axes[0].Minimum = Constants.DefNormalizedFreqRange[0];
             //chart1.ChartAreas[0].Axes[0].Maximum = Constants.DefNormalizedFreqRange[1];
-            double minFreq = Variables.NormalizedFreqRange[0];
+            double minFreq = normalizedFreq1;
             minFreq = Math.Floor(minFreq * 10.0) * 0.1;
-            double maxFreq = Variables.NormalizedFreqRange[1];
+            double maxFreq = normalizedFreq2;
             maxFreq = Math.Ceiling(maxFreq * 10.0) * 0.1;
             chart1.ChartAreas[0].Axes[0].Minimum = minFreq;
             chart1.ChartAreas[0].Axes[0].Maximum = maxFreq;
-            chart1.ChartAreas[0].Axes[0].Interval = (maxFreq - minFreq >= 0.9)? 0.2 : 0.1;
+            //chart1.ChartAreas[0].Axes[0].Interval = (maxFreq - minFreq >= 0.9)? 0.2 : 0.1;
+            double range = maxFreq - minFreq;
+            double interval = 0.2;
+            interval = range / 5 ;
+            if (1.0 <= interval)
+            {
+                interval = Math.Round(interval);
+            }
+            else if (0.1 <= interval && interval < 1.0)
+            {
+                interval = Math.Round(interval/0.1) * 0.1;
+            }
+            else if (0.01 <= interval && interval < 0.1)
+            {
+                interval = Math.Round(interval/0.01) * 0.01;
+            }
+            else if (0.001 <= interval && interval < 0.01)
+            {
+                interval = Math.Round(interval/0.001) * 0.001;
+            }
+            else if (interval < 0.001)
+            {
+                interval = Math.Round(interval/0.0001) * 0.0001;
+            }
+            else
+            {
+                System.Diagnostics.Debug.Assert(false);
+            }
+            chart1.ChartAreas[0].Axes[0].Interval = interval;
         }
 
         /// <summary>
@@ -835,6 +1040,11 @@ namespace HPlaneWGSimulator
         /// <param name="chart1"></param>
         public void ResetEigenValueChart(Chart chart1)
         {
+            double normalizedFreq1 = FemSolver.GetNormalizedFreq(FirstWaveLength, WaveguideWidth);
+            normalizedFreq1 = Math.Round(normalizedFreq1, 2);
+            double normalizedFreq2 = FemSolver.GetNormalizedFreq(LastWaveLength, WaveguideWidth);
+            normalizedFreq2 = Math.Round(normalizedFreq2, 2);
+
             // 表示モード数
             int showMaxMode = ShowMaxMode;
             /*
@@ -848,7 +1058,7 @@ namespace HPlaneWGSimulator
             chart1.Titles[0].Text = "規格化伝搬定数周波数特性";
             chart1.ChartAreas[0].Axes[0].Title = "2W/λ";
             chart1.ChartAreas[0].Axes[1].Title = "β/ k0";
-            SetChartFreqRange(chart1);
+            SetChartFreqRange(chart1, normalizedFreq1, normalizedFreq2);
             chart1.ChartAreas[0].Axes[1].Minimum = 0.0;
             //chart1.ChartAreas[0].Axes[1].Maximum = 1.0; // 誘電体比誘電率の最大となるので可変
             chart1.ChartAreas[0].Axes[1].Interval = 0.2;
@@ -953,11 +1163,11 @@ namespace HPlaneWGSimulator
                     if (isOutputDataReady())
                     {
                         Complex beta = EigenValuesList[portIndex][modeIndex];
-                        if (Math.Abs(beta.Imaginary / k0) >= 1.0e-12)
+                        if (Math.Abs(beta.Imaginary / k0) >= Constants.PrecisionLowerLimit)
                         {
                             modeDescr = "減衰モード";
                         }
-                        else if (Math.Abs(beta.Real / k0) >= 1.0e-12)
+                        else if (Math.Abs(beta.Real / k0) >= Constants.PrecisionLowerLimit)
                         {
                             modeDescr = "伝搬モード";
                         }
@@ -999,7 +1209,7 @@ namespace HPlaneWGSimulator
                 {
                     Complex beta = EigenValuesList[portIndex][modeIndex];
                     /*
-                    if (Math.Abs(beta.Imaginary/k0) >= 1.0e-12)
+                    if (Math.Abs(beta.Imaginary/k0) >= Constants.PrecisionLowerLimit)
                     {
                         // 減衰モードは除外
                         continue;
@@ -1050,11 +1260,7 @@ namespace HPlaneWGSimulator
             {
                 return 0.0;
             }
-            if (Math.Abs(WaveLength) < 1.0e-12)
-            {
-                return 0.0;
-            }
-            return 2.0 * WaveguideWidth / WaveLength;
+            return FemSolver.GetNormalizedFreq(WaveLength, WaveguideWidth);
         }
     }
 }

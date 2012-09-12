@@ -115,7 +115,7 @@ namespace HPlaneWGSimulator
         /// <param name="panel"></param>
         public void Draw(Graphics g, Size ofs, Size delta, Size regionSize)
         {
-            const int vertexCnt = 3; // 三角形の頂点の数(2次要素でも同じ)
+            const int vertexCnt = Constants.TriVertexCnt; //3; // 三角形の頂点の数(2次要素でも同じ)
             // 三角形の頂点を取得
             Point[] points = new Point[vertexCnt];
             for (int ino = 0; ino < vertexCnt; ino++)
@@ -136,9 +136,9 @@ namespace HPlaneWGSimulator
 
         public void DrawField(Graphics g, Size ofs, Size delta, Size regionSize, ColorMap colorMap)
         {
-            const int ndim = 2;      // 座標の次元数
-            const int vertexCnt = 3; // 三角形の頂点の数(2次要素でも同じ)
-            const int nodeCnt = 6;  // 三角形2次要素
+            const int ndim = Constants.CoordDim2D; //2;      // 座標の次元数
+            const int vertexCnt = Constants.TriVertexCnt; //3; // 三角形の頂点の数(2次要素でも同じ)
+            const int nodeCnt = Constants.TriNodeCnt_SecondOrder; //6;  // 三角形2次要素
             // 三角形の頂点を取得
             double[][] pp = new double[vertexCnt][];
             for (int ino = 0; ino < pp.GetLength(0); ino++)
@@ -171,7 +171,7 @@ namespace HPlaneWGSimulator
                 }
                 double fdiv2 = (double)ndiv * vL2max;
                 int ndiv2 = (int)fdiv2;
-                if (fdiv2 - (double)ndiv2 > 1.0e-12)
+                if (fdiv2 - (double)ndiv2 > Constants.PrecisionLowerLimit)
                 {
                     ndiv2++;
                 }

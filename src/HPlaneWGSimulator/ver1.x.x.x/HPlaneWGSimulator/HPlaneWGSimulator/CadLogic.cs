@@ -686,8 +686,8 @@ namespace HPlaneWGSimulator
                 double eddx2 = edxx - hitx;
                 double eddy2 = edyy - hity;
                 // >= (1.0 - th)の場合は+1したのでここでは、±thになっているはず
-                System.Diagnostics.Debug.Assert(Math.Abs(eddx2) <= th + 1.0e-12);
-                System.Diagnostics.Debug.Assert(Math.Abs(eddy2) <= th + 1.0e-12);
+                System.Diagnostics.Debug.Assert(Math.Abs(eddx2) <= th + Constants.PrecisionLowerLimit);
+                System.Diagnostics.Debug.Assert(Math.Abs(eddy2) <= th + Constants.PrecisionLowerLimit);
                 if (Math.Abs(eddx2) < Math.Abs(eddy2))
                 {
                     // Y方向の辺(hitx != -1)の方がより近い
@@ -1065,8 +1065,8 @@ namespace HPlaneWGSimulator
                 double eddx2 = edxx - hitx;
                 double eddy2 = edyy - hity;
                 // >= (1.0 - th)の場合は+1したのでここでは、±thになっているはず
-                System.Diagnostics.Debug.Assert(Math.Abs(eddx2) <= th + 1.0e-12);
-                System.Diagnostics.Debug.Assert(Math.Abs(eddy2) <= th + 1.0e-12);
+                System.Diagnostics.Debug.Assert(Math.Abs(eddx2) <= th + Constants.PrecisionLowerLimit);
+                System.Diagnostics.Debug.Assert(Math.Abs(eddy2) <= th + Constants.PrecisionLowerLimit);
                 if (Math.Abs(eddx2) < Math.Abs(eddy2))
                 {
                     // Y方向の辺(hitx != -1)の方がより近い
@@ -1899,6 +1899,9 @@ namespace HPlaneWGSimulator
 
             // Fem入力データファイルへ保存
             int[] forceBCNodeNumbers = forceBCNodeNumberDic.Keys.ToArray();
+            double dummyFirstWaveLength = 0.0;
+            double dummyLastWaveLength = 0.0;
+            int dummyCalcCnt = 0;
             FemInputDatFile.SaveToFileFromCad(
                 filename,
                 nodeCounter, doubleCoords,
@@ -1906,7 +1909,10 @@ namespace HPlaneWGSimulator
                 portCounter, portList,
                 forceBCNodeNumbers,
                 IncidentPortNo,
-                Medias);
+                Medias,
+                dummyFirstWaveLength,
+                dummyLastWaveLength,
+                dummyCalcCnt);
                 
         }
 

@@ -921,6 +921,85 @@ namespace KrdLab {
 				return ret;
 			}
 
+		/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// 以下　ryujimiya追加分
+		public:
+			/// <summary>
+			/// <para>Complex配列を圧縮する</para>
+			/// <para>圧縮前のサイズと圧縮後のサイズは同じ.nullptrに置き換わる分メモリ削減になる</para>
+			/// </summary>
+			/// <param name="A">[IN]対象Complex配列、[OUT]圧縮されたComplex配列</param>
+			static void CompressMatFor_zgesv(array<System::Numerics::Complex^>^% A)
+			{
+				array<System::Numerics::Complex^>^ compressed = gcnew array<System::Numerics::Complex^>(A->Length);
+				int indexCounter = 0;
+				int zeroCounter = 0;
+				for (int i = 0; i < A->Length; i++)
+				{
+					if (System::Numerics::Complex::Abs(*A[i]) < CalculationLowerLimit)
+					{
+						zeroCounter++;
+						if (i == A->Length - 1 && zeroCounter > 0)
+						{
+							compressed[indexCounter++] = gcnew System::Numerics::Complex();
+							compressed[indexCounter++] = gcnew System::Numerics::Complex((double)zeroCounter, 0);
+							zeroCounter = 0;
+						}
+					}
+					else
+					{
+						if (zeroCounter > 0)
+						{
+							compressed[indexCounter++] = gcnew System::Numerics::Complex();
+							compressed[indexCounter++] = gcnew System::Numerics::Complex((double)zeroCounter, 0);
+							zeroCounter = 0;
+						}
+						compressed[indexCounter++] = A[i];
+					}
+				}
+				if (A->Length != indexCounter)
+				{
+					A = compressed;
+				}
+				compressed = nullptr;
+			}
+
+		private:
+			/// <summary>
+			/// <para>圧縮されたComplex配列を元に戻す</para>
+			/// <para>A(解凍前)のサイズとa(解凍後)のサイズは同じ.</para>
+			/// </summary>
+			/// <param name="A">圧縮されたComplex配列</param>
+			/// <param name="a">出力doublecomplex配列(メモリ確保は行われているものとする)</param>
+			static void deCompressMat(array<System::Numerics::Complex^>^ A, doublecomplex *a)
+			{
+				int aryIndex = 0;
+				int i = 0;
+				while (i < A->Length && A[i] != nullptr)
+				{
+					if (System::Numerics::Complex::Abs(*A[i]) < CalculationLowerLimit)
+					{
+						// 1つ読み飛ばす
+						i++;
+						int zeroCnt = (int)A[i++]->Real;
+						for (int k = 0; k < zeroCnt; k++)
+						{
+							a[aryIndex].r = 0;
+							a[aryIndex].i = 0;
+							aryIndex++;
+						}
+					}
+					else
+					{
+						a[aryIndex].r = A[i]->Real;
+						a[aryIndex].i = A[i]->Imaginary;
+						i++;
+						aryIndex++;
+					}
+				}
+			}
+
+		public:
 			/// <summary>
 			/// <para>A * X = B を解く（ X が解）．</para>
 			/// <para>A は n×n の行列，X と B は n×nrhs の行列である．</para>
@@ -955,18 +1034,69 @@ namespace KrdLab {
 							 array<System::Numerics::Complex^>^  A, int  a_row, int  a_col,
 							 array<System::Numerics::Complex^>^  B, int  b_row, int  b_col)
 			{
+				return zgesv(X, x_row, x_col, A, a_row, a_col, B, b_row, b_col, false);
+			}
+			static int zgesv(array<System::Numerics::Complex^>^% X, int% x_row, int% x_col,
+							 array<System::Numerics::Complex^>^  A, int  a_row, int  a_col,
+							 array<System::Numerics::Complex^>^  B, int  b_row, int  b_col,
+							 bool compressFlg)
+			{
 				integer n    = a_row;	// input: 連立一次方程式の式数．正方行列[A]の次数(n≧0)． 
 				integer nrhs = b_col;	// input: 行列BのColumn数
 				
 				//////////pin_ptr<doublecomplex> a = &A[0];
-                doublecomplex* a = new doublecomplex[a_row * a_col];
-                for (int i = 0; i < a_row * a_col; i++)
-                {
-                    doublecomplex v;
-                    v.r = A[i]->Real;
-                    v.i = A[i]->Imaginary;
-                    a[i] = v;                    
-                }
+				doublecomplex* a = nullptr;
+				try
+				{
+					a = new doublecomplex[a_row * a_col];
+					if (compressFlg)
+					{
+						deCompressMat(A, a);
+					}
+					else
+					{
+						for (int i = 0; i < a_row * a_col; i++)
+						{
+							a[i].r = A[i]->Real;
+							a[i].i = A[i]->Imaginary;
+						}
+					}
+				}
+				catch (System::Exception^ /*exception*/)
+				{
+					if (a != nullptr)
+					{
+						delete[] a;
+						a = nullptr;
+					}
+					throw;
+				}
+				///////////pin_ptr<doublecomplex> b = &B[0];
+				doublecomplex* b = nullptr;
+				try
+				{
+					b = new doublecomplex[b_row * b_col];
+					for (int i = 0; i < b_row * b_col; i++)
+					{
+						b[i].r = B[i]->Real;
+						b[i].i = B[i]->Imaginary;
+					}
+				}
+				catch (System::Exception^ /*exception*/)
+				{
+					if (a != nullptr)
+					{
+						delete[] a;
+						a = nullptr;
+					}
+					if (b != nullptr)
+					{
+						delete[] b;
+						b = nullptr;
+					}
+					throw;
+				}
+
 				// 配列形式は a[lda×n]
 				//   input : n行n列の係数行列[A]
 				//   output: LU分解後の行列[L]と行列[U]．ただし，行列[L]の単位対角要素は格納されない．
@@ -978,15 +1108,6 @@ namespace KrdLab {
 				integer* ipiv = new integer[n];
 				// output: 大きさnの配列．置換行列[P]を定義する軸選択用添え字．
 
-				///////////pin_ptr<doublecomplex> b = &B[0];
-                doublecomplex* b = new doublecomplex[b_row * b_col];
-                for (int i = 0; i < b_row * b_col; i++)
-                {
-                    doublecomplex v;
-                    v.r = B[i]->Real;
-                    v.i = B[i]->Imaginary;
-                    b[i] = v;                    
-                }
 				// input/output: 配列形式はb[ldb×nrhs]．通常はnrhsが1なので，配列形式がb[ldb]となる．
 				// input : b[ldb×nrhs]の配列形式をした右辺行列{B}．
 				// output: info==0 の場合に，b[ldb×nrhs]形式の解行列{X}が格納される．
@@ -1006,18 +1127,18 @@ namespace KrdLab {
 				{
 					ret = zgesv_(&n, &nrhs, a, &lda, ipiv, b, &ldb, &info);
 					
-                    for (int i = 0; i < a_row * a_col; i++)
-                    {
-                        System::Numerics::Complex^ c = gcnew System::Numerics::Complex(a[i].r, a[i].i);
-                        A[i] = c;                    
-                    }
-                    for (int i = 0; i < b_row * b_col; i++)
-                    {
-                        System::Numerics::Complex^ c = gcnew System::Numerics::Complex(b[i].r, b[i].i);
-                        B[i] = c;                    
-                    }
+					for (int i = 0; i < a_row * a_col; i++)
+					{
+						System::Numerics::Complex^ c = gcnew System::Numerics::Complex(a[i].r, a[i].i);
+						A[i] = c;
+					}
+					for (int i = 0; i < b_row * b_col; i++)
+					{
+						System::Numerics::Complex^ c = gcnew System::Numerics::Complex(b[i].r, b[i].i);
+						B[i] = c;
+					}
 
-                    if(info == 0)
+					if(info == 0)
 					{
 						X = B;
 						x_row = b_row;
@@ -1042,8 +1163,8 @@ namespace KrdLab {
 				finally
 				{
 					delete[] ipiv; ipiv = nullptr;
-                    delete[] a;
-                    delete[] b;
+					delete[] a;
+					delete[] b;
 				}
 
 				return ret;
@@ -1062,10 +1183,10 @@ namespace KrdLab {
 			/// <remarks>
 			/// <para>対応するCLAPACK関数（CLAPACK/BLAS/SRC/zgeev.c）</para>
 			/// <code>
-            /// int zgeev_(char *jobvl, char *jobvr, integer *n, 
-            ///            doublecomplex *a, integer *lda, doublecomplex *w, doublecomplex *vl, 
-            ///            integer *ldvl, doublecomplex *vr, integer *ldvr, doublecomplex *work, 
-            ///            integer *lwork, doublereal *rwork, integer *info)
+			/// int zgeev_(char *jobvl, char *jobvr, integer *n, 
+			///			doublecomplex *a, integer *lda, doublecomplex *w, doublecomplex *vl, 
+			///			integer *ldvl, doublecomplex *vr, integer *ldvr, doublecomplex *work, 
+			///			integer *lwork, doublereal *rwork, integer *info)
 			/// </code>
 			/// </remarks>
 			static int zgeev(array<System::Numerics::Complex^>^ X, int x_row, int x_col,
@@ -1089,16 +1210,27 @@ namespace KrdLab {
 				// the leading dimension of the array A. lda >= max(1, N).
 
 				/////pin_ptr<doublereal> a = &X[0];
-                doublecomplex* a = new doublecomplex[x_row * x_col];
-                for (int i = 0; i < x_row * x_col; i++)
-                {
-                    doublecomplex v;
-                    v.r = X[i]->Real;
-                    v.i = X[i]->Imaginary;
-                    a[i] = v;                    
-                }
+				doublecomplex* a = nullptr;
+				try
+				{
+					a = new doublecomplex[x_row * x_col];
+					for (int i = 0; i < x_row * x_col; i++)
+					{
+						a[i].r = X[i]->Real;
+						a[i].i = X[i]->Imaginary;
+					}
+				}
+				catch (System::Exception^ /*exception*/)
+				{
+					if (a != nullptr)
+					{
+						delete[] a;
+						a = nullptr;
+					}
+					throw;
+				}
 
-                // [lda, n] N×N の行列 X
+				// [lda, n] N×N の行列 X
 				// 配列 a （行列 X）は，計算の過程で上書きされる．			
 				
 				doublecomplex* w = new doublecomplex[n];
@@ -1150,7 +1282,7 @@ namespace KrdLab {
 				doublecomplex* work = new doublecomplex[lwork];
 				// if info == 0 then work[0] returns the optimal lwork.
 
-                doublereal* rwork = new doublereal[2 * n];
+				doublereal* rwork = new doublereal[2 * n];
 				
 				integer info = 0;
 				// if info == 0 then 正常終了
@@ -1177,7 +1309,7 @@ namespace KrdLab {
 						
 						for(int i=0; i<n; ++i)
 						{
-                            evals[i] = gcnew System::Numerics::Complex(w[i].r, w[i].i);
+							evals[i] = gcnew System::Numerics::Complex(w[i].r, w[i].i);
 						}
 						
 						//
@@ -1189,12 +1321,12 @@ namespace KrdLab {
 						
 						for(int i=0; i<n; ++i)
 						{
-						    // 通常の格納処理
+							// 通常の格納処理
 							evecs[i] = gcnew array<System::Numerics::Complex^>(ldvr);
 
 							for(int j=0; j<ldvr; ++j)
 							{
-                                doublecomplex v = vr[i*ldvr + j];
+								doublecomplex v = vr[i*ldvr + j];
 								evecs[i][j] = gcnew System::Numerics::Complex(v.r, v.i);
 							}
 						}// end for i
@@ -1219,7 +1351,7 @@ namespace KrdLab {
 					delete[] w; w = nullptr;
 					delete[] vr; vr = nullptr;
 					delete[] work; work = nullptr;
-                    delete[] rwork; rwork = nullptr;
+					delete[] rwork; rwork = nullptr;
 				}
 
 				return ret;

@@ -31,9 +31,9 @@
                 <para>対応するCLAPACK関数（CLAPACK/BLAS/SRC/zgeev.c）</para>
                 <code>
 int zgeev_(char *jobvl, char *jobvr, integer *n, 
-           doublecomplex *a, integer *lda, doublecomplex *w, doublecomplex *vl, 
-           integer *ldvl, doublecomplex *vr, integer *ldvr, doublecomplex *work, 
-           integer *lwork, doublereal *rwork, integer *info)
+		doublecomplex *a, integer *lda, doublecomplex *w, doublecomplex *vl, 
+		integer *ldvl, doublecomplex *vr, integer *ldvr, doublecomplex *work, 
+		integer *lwork, doublereal *rwork, integer *info)
 </code>
             </remarks>
         </member>
@@ -69,6 +69,21 @@ int zgesv_(integer *n, integer *nrhs,
 </code>
                 <para>zgesv_ 関数の内部では LU分解が使用されている．</para>
             </remarks>
+        </member>
+        <member name="M:KrdLab.clapack.Function.deCompressMat(System.ValueType!System.Numerics.Complex!System.Runtime.CompilerServices.IsBoxed[],doublecomplex*)">
+            <summary>
+                <para>圧縮されたComplex配列を元に戻す</para>
+                <para>A(解凍前)のサイズとa(解凍後)のサイズは同じ.</para>
+            </summary>
+            <param name="A">圧縮されたComplex配列</param>
+            <param name="a">出力doublecomplex配列(メモリ確保は行われているものとする)</param>
+        </member>
+        <member name="M:KrdLab.clapack.Function.CompressMatFor_zgesv(System.ValueType!System.Numerics.Complex!System.Runtime.CompilerServices.IsBoxed[]@)">
+            <summary>
+                <para>Complex配列を圧縮する</para>
+                <para>圧縮前のサイズと圧縮後のサイズは同じ.nullptrに置き換わる分メモリ削減になる</para>
+            </summary>
+            <param name="A">[IN]対象Complex配列、[OUT]圧縮されたComplex配列</param>
         </member>
         <member name="M:KrdLab.clapack.Function.dgetrf(System.Double[],System.Int32,System.Int32,System.Int32[]@)">
             <summary>

@@ -169,7 +169,6 @@ namespace HPlaneWGSimulator
             System.Diagnostics.Debug.Assert(EpsTextBoxes.Length == Constants.MaxMediaCount);
             panelMedia.Visible = false;
 
-            Variables.Reset();
             CadLgc = new CadLogic(CadPanel);
             Solver = new FemSolver();
             PostPro = new FemPostProLogic();
@@ -196,9 +195,6 @@ namespace HPlaneWGSimulator
 
             // GUI初期化
             resetGUI();
-            
-            // フィールド値凡例パネルの初期化
-            PostPro.InitFValueLegend(FValueLegendPanel, labelFreqValue);
         }
 
         /// <summary>
@@ -716,8 +712,8 @@ namespace HPlaneWGSimulator
             }
 
             // 計算範囲ダイアログを表示する
-            CalcRangeFrm frm = new CalcRangeFrm();
-            DialogResult result = frm.ShowDialog();
+            CalcRangeFrm calcRangeFrm = new CalcRangeFrm(Solver.FirstNormalizedFreq, Solver.LastNormalizedFreq, Solver.CalcFreqCnt);
+            DialogResult result = calcRangeFrm.ShowDialog();
             if (result != DialogResult.OK)
             {
                 return;
@@ -730,19 +726,34 @@ namespace HPlaneWGSimulator
                 return;
             }
 
+            // 解析機へ入力データを読み込む
+            Solver.Load(FemInputDatFilePath);
+            // 解析機の情報が確定したので、計算範囲画面で設定した計算範囲をファイルへ書き込み
+            Solver.UpdateFreqRangeToInputFile(FemInputDatFilePath, calcRangeFrm.NormalizedFreq1, calcRangeFrm.NormalizedFreq2, calcRangeFrm.CalcFreqCnt);
+
+            // ポストプロセッサの初期化
+            PostPro.InitData(
+                Solver,
+                CadPanel,
+                FValuePanel,
+                FValueLegendPanel, labelFreqValue,
+                SMatChart,
+                BetaChart,
+                EigenVecChart);
+            
+            // 解析機のデータチェック
+            bool chkResult = Solver.ChkInputData();
+            if (!chkResult)
+            {
+                return;
+            }
+
             // [計算開始]ボタンの無効化
             setCtrlEnable(false);
             btnCalc.Text = "計算キャンセル";
 
             // Cadモードを操作なしにする
             setupCadModeRadioButtons(CadLogic.CadModeType.None);
-            /*
-            foreach (RadioButton rb in CadModeRadioButtons)
-            {
-                rb.Checked = false;
-            }
-            radioBtnNone.Checked = true;
-             */
             CadLgc.CadMode = CadLogic.CadModeType.None;
 
             // 選択中媒質を真空にする
@@ -753,96 +764,32 @@ namespace HPlaneWGSimulator
             // 媒質選択ボタンの背景色とテキストを設定
             btnMediaSelect_SetColorAndText();
 
-            // 解析機へ入力データを読み込む
-            Solver.Load(FemInputDatFilePath);
-
-            // ポストプロセッサに入力データをコピー
-            PostPro.SetInputData(Solver);
-
-            // メッシュ描画
-            //using (Graphics g = CadPanel.CreateGraphics())
-            //{
-            //    PostPro.DrawMesh(g, CadPanel);
-            //}
-            //CadPanel.Invalidate();
-
             // 周波数インデックス初期化
             FreqNo = -1;
-            // チャート初期化
-            PostPro.ResetChart(SMatChart);
-
-            // 等高線図の凡例
-            PostPro.UpdateFValueLegend(FValueLegendPanel, labelFreqValue);
-            // 等高線図
-            FValuePanel.Invalidate();
-
-            // 固有値チャート初期化
-            PostPro.ResetEigenValueChart(BetaChart);
-            // 固有ベクトル表示(空のデータで初期化)
-            PostPro.SetEigenVecToChart(EigenVecChart);
 
             SolverThread = new Thread(new ThreadStart(delegate()
                 {
                     // 各波長の結果出力時に呼ばれるコールバックの定義
                     ParameterizedInvokeDelegate eachDoneCallback = new ParameterizedInvokeDelegate(delegate(Object[] args)
                         {
-                            /*
-                            bool resetFlg = false;
-                            if (args != null && args.Length > 0)
-                            {
-                                resetFlg = Boolean.Parse((string)args[0]);
-                            }
-                            if (resetFlg)
-                            {
-                                this.Invoke(new InvokeDelegate(delegate()
-                                {
-                                    // チャート初期化
-                                    PostPro.ResetChart(SMatChart);
-
-                                    // 等高線図の凡例
-                                    PostPro.UpdateFValueLegend(FValueLegendPanel, labelFreqValue);
-                                    // 等高線図
-                                    FValuePanel.Invalidate();
-                                }));
-                                return;
-                            }
-                            */
-
                             // ポストプロセッサへ結果読み込み(freqNo: -1は最後の結果を読み込み)
                             PostPro.LoadOutput(FemOutputDatFilePath, -1);
 
                             // 結果をグラフィック表示
                             this.Invoke(new InvokeDelegate(delegate()
                                 {
-                                    // 等高線図の凡例
-                                    PostPro.UpdateFValueLegend(FValueLegendPanel, labelFreqValue);
-                                    // 等高線図
-                                    FValuePanel.Invalidate();
+                                    PostPro.SetOutputToGui(
+                                        FemOutputDatFilePath,
+                                        CadPanel,
+                                        FValuePanel,
+                                        FValueLegendPanel, labelFreqValue,
+                                        SMatChart,
+                                        BetaChart,
+                                        EigenVecChart,
+                                        true);
                                 }));
 
-                            this.Invoke(new InvokeDelegate(delegate()
-                            {
-                                // Sマトリックス周波数特性グラフに計算した点を追加
-                                PostPro.AddScatterMatrixToChart(SMatChart);
-                            }));
-
-                            this.Invoke(new InvokeDelegate(delegate()
-                                {
-                                    int firstFreqNo;
-                                    int lastFreqNo;
-                                    if (PostPro.GetCalculatedFreqCnt(FemOutputDatFilePath, out firstFreqNo, out lastFreqNo) == 1) 
-                                    {
-                                        // 固有値チャート初期化(モード数が変わっているので再度初期化する)
-                                        PostPro.ResetEigenValueChart(BetaChart);
-                                    }
-                                    // 固有値(伝搬定数)周波数特性グラフに計算した点を追加
-                                    PostPro.AddEigenValueToChart(BetaChart);
-
-                                    // 固有ベクトル表示
-                                    PostPro.SetEigenVecToChart(EigenVecChart);
-                                }));
-                        }
-                        );
+                        });
                     // 解析実行
                     Solver.Run(FemOutputDatFilePath, this, eachDoneCallback);
 
@@ -868,7 +815,7 @@ namespace HPlaneWGSimulator
                             //CadPanel.Invalidate();
 
                             // 等高線図再描画（メッシュを消す）
-                            FValuePanel.Invalidate();
+                            //FValuePanel.Invalidate();
                         }));
                 }));
             SolverThread.Name = "solverThread";
@@ -1067,13 +1014,16 @@ namespace HPlaneWGSimulator
 
             // ポストプロセッサへ結果読み込み
             bool ret = PostPro.LoadOutput(FemOutputDatFilePath, FreqNo);
-
-            // 結果をグラフィック表示
-            // 等高線図表示
-            PostPro.UpdateFValueLegend(FValueLegendPanel, labelFreqValue);
-            FValuePanel.Invalidate();
-            // 固有ベクトル表示
-            PostPro.SetEigenVecToChart(EigenVecChart);
+            // 結果をグラフィック表示 (周波数特性のデータは追加しない. 等高線図と固有ベクトル分布図のみ更新)
+            PostPro.SetOutputToGui(
+                FemOutputDatFilePath,
+                CadPanel,
+                FValuePanel,
+                FValueLegendPanel, labelFreqValue,
+                SMatChart,
+                BetaChart,
+                EigenVecChart,
+                false);
         }
 
         /// <summary>
@@ -1101,13 +1051,16 @@ namespace HPlaneWGSimulator
 
             // ポストプロセッサへ結果読み込み
             bool ret = PostPro.LoadOutput(FemOutputDatFilePath, FreqNo);
-
-            // 結果をグラフィック表示
-            // 等高線図表示
-            PostPro.UpdateFValueLegend(FValueLegendPanel, labelFreqValue);
-            FValuePanel.Invalidate();
-            // 固有ベクトル表示
-            PostPro.SetEigenVecToChart(EigenVecChart);
+            // 結果をグラフィック表示 (周波数特性のデータは追加しない. 等高線図と固有ベクトル分布図のみ更新)
+            PostPro.SetOutputToGui(
+                FemOutputDatFilePath,
+                CadPanel,
+                FValuePanel,
+                FValueLegendPanel, labelFreqValue,
+                SMatChart,
+                BetaChart,
+                EigenVecChart,
+                false);
         }
 
         /// <summary>
@@ -1298,9 +1251,6 @@ namespace HPlaneWGSimulator
         /// </summary>
         private void resetGUI()
         {
-            // 変数初期化
-            Variables.Reset();
-
             // Cadデータの初期化
             CadLgc.InitData();
             // 元に戻す、やり直しボタンの操作可能フラグをセットアップ
@@ -1329,23 +1279,20 @@ namespace HPlaneWGSimulator
             // 解析機の入力データ初期化
             Solver.InitData();
             // ポストプロセッサの入力データ初期化
-            PostPro.InitData();
+            PostPro.InitData(
+                Solver,
+                CadPanel,
+                FValuePanel,
+                FValueLegendPanel, labelFreqValue,
+                SMatChart,
+                BetaChart,
+                EigenVecChart
+                );
 
             // 周波数インデックス初期化
             FreqNo = -1;
             // 周波数ボタンの有効・無効化
             setupBtnFreqEnable();
-            // チャート初期化
-            PostPro.ResetChart(SMatChart);
-            // 等高線図凡例
-            PostPro.UpdateFValueLegend(FValueLegendPanel, labelFreqValue);
-            // 等高線図
-            FValuePanel.Invalidate();
-            // 固有値チャート初期化
-            // この段階ではMaxModeの値が0なので、後に計算値ロード後一回だけ初期化する
-            PostPro.ResetEigenValueChart(BetaChart);
-            // 固有ベクトル表示
-            PostPro.SetEigenVecToChart(EigenVecChart);
         }
 
         /// <summary>
@@ -1366,30 +1313,43 @@ namespace HPlaneWGSimulator
             // 方眼線描画
             CadPanel.Invalidate();
 
+            // 解析機へ入力データを読み込む
+            Solver.Load(FemInputDatFilePath);
+            // ポストプロセッサの入力データ初期化
+            PostPro.InitData(
+                Solver,
+                CadPanel,
+                FValuePanel,
+                FValueLegendPanel, labelFreqValue,
+                SMatChart,
+                BetaChart,
+                EigenVecChart
+                );
+            //描画の途中経過を表示
+            Application.DoEvents();
+
             if (File.Exists(FemOutputDatFilePath))
             {
-                // 解析機へ入力データを読み込む
-                Solver.Load(FemInputDatFilePath);
-                // ポストプロセッサに入力データをコピー
-                PostPro.SetInputData(Solver);
-
                 // 周波数インデックス初期化
                 FreqNo = -1;
                 // 周波数ボタンの有効・無効化
                 setupBtnFreqEnable();
-                // チャート初期化(ポート数が変わっているので再度初期化する)
-                PostPro.ResetChart(SMatChart);
-                //描画の途中経過を表示
-                Application.DoEvents();
 
                 // 周波数特性グラフの表示
                 int loadcnt = 0; // 計算失敗を考慮
                 int firstFreqNo;
                 int lastFreqNo;
                 int cnt = PostPro.GetCalculatedFreqCnt(FemOutputDatFilePath, out firstFreqNo, out lastFreqNo);
-                double firstNormalizedFreq = Variables.NormalizedFreqRange[0];
-                double lastNormalizedFreq = Variables.NormalizedFreqRange[1];
-                double freqDelta = (Variables.NormalizedFreqRange[1] - Variables.NormalizedFreqRange[0]) / Variables.CalcFreqencyPointCount;
+                double firstNormalizedFreq = Solver.FirstNormalizedFreq;
+                double lastNormalizedFreq = Solver.LastNormalizedFreq;
+                int calcFreqCnt = Solver.CalcFreqCnt;
+                if (calcFreqCnt == 0)
+                {
+                    firstNormalizedFreq = Constants.DefNormalizedFreqRange[0];
+                    lastNormalizedFreq = Constants.DefNormalizedFreqRange[1];
+                    calcFreqCnt = Constants.DefCalcFreqencyPointCount;
+                }
+                double freqDelta = (Solver.LastNormalizedFreq - Solver.FirstNormalizedFreq) / calcFreqCnt;
                 for (int freqIndex = firstFreqNo - 1; freqIndex <= lastFreqNo - 1; freqIndex++)
                 {
                     int freqNo = freqIndex + 1;
@@ -1412,29 +1372,20 @@ namespace HPlaneWGSimulator
                     }
                     lastNormalizedFreq = normalizedFreq;
 
-                    // Sマトリックス周波数特性グラフに計算した点を追加
-                    PostPro.AddScatterMatrixToChart(SMatChart);
-                    if (loadcnt == 1) // 計算失敗を考慮
-                    {
-                        // チャート初期化(モード数が変わっているので再度初期化する)
-                        PostPro.ResetEigenValueChart(BetaChart);
-                    }
-                    // 伝搬定数周波数特性グラフに計算した点を追加
-                    PostPro.AddEigenValueToChart(BetaChart);
+                    // グラフィック表示
+                    PostPro.SetOutputToGui(
+                        FemOutputDatFilePath,
+                        CadPanel,
+                        FValuePanel,
+                        FValueLegendPanel, labelFreqValue,
+                        SMatChart,
+                        BetaChart,
+                        EigenVecChart,
+                        true);
 
                     //描画の途中経過を表示
                     Application.DoEvents();
                 }
-                // 計算開始、終了、計算間隔の再設定
-                freqDelta = Math.Round(freqDelta, 2);  // 小数点2桁まで
-                firstNormalizedFreq = Math.Round(firstNormalizedFreq, 1); // 小数点1桁まで
-                lastNormalizedFreq = Math.Round(lastNormalizedFreq, 1); // 小数点1桁まで
-                Variables.NormalizedFreqRange[0] = (firstNormalizedFreq < Constants.DefNormalizedFreqRange[0]) ? firstNormalizedFreq : Constants.DefNormalizedFreqRange[0];
-                Variables.NormalizedFreqRange[1] = (lastNormalizedFreq > Constants.DefNormalizedFreqRange[1]) ? lastNormalizedFreq : Constants.DefNormalizedFreqRange[1];
-                int calcCnt = (int)((double)(Variables.NormalizedFreqRange[1] - Variables.NormalizedFreqRange[0]) / freqDelta);
-                Variables.CalcFreqencyPointCount = calcCnt > 1 ? calcCnt : 1;
-                PostPro.SetChartFreqRange(SMatChart);
-                PostPro.SetChartFreqRange(BetaChart);
 
                 // 周波数
                 //FreqNo = 1;
@@ -1444,13 +1395,16 @@ namespace HPlaneWGSimulator
 
                 // ポストプロセッサへ結果読み込み
                 PostPro.LoadOutput(FemOutputDatFilePath, FreqNo);
-
-                // 等高線図凡例
-                PostPro.UpdateFValueLegend(FValueLegendPanel, labelFreqValue);
-                // 等高線図
-                FValuePanel.Invalidate();
-                // 固有ベクトル表示
-                PostPro.SetEigenVecToChart(EigenVecChart);
+                // グラフィック表示(等高線図と固有ベクトル表示のみ更新)
+                PostPro.SetOutputToGui(
+                    FemOutputDatFilePath,
+                    CadPanel,
+                    FValuePanel,
+                    FValueLegendPanel, labelFreqValue,
+                    SMatChart,
+                    BetaChart,
+                    EigenVecChart,
+                    false);
             }
         }
 
@@ -1526,32 +1480,60 @@ namespace HPlaneWGSimulator
         /// </summary>
         private void saveToFile()
         {
+            // 計算範囲の退避
+            double firstNormalizedFreq = Solver.FirstNormalizedFreq;
+            double lastNormalizedFreq = Solver.LastNormalizedFreq;
+            int calcFreqCnt = Solver.CalcFreqCnt;
+            if (calcFreqCnt == 0)
+            {
+                firstNormalizedFreq = Constants.DefNormalizedFreqRange[0];
+                lastNormalizedFreq = Constants.DefNormalizedFreqRange[1];
+                calcFreqCnt = Constants.DefCalcFreqencyPointCount;
+            }
+
             // Fem入出力データの削除
             removeAllFemDatFile();
+            
             // 解析機の入力データ初期化
             Solver.InitData();
+            /*
             // ポストプロセッサの入力データ初期化
-            PostPro.InitData();
+            PostPro.InitData(
+                Solver,
+                CadPanel,
+                FValuePanel,
+                FValueLegendPanel, labelFreqValue,
+                SMatChart,
+                BetaChart,
+                EigenVecChart
+                );*/
 
             // 周波数インデックス初期化
             FreqNo = -1;
             // 周波数ボタンの有効・無効化
             setupBtnFreqEnable();
-            // チャート初期化
-            PostPro.ResetChart(SMatChart);
-            // 等高線図凡例
-            PostPro.UpdateFValueLegend(FValueLegendPanel, labelFreqValue);
-            // 等高線図
-            FValuePanel.Invalidate();
-            // 固有値(伝搬定数)チャート初期化
-            PostPro.ResetEigenValueChart(BetaChart);
-            // 固有ベクトル表示
-            PostPro.SetEigenVecToChart(EigenVecChart);
 
             // Cadデータの書き込み
             CadLgc.SerializeCadData(CadDatFilePath);
             // FEM入力データの作成
             CadLgc.MkFemInputData(FemInputDatFilePath);
+
+            // 計算範囲の復元
+            // 解析機へ入力データを読み込む
+            Solver.Load(FemInputDatFilePath);
+            // 解析機の情報が確定したので、計算範囲画面で設定した計算範囲をファイルへ書き込み
+            Solver.UpdateFreqRangeToInputFile(FemInputDatFilePath, firstNormalizedFreq, lastNormalizedFreq, calcFreqCnt);
+            // ポストプロセッサの入力データ初期化
+            PostPro.InitData(
+                Solver,
+                CadPanel,
+                FValuePanel,
+                FValueLegendPanel, labelFreqValue,
+                SMatChart,
+                BetaChart,
+                EigenVecChart
+                );
+
             // 元に戻す、やり直しボタンの操作可能フラグをセットアップ
             setupUndoRedoEnable();
         }

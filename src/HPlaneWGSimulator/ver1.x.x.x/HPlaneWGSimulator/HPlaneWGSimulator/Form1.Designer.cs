@@ -53,16 +53,16 @@
             this.btnPrevFreq = new System.Windows.Forms.Button();
             this.btnNextFreq = new System.Windows.Forms.Button();
             this.btnMediaSelect = new System.Windows.Forms.Button();
+            this.labelFreq = new System.Windows.Forms.Label();
             this.btnRedo = new System.Windows.Forms.Button();
             this.btnUndo = new System.Windows.Forms.Button();
             this.btnSaveAs = new System.Windows.Forms.Button();
-            this.btnNew = new System.Windows.Forms.Button();
             this.btnSave = new System.Windows.Forms.Button();
             this.btnOpen = new System.Windows.Forms.Button();
+            this.btnNew = new System.Windows.Forms.Button();
             this.SMatChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             this.FValueLegendPanel = new System.Windows.Forms.Panel();
             this.labelFreqValue = new System.Windows.Forms.Label();
-            this.labelFreq = new System.Windows.Forms.Label();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.saveFileDialog1 = new System.Windows.Forms.SaveFileDialog();
             this.GroupBoxMedia = new System.Windows.Forms.GroupBox();
@@ -262,6 +262,15 @@
             this.btnMediaSelect.UseVisualStyleBackColor = false;
             this.btnMediaSelect.Click += new System.EventHandler(this.btnMediaSelect_Click);
             // 
+            // labelFreq
+            // 
+            this.labelFreq.AutoSize = true;
+            this.labelFreq.Location = new System.Drawing.Point(7, 249);
+            this.labelFreq.Name = "labelFreq";
+            this.labelFreq.Size = new System.Drawing.Size(47, 12);
+            this.labelFreq.TabIndex = 0;
+            this.labelFreq.Text = "2W/λ =";
+            // 
             // btnRedo
             // 
             this.btnRedo.Image = global::HPlaneWGSimulator.Properties.Resources.やり直し;
@@ -295,17 +304,6 @@
             this.btnSaveAs.UseVisualStyleBackColor = true;
             this.btnSaveAs.Click += new System.EventHandler(this.btnSaveAs_Click);
             // 
-            // btnNew
-            // 
-            this.btnNew.Image = global::HPlaneWGSimulator.Properties.Resources.新規;
-            this.btnNew.Location = new System.Drawing.Point(5, 4);
-            this.btnNew.Name = "btnNew";
-            this.btnNew.Size = new System.Drawing.Size(40, 40);
-            this.btnNew.TabIndex = 0;
-            this.toolTip1.SetToolTip(this.btnNew, "新規作成");
-            this.btnNew.UseVisualStyleBackColor = true;
-            this.btnNew.Click += new System.EventHandler(this.btnNew_Click);
-            // 
             // btnSave
             // 
             this.btnSave.Image = global::HPlaneWGSimulator.Properties.Resources.上書き保存;
@@ -327,6 +325,17 @@
             this.toolTip1.SetToolTip(this.btnOpen, "開く Ctrl+O");
             this.btnOpen.UseVisualStyleBackColor = true;
             this.btnOpen.Click += new System.EventHandler(this.btnOpen_Click);
+            // 
+            // btnNew
+            // 
+            this.btnNew.Image = global::HPlaneWGSimulator.Properties.Resources.新規;
+            this.btnNew.Location = new System.Drawing.Point(5, 4);
+            this.btnNew.Name = "btnNew";
+            this.btnNew.Size = new System.Drawing.Size(40, 40);
+            this.btnNew.TabIndex = 0;
+            this.toolTip1.SetToolTip(this.btnNew, "新規作成");
+            this.btnNew.UseVisualStyleBackColor = true;
+            this.btnNew.Click += new System.EventHandler(this.btnNew_Click);
             // 
             // SMatChart
             // 
@@ -360,20 +369,12 @@
             // labelFreqValue
             // 
             this.labelFreqValue.AutoSize = true;
-            this.labelFreqValue.Location = new System.Drawing.Point(22, 274);
+            this.labelFreqValue.Font = new System.Drawing.Font("MS UI Gothic", 14.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this.labelFreqValue.Location = new System.Drawing.Point(12, 265);
             this.labelFreqValue.Name = "labelFreqValue";
-            this.labelFreqValue.Size = new System.Drawing.Size(23, 12);
+            this.labelFreqValue.Size = new System.Drawing.Size(42, 19);
             this.labelFreqValue.TabIndex = 3;
             this.labelFreqValue.Text = "---";
-            // 
-            // labelFreq
-            // 
-            this.labelFreq.AutoSize = true;
-            this.labelFreq.Location = new System.Drawing.Point(7, 258);
-            this.labelFreq.Name = "labelFreq";
-            this.labelFreq.Size = new System.Drawing.Size(48, 12);
-            this.labelFreq.TabIndex = 0;
-            this.labelFreq.Text = "2W/λ =";
             // 
             // openFileDialog1
             // 
@@ -488,7 +489,7 @@
             this.panelMedia.BackColor = System.Drawing.SystemColors.Control;
             this.panelMedia.Controls.Add(this.GroupBoxMedia);
             this.panelMedia.ForeColor = System.Drawing.SystemColors.ControlText;
-            this.panelMedia.Location = new System.Drawing.Point(337, 5);
+            this.panelMedia.Location = new System.Drawing.Point(462, 8);
             this.panelMedia.Name = "panelMedia";
             this.panelMedia.Size = new System.Drawing.Size(242, 147);
             this.panelMedia.TabIndex = 9;
