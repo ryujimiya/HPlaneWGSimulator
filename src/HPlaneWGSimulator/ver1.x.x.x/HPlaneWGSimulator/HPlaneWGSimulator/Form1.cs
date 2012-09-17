@@ -578,7 +578,7 @@ namespace HPlaneWGSimulator
             // 現在編集中の図面があれば上書きする
             if (CadLgc.IsDirty)
             {
-                result = MessageBox.Show("Cadデータが変更されています。Cadデータを保存しますか", "アプリケーションを終了します", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+                result = MessageBox.Show("Cadデータが変更されています。Cadデータを保存しますか", "", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
                 if (result == System.Windows.Forms.DialogResult.Yes)
                 {
                     //上書き保存
