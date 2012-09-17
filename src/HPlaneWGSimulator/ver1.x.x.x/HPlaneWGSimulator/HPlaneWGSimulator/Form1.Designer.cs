@@ -30,15 +30,15 @@
         {
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea4 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Legend legend4 = new System.Windows.Forms.DataVisualization.Charting.Legend();
-            System.Windows.Forms.DataVisualization.Charting.Title title4 = new System.Windows.Forms.DataVisualization.Charting.Title();
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea5 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Legend legend5 = new System.Windows.Forms.DataVisualization.Charting.Legend();
-            System.Windows.Forms.DataVisualization.Charting.Title title5 = new System.Windows.Forms.DataVisualization.Charting.Title();
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea6 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Legend legend6 = new System.Windows.Forms.DataVisualization.Charting.Legend();
-            System.Windows.Forms.DataVisualization.Charting.Title title6 = new System.Windows.Forms.DataVisualization.Charting.Title();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea7 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend7 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.Windows.Forms.DataVisualization.Charting.Title title7 = new System.Windows.Forms.DataVisualization.Charting.Title();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea8 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend8 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.Windows.Forms.DataVisualization.Charting.Title title8 = new System.Windows.Forms.DataVisualization.Charting.Title();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea9 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend9 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.Windows.Forms.DataVisualization.Charting.Title title9 = new System.Windows.Forms.DataVisualization.Charting.Title();
             this.CadPanel = new System.Windows.Forms.Panel();
             this.FValuePanel = new System.Windows.Forms.Panel();
             this.btnCalc = new System.Windows.Forms.Button();
@@ -53,13 +53,13 @@
             this.btnPrevFreq = new System.Windows.Forms.Button();
             this.btnNextFreq = new System.Windows.Forms.Button();
             this.btnMediaSelect = new System.Windows.Forms.Button();
-            this.labelFreq = new System.Windows.Forms.Label();
             this.btnRedo = new System.Windows.Forms.Button();
             this.btnUndo = new System.Windows.Forms.Button();
             this.btnSaveAs = new System.Windows.Forms.Button();
             this.btnSave = new System.Windows.Forms.Button();
             this.btnOpen = new System.Windows.Forms.Button();
             this.btnNew = new System.Windows.Forms.Button();
+            this.labelFreq = new System.Windows.Forms.Label();
             this.SMatChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             this.FValueLegendPanel = new System.Windows.Forms.Panel();
             this.labelFreqValue = new System.Windows.Forms.Label();
@@ -77,6 +77,7 @@
             this.BetaChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             this.EigenVecChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             this.linkLblEigenShow = new System.Windows.Forms.LinkLabel();
+            this.linkLabelMeshShow = new System.Windows.Forms.LinkLabel();
             this.GroupBoxCadMode.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.SMatChart)).BeginInit();
             this.FValueLegendPanel.SuspendLayout();
@@ -114,7 +115,7 @@
             // 
             this.btnCalc.AutoSize = true;
             this.btnCalc.ForeColor = System.Drawing.Color.Black;
-            this.btnCalc.Location = new System.Drawing.Point(256, 21);
+            this.btnCalc.Location = new System.Drawing.Point(325, 22);
             this.btnCalc.Name = "btnCalc";
             this.btnCalc.Size = new System.Drawing.Size(75, 23);
             this.btnCalc.TabIndex = 6;
@@ -135,7 +136,7 @@
             this.GroupBoxCadMode.Name = "GroupBoxCadMode";
             this.GroupBoxCadMode.Padding = new System.Windows.Forms.Padding(0);
             this.GroupBoxCadMode.Size = new System.Drawing.Size(251, 54);
-            this.GroupBoxCadMode.TabIndex = 7;
+            this.GroupBoxCadMode.TabIndex = 8;
             this.GroupBoxCadMode.TabStop = false;
             // 
             // radioBtnNone
@@ -256,20 +257,11 @@
             this.btnMediaSelect.Location = new System.Drawing.Point(268, 503);
             this.btnMediaSelect.Name = "btnMediaSelect";
             this.btnMediaSelect.Size = new System.Drawing.Size(44, 40);
-            this.btnMediaSelect.TabIndex = 8;
+            this.btnMediaSelect.TabIndex = 9;
             this.btnMediaSelect.Text = "媒質";
             this.toolTip1.SetToolTip(this.btnMediaSelect, "媒質");
             this.btnMediaSelect.UseVisualStyleBackColor = false;
             this.btnMediaSelect.Click += new System.EventHandler(this.btnMediaSelect_Click);
-            // 
-            // labelFreq
-            // 
-            this.labelFreq.AutoSize = true;
-            this.labelFreq.Location = new System.Drawing.Point(7, 249);
-            this.labelFreq.Name = "labelFreq";
-            this.labelFreq.Size = new System.Drawing.Size(47, 12);
-            this.labelFreq.TabIndex = 0;
-            this.labelFreq.Text = "2W/λ =";
             // 
             // btnRedo
             // 
@@ -337,21 +329,30 @@
             this.btnNew.UseVisualStyleBackColor = true;
             this.btnNew.Click += new System.EventHandler(this.btnNew_Click);
             // 
+            // labelFreq
+            // 
+            this.labelFreq.AutoSize = true;
+            this.labelFreq.Location = new System.Drawing.Point(7, 249);
+            this.labelFreq.Name = "labelFreq";
+            this.labelFreq.Size = new System.Drawing.Size(48, 12);
+            this.labelFreq.TabIndex = 0;
+            this.labelFreq.Text = "2W/λ =";
+            // 
             // SMatChart
             // 
-            chartArea4.Name = "ChartArea1";
-            this.SMatChart.ChartAreas.Add(chartArea4);
-            legend4.Name = "Legend1";
-            this.SMatChart.Legends.Add(legend4);
+            chartArea7.Name = "ChartArea1";
+            this.SMatChart.ChartAreas.Add(chartArea7);
+            legend7.Name = "Legend1";
+            this.SMatChart.Legends.Add(legend7);
             this.SMatChart.Location = new System.Drawing.Point(453, 326);
             this.SMatChart.Name = "SMatChart";
             this.SMatChart.Size = new System.Drawing.Size(448, 240);
             this.SMatChart.TabIndex = 0;
             this.SMatChart.TabStop = false;
             this.SMatChart.Text = "chart1";
-            title4.Docking = System.Windows.Forms.DataVisualization.Charting.Docking.Bottom;
-            title4.Name = "Title1";
-            this.SMatChart.Titles.Add(title4);
+            title7.Docking = System.Windows.Forms.DataVisualization.Charting.Docking.Bottom;
+            title7.Name = "Title1";
+            this.SMatChart.Titles.Add(title7);
             this.SMatChart.DoubleClick += new System.EventHandler(this.SMatChart_DoubleClick);
             // 
             // FValueLegendPanel
@@ -364,7 +365,7 @@
             this.FValueLegendPanel.Margin = new System.Windows.Forms.Padding(0);
             this.FValueLegendPanel.Name = "FValueLegendPanel";
             this.FValueLegendPanel.Size = new System.Drawing.Size(68, 320);
-            this.FValueLegendPanel.TabIndex = 11;
+            this.FValueLegendPanel.TabIndex = 12;
             // 
             // labelFreqValue
             // 
@@ -492,40 +493,40 @@
             this.panelMedia.Location = new System.Drawing.Point(462, 8);
             this.panelMedia.Name = "panelMedia";
             this.panelMedia.Size = new System.Drawing.Size(242, 147);
-            this.panelMedia.TabIndex = 9;
+            this.panelMedia.TabIndex = 10;
             // 
             // BetaChart
             // 
-            chartArea5.Name = "ChartArea1";
-            this.BetaChart.ChartAreas.Add(chartArea5);
-            legend5.Name = "Legend1";
-            this.BetaChart.Legends.Add(legend5);
+            chartArea8.Name = "ChartArea1";
+            this.BetaChart.ChartAreas.Add(chartArea8);
+            legend8.Name = "Legend1";
+            this.BetaChart.Legends.Add(legend8);
             this.BetaChart.Location = new System.Drawing.Point(5, 568);
             this.BetaChart.Name = "BetaChart";
             this.BetaChart.Size = new System.Drawing.Size(448, 240);
             this.BetaChart.TabIndex = 0;
             this.BetaChart.TabStop = false;
             this.BetaChart.Text = "chart1";
-            title5.Docking = System.Windows.Forms.DataVisualization.Charting.Docking.Bottom;
-            title5.Name = "Title1";
-            this.BetaChart.Titles.Add(title5);
+            title8.Docking = System.Windows.Forms.DataVisualization.Charting.Docking.Bottom;
+            title8.Name = "Title1";
+            this.BetaChart.Titles.Add(title8);
             this.BetaChart.DoubleClick += new System.EventHandler(this.BetaChart_DoubleClick);
             // 
             // EigenVecChart
             // 
-            chartArea6.Name = "ChartArea1";
-            this.EigenVecChart.ChartAreas.Add(chartArea6);
-            legend6.Name = "Legend1";
-            this.EigenVecChart.Legends.Add(legend6);
+            chartArea9.Name = "ChartArea1";
+            this.EigenVecChart.ChartAreas.Add(chartArea9);
+            legend9.Name = "Legend1";
+            this.EigenVecChart.Legends.Add(legend9);
             this.EigenVecChart.Location = new System.Drawing.Point(453, 568);
             this.EigenVecChart.Name = "EigenVecChart";
             this.EigenVecChart.Size = new System.Drawing.Size(448, 240);
             this.EigenVecChart.TabIndex = 0;
             this.EigenVecChart.TabStop = false;
             this.EigenVecChart.Text = "chart1";
-            title6.Docking = System.Windows.Forms.DataVisualization.Charting.Docking.Bottom;
-            title6.Name = "Title1";
-            this.EigenVecChart.Titles.Add(title6);
+            title9.Docking = System.Windows.Forms.DataVisualization.Charting.Docking.Bottom;
+            title9.Name = "Title1";
+            this.EigenVecChart.Titles.Add(title9);
             this.EigenVecChart.DoubleClick += new System.EventHandler(this.EigenVecChart_DoubleClick);
             // 
             // linkLblEigenShow
@@ -534,10 +535,21 @@
             this.linkLblEigenShow.Location = new System.Drawing.Point(335, 531);
             this.linkLblEigenShow.Name = "linkLblEigenShow";
             this.linkLblEigenShow.Size = new System.Drawing.Size(87, 12);
-            this.linkLblEigenShow.TabIndex = 10;
+            this.linkLblEigenShow.TabIndex = 11;
             this.linkLblEigenShow.TabStop = true;
             this.linkLblEigenShow.Text = "固有モードを見る";
             this.linkLblEigenShow.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLblEigenShow_LinkClicked);
+            // 
+            // linkLabelMeshShow
+            // 
+            this.linkLabelMeshShow.AutoSize = true;
+            this.linkLabelMeshShow.Location = new System.Drawing.Point(251, 22);
+            this.linkLabelMeshShow.Name = "linkLabelMeshShow";
+            this.linkLabelMeshShow.Size = new System.Drawing.Size(68, 12);
+            this.linkLabelMeshShow.TabIndex = 7;
+            this.linkLabelMeshShow.TabStop = true;
+            this.linkLabelMeshShow.Text = "メッシュを見る";
+            this.linkLabelMeshShow.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabelMeshShow_LinkClicked);
             // 
             // Form1
             // 
@@ -546,6 +558,7 @@
             this.AutoScroll = true;
             this.BackColor = System.Drawing.Color.White;
             this.ClientSize = new System.Drawing.Size(919, 567);
+            this.Controls.Add(this.linkLabelMeshShow);
             this.Controls.Add(this.FValueLegendPanel);
             this.Controls.Add(this.panelMedia);
             this.Controls.Add(this.linkLblEigenShow);
@@ -628,6 +641,7 @@
         private System.Windows.Forms.Button btnUndo;
         private System.Windows.Forms.Button btnRedo;
         private System.Windows.Forms.LinkLabel linkLblEigenShow;
+        private System.Windows.Forms.LinkLabel linkLabelMeshShow;
     }
 }
 

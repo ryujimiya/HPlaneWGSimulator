@@ -12,14 +12,14 @@ namespace HPlaneWGSimulator
         ////////////////////////////////////////////////////////////////////////
         // 定数
         ////////////////////////////////////////////////////////////////////////
-        public static readonly double pi = 3.1416;
-        public static readonly double c0 = 2.99792458e+8;
-        public static readonly double myu0 = 4.0e-7 * pi;
-        public static readonly double eps0 = 8.85418782e-12;//1.0 / (myu0 * c0 * c0);
+        public const double pi = 3.1416;
+        public const double c0 = 2.99792458e+8;
+        public const double myu0 = 4.0e-7 * pi;
+        public const double eps0 = 8.85418782e-12;//1.0 / (myu0 * c0 * c0);
         /// <summary>
         /// 計算精度下限
         /// </summary>
-        public static readonly double PrecisionLowerLimit = 1.0e-12;
+        public const double PrecisionLowerLimit = 1.0e-12;
 
         /// <summary>
         /// 分割数
@@ -65,7 +65,7 @@ namespace HPlaneWGSimulator
         /// <summary>
         /// 要素形状区分
         /// </summary>
-        public enum FemElementShapeDV { Line, Triangle };
+        public enum FemElementShapeDV { Line, Triangle/*, QuadType1*/, QuadType2 };
         /// <summary>
         /// ２次元座標次数
         /// </summary>
@@ -74,6 +74,10 @@ namespace HPlaneWGSimulator
         /// 三角形要素頂点数
         /// </summary>
         public const int TriVertexCnt = 3;
+        /// <summary>
+        /// 四角形要素頂点数
+        /// </summary>
+        public const int QuadVertexCnt = 4;
         /// <summary>
         /// 線要素頂点数
         /// </summary>
@@ -91,18 +95,38 @@ namespace HPlaneWGSimulator
         /// </summary>
         public const int LineNodeCnt_FirstOrder = 2;
         public const int LineNodeCnt_SecondOrder = 3;
-        //public static readonly int[] LineNodeCnt = { LineNodeCnt_FirstOrder, LineNodeCnt_SecondOrder };
         /// <summary>
         /// 三角形要素節点数
         /// </summary>
         public const int TriNodeCnt_FirstOrder = 3;
         public const int TriNodeCnt_SecondOrder = 6;
-        //public static readonly int[] TriNodeCnt = { TriNodeCnt_FirstOrder, TriNodeCnt_SecondOrder };
         /// <summary>
         /// 三角形要素の辺の数
         /// </summary>
         public const int TriEdgeCnt_FirstOrder = 3;
         public const int TriEdgeCnt_SecondOrder = 6; // 要素内部の辺は含まない
-        //public static readonly int[] TriEdgeCnt = { TriEdgeCnt_FirstOrder, TriEdgeCnt_SecondOrder };
+        /// <summary>
+        /// 四角形要素頂点数
+        /// </summary>
+        public const int QuadNodeCnt_FirstOrder = 4;
+        public const int QuadNodeCnt_SecondOrder_Type1 = 9;
+        public const int QuadNodeCnt_SecondOrder_Type2 = 8; // セレンディピティ族四角形
+        /// <summary>
+        /// 四角形要素の辺の数
+        /// </summary>
+        public const int QuadEdgeCnt_FirstOrder = 4;
+        public const int QuadEdgeCnt_SecondOrder = 8; // 要素内部の辺は含まない
+
+        /// <summary>
+        /// 有限要素の形状区分既定値
+        /// </summary>
+        public const FemElementShapeDV DefElemShapeDv = FemElementShapeDV.Triangle;
+        //public const FemElementShapeDV DefElemShapeDv = FemElementShapeDV.QuadType2;
+        /// <summary>
+        /// 有限要素の補間次数既定値
+        /// </summary>
+        public const int DefElementOrder = SecondOrder;
+        //public const int DefElementOrder = FirstOrder;
+
     }
 }

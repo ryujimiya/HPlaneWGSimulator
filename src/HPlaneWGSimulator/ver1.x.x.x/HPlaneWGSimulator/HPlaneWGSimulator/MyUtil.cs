@@ -10,6 +10,7 @@ using System.Windows.Forms; //Control
 using System.Collections; //Hashtable
 using System.Text.RegularExpressions; // Regex
 using System.Drawing; // Color
+using System.Numerics; // Complex
 
 namespace MyUtilLib
 {
@@ -393,6 +394,19 @@ namespace MyUtilLib
         public static string getAppCompanyName()
         {
             return Application.CompanyName;
+        }
+
+        /// <summary>
+        /// 複素数のパース
+        /// </summary>
+        /// <param name="str"></param>
+        /// <returns></returns>
+        public static Complex ComplexParse(string str)
+        {
+            Match match = Regex.Match(str, "(.+?)\\+(.+)i");
+            double real = double.Parse(match.Groups[1].Value);
+            double imag = double.Parse(match.Groups[2].Value);
+            return new Complex(real, imag);
         }
     }
 

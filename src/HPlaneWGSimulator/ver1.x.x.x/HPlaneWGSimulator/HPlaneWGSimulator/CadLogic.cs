@@ -1645,268 +1645,91 @@ namespace HPlaneWGSimulator
         /// <summary>
         /// FEM入力データ作成
         /// </summary>
-        public void MkFemInputData(string filename)
+        /// <param name="filename">ファイル名(*.cad)</param>
+        /// <param name="elemShapeDv">要素形状</param>
+        /// <param name="order">補間次数</param>
+        public void MkFemInputData(string filename, Constants.FemElementShapeDV elemShapeDv, int order)
         {
-            int[,] nodeNumbers = new int[MaxDiv.Height * 2 + 1, MaxDiv.Width * 2 + 1]; // 座標 - 節点番号対応マップ
-            IList<int[]> coords = new List<int[]>();  // 節点座標
-            Dictionary<int, bool> forceBCNodeNumberDic = new Dictionary<int, bool>();
-            IList<int[]> elements = new List<int[]>(); // 要素リスト
-            int nodeCounter = 0; // 節点番号カウンター
-            int elementCounter = 0; // 要素番号カウンター
+            IList<double[]> doubleCoords = null;
+            IList<int[]> elements = null;
+            IList<IList<int>> portList = null;
+            int[] forceBCNodeNumbers = null;
+            bool ret;
 
-            for (int yy = 0; yy < MaxDiv.Height * 2 + 1; yy++)
+            if (elemShapeDv == Constants.FemElementShapeDV.Triangle && order == Constants.SecondOrder)
             {
-                for (int xx = 0; xx < MaxDiv.Width * 2 + 1; xx++)
-                {
-                    nodeNumbers[yy, xx] = 0;
-                }
+                // ２次三角形要素メッシュ作成
+                ret = FemMeshLogic.MkTriMeshSecondOrder(
+                    MaxDiv,
+                    AreaSelection, AreaToMediaIndex,
+                    EdgeList,
+                    out doubleCoords,
+                    out elements,
+                    out portList,
+                    out forceBCNodeNumbers
+                );
             }
-            for (int y = 0; y < MaxDiv.Height; y++)
+            else if (elemShapeDv == Constants.FemElementShapeDV.QuadType2 && order == Constants.SecondOrder)
             {
-                for (int x = 0; x < MaxDiv.Width; x++)
-                {
-                    if (AreaSelection[y, x])
-                    {
-                        // 媒質インデックス
-                        int mediaIndex = AreaToMediaIndex[y, x];
-
-                        // 全体節点番号
-                        //
-                        //  1 +--2--+ 3
-                        //  4 |  5  | 6
-                        //  7 +--8--+ 9
-                        //
-                        int[][] pps = new int[9][]
-                        {
-                            new int[2]{ 2 * x    , 2 * y},
-                            new int[2]{ 2 * x + 1, 2 * y},
-                            new int[2]{ 2 * x + 2, 2 * y},
-                            new int[2]{ 2 * x    , 2 * y + 1},
-                            new int[2]{ 2 * x + 1, 2 * y + 1},
-                            new int[2]{ 2 * x + 2, 2 * y + 1},
-                            new int[2]{ 2 * x    , 2 * y + 2},
-                            new int[2]{ 2 * x + 1, 2 * y + 2},
-                            new int[2]{ 2 * x + 2, 2 * y + 2},
-                        };
-                        
-                        foreach (int[] pp in pps)
-                        {
-                            int xx = pp[0];
-                            int yy = pp[1];
-                            if (nodeNumbers[yy, xx] == 0)
-                            {
-                                nodeNumbers[yy, xx] = ++nodeCounter;
-                                coords.Add(new int[2] { xx, yy });
-                            }
-                        }
-                        // 強制境界判定
-                        if (x == 0 || (x >= 1 && !AreaSelection[y, x - 1]))
-                        {
-                            int nodeNumber;
-                            int xx = 2 * x ;
-                            int[] yys = new int[3] {2 * y, 2 * y + 1, 2 * y + 2};
-                            foreach (int yy in yys)
-                            {
-                                nodeNumber = nodeNumbers[yy, xx];
-                                if (!forceBCNodeNumberDic.ContainsKey(nodeNumber))
-                                {
-                                    forceBCNodeNumberDic.Add(nodeNumber, true);
-                                }
-                            }
-                        }
-                        if (x == MaxDiv.Width - 1 || (x <= MaxDiv.Width - 2 && !AreaSelection[y, x + 1]))
-                        {
-                            int nodeNumber;
-                            int xx = 2 * x + 2;
-                            int[] yys = new int[3] {2 * y, 2 * y + 1, 2 * y + 2};
-                            foreach (int yy in yys)
-                            {
-                                nodeNumber = nodeNumbers[yy, xx];
-                                if (!forceBCNodeNumberDic.ContainsKey(nodeNumber))
-                                {
-                                    forceBCNodeNumberDic.Add(nodeNumber, true);
-                                }
-                            }
-                        }
-
-                        if (y == 0 || (y >= 1 && !AreaSelection[y - 1, x]))
-                        {
-                            int nodeNumber;
-                            int yy = 2 * y ;
-                            int[] xxs = new int[3] {2 * x, 2 * x + 1, 2 * x + 2};
-                            foreach (int xx in xxs)
-                            {
-                                nodeNumber = nodeNumbers[yy, xx];
-                                if (!forceBCNodeNumberDic.ContainsKey(nodeNumber))
-                                {
-                                    forceBCNodeNumberDic.Add(nodeNumber, true);
-                                }
-                            }
-                        }
-                        if (y == MaxDiv.Height - 1 || (y <= MaxDiv.Height - 2 && !AreaSelection[y + 1, x]))
-                        {
-                            int nodeNumber;
-                            int yy = 2 * y + 2;
-                            int[] xxs = new int[3] {2 * x, 2 * x + 1, 2 * x + 2};
-                            foreach (int xx in xxs)
-                            {
-                                nodeNumber = nodeNumbers[yy, xx];
-                                if (!forceBCNodeNumberDic.ContainsKey(nodeNumber))
-                                {
-                                    forceBCNodeNumberDic.Add(nodeNumber, true);
-                                }
-                            }
-                        }
-
-                        // 長方形領域を2つの三角形要素に分割
-                        //   要素番号、節点1,2,3の全体節点番号を格納
-                        if ((x + y) % 2 == 0)
-                        {
-                            //
-                            //  1 +-6--+ 3
-                            //  4 |  +5  
-                            //  2 +
-                            //
-                            elements.Add(new int[]
-                                {
-                                    ++elementCounter,
-                                    mediaIndex, // 追加 ver1.1.0.0
-                                    nodeNumbers[2 * y, 2 * x], nodeNumbers[2 * y + 2, 2 * x], nodeNumbers[2 * y, 2 * x + 2],
-                                    nodeNumbers[2 * y + 1, 2 * x], nodeNumbers[2 * y + 1, 2 * x + 1], nodeNumbers[2 * y, 2 * x + 1]
-                                });
-                            //
-                            //         + 2
-                            //     5+  | 4
-                            //  3 +--6-+ 1
-                            //
-                            elements.Add(new int[]
-                                {
-                                    ++elementCounter,
-                                    mediaIndex, // 追加 ver1.1.0.0
-                                    nodeNumbers[2 * y + 2, 2 * x + 2], nodeNumbers[2 * y, 2 * x + 2], nodeNumbers[2 * y + 2, 2 * x],
-                                    nodeNumbers[2 * y + 1, 2 * x + 2], nodeNumbers[2 * y + 1, 2 * x + 1], nodeNumbers[2 * y + 2, 2 * x + 1]
-                                });
-                        }
-                        else
-                        {
-                            //
-                            //  3 +
-                            //  6 |  +5
-                            //  1 +--4-+ 2
-                            //
-                            elements.Add(new int[]
-                                {
-                                    ++elementCounter,
-                                    mediaIndex, // 追加 ver1.1.0.0
-                                    nodeNumbers[2 * y + 2, 2 * x], nodeNumbers[2 * y + 2, 2 * x + 2], nodeNumbers[2 * y, 2 * x],
-                                    nodeNumbers[2 * y + 2, 2 * x + 1], nodeNumbers[2 * y + 1, 2 * x + 1], nodeNumbers[2 * y + 1, 2 * x]
-                                });
-                            //
-                            //  2 +-4--+ 1
-                            //     5+  | 6
-                            //         + 3
-                            //
-                            elements.Add(new int[]
-                                {
-                                    ++elementCounter,
-                                    mediaIndex, // 追加 ver1.1.0.0
-                                    nodeNumbers[2 * y, 2 * x + 2], nodeNumbers[2 * y, 2 * x], nodeNumbers[2 * y + 2, 2 * x + 2],
-                                    nodeNumbers[2 * y, 2 * x + 1], nodeNumbers[2 * y + 1, 2 * x + 1], nodeNumbers[2 * y + 1, 2 * x + 2]
-                                });
-                        }
-                    }
-                }
+                // ２次四角形要素メッシュ作成
+                ret = FemMeshLogic.MkQuadMeshSecondOrderType2(
+                    MaxDiv,
+                    AreaSelection, AreaToMediaIndex,
+                    EdgeList,
+                    out doubleCoords,
+                    out elements,
+                    out portList,
+                    out forceBCNodeNumbers
+                );
             }
-
-            // ポート境界
-            int portCounter = 0;
-            IList<IList<int>> portList = new List<IList<int>>();
-            IList<int> portNodes;
-
-            foreach (Edge edge in EdgeList)
+            else if (elemShapeDv == Constants.FemElementShapeDV.Triangle && order == Constants.FirstOrder)
             {
-                portCounter++;
-                System.Diagnostics.Debug.Assert(edge.No == portCounter);
-                portNodes = new List<int>();
-                if (edge.Delta.Width == 0)
-                {
-                    // 2次線要素
-                    int x = edge.Points[0].X;
-                    int sty = edge.Points[0].Y;
-                    int edy = edge.Points[1].Y;
-                    int xx = 2 * x;
-                    for (int y = sty; y < edy; y++)
-                    {
-                        int[] yys = { 2 * y, 2 * y + 1 };
-                        foreach (int yy in yys)
-                        {
-                            portNodes.Add(nodeNumbers[yy, xx]);
-                        }
-                    }
-                    portNodes.Add(nodeNumbers[2 * edy, xx]);
-                }
-                else if (edge.Delta.Height == 0)
-                {
-                    // 2次線要素
-                    int y = edge.Points[0].Y;
-                    int stx = edge.Points[0].X;
-                    int edx = edge.Points[1].X;
-                    int yy = 2 * y;
-                    for (int x = stx; x < edx; x++)
-                    {
-                        int[] xxs = { 2 * x, 2 * x + 1 };
-                        foreach (int xx in xxs)
-                        {
-                            portNodes.Add(nodeNumbers[yy, xx]);
-                        }
-                    }
-                    portNodes.Add(nodeNumbers[yy, 2 * edx]);
-                }
-                else
-                {
-                    MessageBox.Show("Not implemented");
-                }
-                portList.Add(portNodes);
+                // １次三角形要素メッシュ作成
+                ret = FemMeshLogic.MkTriMeshFirstOrder(
+                    MaxDiv,
+                    AreaSelection, AreaToMediaIndex,
+                    EdgeList,
+                    out doubleCoords,
+                    out elements,
+                    out portList,
+                    out forceBCNodeNumbers
+                );
             }
-
-            // 強制境界からポート境界の節点を取り除く
-            // ただし、始点と終点は強制境界なので残す
-            foreach (IList<int> nodes in portList)
+            else if (elemShapeDv == Constants.FemElementShapeDV.QuadType2 && order == Constants.FirstOrder)
             {
-                for (int i = 0; i < nodes.Count; i++)
-                {
-                    if (i != 0 && i != nodes.Count - 1)
-                    {
-                        int nodeNumber = nodes[i];
-                        if (forceBCNodeNumberDic.ContainsKey(nodeNumber))
-                        {
-                            forceBCNodeNumberDic.Remove(nodeNumber);
-                        }
-                    }
-                }
+                // １次四角形要素メッシュ作成
+                ret = FemMeshLogic.MkQuadMeshFirstOrder(
+                    MaxDiv,
+                    AreaSelection, AreaToMediaIndex,
+                    EdgeList,
+                    out doubleCoords,
+                    out elements,
+                    out portList,
+                    out forceBCNodeNumbers
+                );
             }
-
-            // 座標値に変換
-            IList<double[]> doubleCoords = new List<double[]>();
-            for (int i = 0; i < coords.Count; i++)
+            else
             {
-                int[] coord = coords[i];
-                int xx = coord[0];
-                int yy = coord[1];
-                double[] doubleCoord = new double[]{ xx * 0.5, MaxDiv.Height - yy * 0.5 };
-                doubleCoords.Add(doubleCoord);
+                ret = false;
+            }
+            if (!ret)
+            {
+                MessageBox.Show("メッシュ作成に失敗しました");
+                return;
             }
 
             // Fem入力データファイルへ保存
-            int[] forceBCNodeNumbers = forceBCNodeNumberDic.Keys.ToArray();
+            int nodeCnt = doubleCoords.Count;
+            int elemCnt = elements.Count;
+            int portCnt = portList.Count;
             double dummyFirstWaveLength = 0.0;
             double dummyLastWaveLength = 0.0;
             int dummyCalcCnt = 0;
             FemInputDatFile.SaveToFileFromCad(
                 filename,
-                nodeCounter, doubleCoords,
-                elementCounter, elements,
-                portCounter, portList,
+                nodeCnt, doubleCoords,
+                elemCnt, elements,
+                portCnt, portList,
                 forceBCNodeNumbers,
                 IncidentPortNo,
                 Medias,

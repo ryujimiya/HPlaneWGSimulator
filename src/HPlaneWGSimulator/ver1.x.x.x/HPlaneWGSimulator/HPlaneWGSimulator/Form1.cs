@@ -82,6 +82,10 @@ namespace HPlaneWGSimulator
         /// </summary>
         private Thread SolverThread = null;
         /// <summary>
+        /// メッシュ表示ウィンドウ
+        /// </summary>
+        private MeshViewFrm MeshView = null;
+        /// <summary>
         /// フォームの初期サイズ
         /// </summary>
         private Size FrmBaseSize;
@@ -113,7 +117,20 @@ namespace HPlaneWGSimulator
         /// </summary>
         private Size FrmNormalSize;
         private FormWindowState PrevWindowState = FormWindowState.Normal;
-
+        /// <summary>
+        /// 計算中？
+        /// </summary>
+        private bool isCalculating
+        {
+            get
+            {
+                return SolverThread != null && SolverThread.IsAlive;
+            }
+        }
+        /// <summary>
+        /// 読み込み中？
+        /// </summary>
+        private bool isLoading = false;
 
         /// <summary>
         /// ウィンドウコンストラクタ
@@ -155,15 +172,15 @@ namespace HPlaneWGSimulator
             }
             MediaRadioButtons = new RadioButton[]
             {
-                radioBtnMedia0,
-                radioBtnMedia1,
-                radioBtnMedia2
+                radioBtnMedia0, // 真空
+                radioBtnMedia1, // 誘電体1
+                radioBtnMedia2  // 誘電体2
             };
             EpsTextBoxes = new TextBox[]
             {
-                textBoxEps0,
-                textBoxEps1,
-                textBoxEps2
+                textBoxEps0, // 真空
+                textBoxEps1, // 誘電体1
+                textBoxEps2  // 誘電体2
             };
             System.Diagnostics.Debug.Assert(MediaRadioButtons.Length == Constants.MaxMediaCount);
             System.Diagnostics.Debug.Assert(EpsTextBoxes.Length == Constants.MaxMediaCount);
@@ -518,10 +535,16 @@ namespace HPlaneWGSimulator
         /// <param name="e"></param>
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (SolverThread != null && SolverThread.IsAlive)
+            if (isCalculating)
             {
                 MessageBox.Show("計算中は終了できません", "", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 // イベントをキャンセルする
+                e.Cancel = true;
+                return;
+            }
+            if (isLoading)
+            {
+                MessageBox.Show("読み込み中は終了できません", "", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 e.Cancel = true;
                 return;
             }
@@ -608,7 +631,7 @@ namespace HPlaneWGSimulator
             {
                 CadLgc.CadPanelPaint(g);
             }
-            //if (PostPro != null && btnCalc.Text == "計算キャンセル")
+            //if (PostPro != null && isCalculating)
             //{
             //    // 計算実行中はメッシュ表示
             //    PostPro.DrawMesh(g, CadPanel);
@@ -672,7 +695,7 @@ namespace HPlaneWGSimulator
             if (PostPro != null)
             {
                 PostPro.DrawField(g, FValuePanel);
-                if (PostPro != null && btnCalc.Text == "計算キャンセル")
+                if (PostPro != null && isCalculating)
                 {
                     //見づらいので削除
                     // 計算実行中はメッシュ表示
@@ -712,12 +735,17 @@ namespace HPlaneWGSimulator
             }
 
             // 計算範囲ダイアログを表示する
-            CalcRangeFrm calcRangeFrm = new CalcRangeFrm(Solver.FirstNormalizedFreq, Solver.LastNormalizedFreq, Solver.CalcFreqCnt);
-            DialogResult result = calcRangeFrm.ShowDialog();
+            CalcSettingFrm calcSettingFrm = new CalcSettingFrm(
+                Solver.FirstNormalizedFreq, Solver.LastNormalizedFreq, Solver.CalcFreqCnt,
+                Solver.ElemShapeDvToBeSet, Solver.ElemOrderToBeSet);
+            DialogResult result = calcSettingFrm.ShowDialog();
             if (result != DialogResult.OK)
             {
                 return;
             }
+            // 要素形状、次数の設定をSolverに格納する
+            Solver.ElemShapeDvToBeSet = calcSettingFrm.ElemShapeDv;
+            Solver.ElemOrderToBeSet = calcSettingFrm.ElemOrder;
 
             // Cadデータ保存＆Fem入力データ作成保存
             doSave(true);
@@ -729,7 +757,7 @@ namespace HPlaneWGSimulator
             // 解析機へ入力データを読み込む
             Solver.Load(FemInputDatFilePath);
             // 解析機の情報が確定したので、計算範囲画面で設定した計算範囲をファイルへ書き込み
-            Solver.UpdateFreqRangeToInputFile(FemInputDatFilePath, calcRangeFrm.NormalizedFreq1, calcRangeFrm.NormalizedFreq2, calcRangeFrm.CalcFreqCnt);
+            Solver.UpdateAndSaveToInputFile(FemInputDatFilePath, calcSettingFrm.NormalizedFreq1, calcSettingFrm.NormalizedFreq2, calcSettingFrm.CalcFreqCnt);
 
             // ポストプロセッサの初期化
             PostPro.InitData(
@@ -758,7 +786,7 @@ namespace HPlaneWGSimulator
 
             // 選択中媒質を真空にする
             radioBtnMedia0.Checked = true;
-            CadLgc.SelectedMediaIndex = 0;
+            CadLgc.SelectedMediaIndex = CadLogic.VacumnMediaIndex;
             // 媒質選択グループボックスへ読み込み値を反映
             setupGroupBoxMedia();
             // 媒質選択ボタンの背景色とテキストを設定
@@ -1268,7 +1296,7 @@ namespace HPlaneWGSimulator
             CadLgc.CadMode = CadLogic.CadModeType.None;
             // 選択中媒質を真空にする
             radioBtnMedia0.Checked = true;
-            CadLgc.SelectedMediaIndex = 0;
+            CadLgc.SelectedMediaIndex = CadLogic.VacumnMediaIndex;
             // 媒質選択グループボックスへ読み込み値を反映
             setupGroupBoxMedia();
             // 媒質選択ボタンの背景色とテキストを設定
@@ -1301,6 +1329,11 @@ namespace HPlaneWGSimulator
         private void loadFromFile()
         {
             resetGUI();
+            // ロード中は操作させない
+            isLoading = true;
+            //this.Enabled = false;
+            setCtrlEnable(false);
+            btnCalc.Enabled = false;
 
             // Cadデータの読み込み
             CadLgc.DeserializeCadData(CadDatFilePath);
@@ -1406,6 +1439,12 @@ namespace HPlaneWGSimulator
                     EigenVecChart,
                     false);
             }
+
+            // ロードが完了したので操作可にする
+            //this.Enabled = true;
+            setCtrlEnable(true);
+            btnCalc.Enabled = true;
+            isLoading = false;
         }
 
         /// <summary>
@@ -1442,7 +1481,8 @@ namespace HPlaneWGSimulator
         /// ファイル保存処理
         /// </summary>
         /// <param name="overwriteFlg">上書きフラグ</param>
-        private void doSave(bool overwriteFlg)
+        /// <returns>通常保存は成功する(true)。失敗(false)になるのは名前を付けて保存ダイアログでキャンセルした場合のみ</returns>
+        private bool doSave(bool overwriteFlg)
         {
             if (CadDatFilePath.Length == 0 || !overwriteFlg)
             {
@@ -1466,12 +1506,12 @@ namespace HPlaneWGSimulator
                 }
                 else
                 {
-                    return;
+                    return false;
                 }
             }
             // ファイル書き込み処理
             saveToFile();
-
+            return true;
         }
         
         /// <summary>
@@ -1484,11 +1524,16 @@ namespace HPlaneWGSimulator
             double firstNormalizedFreq = Solver.FirstNormalizedFreq;
             double lastNormalizedFreq = Solver.LastNormalizedFreq;
             int calcFreqCnt = Solver.CalcFreqCnt;
+            // 要素形状、補間次数の退避
+            Constants.FemElementShapeDV elemShapeDv = Solver.ElemShapeDvToBeSet;
+            int elemOrder = Solver.ElemOrderToBeSet;
             if (calcFreqCnt == 0)
             {
                 firstNormalizedFreq = Constants.DefNormalizedFreqRange[0];
                 lastNormalizedFreq = Constants.DefNormalizedFreqRange[1];
                 calcFreqCnt = Constants.DefCalcFreqencyPointCount;
+                elemShapeDv = Constants.DefElemShapeDv;
+                elemOrder = Constants.DefElementOrder;
             }
 
             // Fem入出力データの削除
@@ -1516,13 +1561,13 @@ namespace HPlaneWGSimulator
             // Cadデータの書き込み
             CadLgc.SerializeCadData(CadDatFilePath);
             // FEM入力データの作成
-            CadLgc.MkFemInputData(FemInputDatFilePath);
+            CadLgc.MkFemInputData(FemInputDatFilePath, elemShapeDv, elemOrder);
 
             // 計算範囲の復元
             // 解析機へ入力データを読み込む
             Solver.Load(FemInputDatFilePath);
             // 解析機の情報が確定したので、計算範囲画面で設定した計算範囲をファイルへ書き込み
-            Solver.UpdateFreqRangeToInputFile(FemInputDatFilePath, firstNormalizedFreq, lastNormalizedFreq, calcFreqCnt);
+            Solver.UpdateAndSaveToInputFile(FemInputDatFilePath, firstNormalizedFreq, lastNormalizedFreq, calcFreqCnt);
             // ポストプロセッサの入力データ初期化
             PostPro.InitData(
                 Solver,
@@ -1857,7 +1902,7 @@ namespace HPlaneWGSimulator
         {
             bool executed = false;
             // 媒質パネルが表示されているときは、テキストボックスのショートカットキーと重複するので処理しない
-            if (CadLgc.CanUndo() && (MaximizedControl == null || MaximizedControl == CadPanel) && !panelMedia.Visible && btnCalc.Text != "計算キャンセル")
+            if (CadLgc.CanUndo() && (MaximizedControl == null || MaximizedControl == CadPanel) && !panelMedia.Visible && !isCalculating)
             {
                 // 元に戻す
                 CadLgc.Undo();
@@ -1880,7 +1925,7 @@ namespace HPlaneWGSimulator
         {
             bool executed = false;
             // 媒質パネルが表示されているときは、テキストボックスのショートカットキーと重複するので処理しない
-            if (CadLgc.CanRedo() && (MaximizedControl == null || MaximizedControl == CadPanel) && !panelMedia.Visible && btnCalc.Text != "計算キャンセル")
+            if (CadLgc.CanRedo() && (MaximizedControl == null || MaximizedControl == CadPanel) && !panelMedia.Visible && !isCalculating)
             {
                 // やり直し
                 CadLgc.Redo();
@@ -2046,6 +2091,52 @@ namespace HPlaneWGSimulator
             {
                 PrevWindowState = windowState;
             }
+        }
+
+        /// <summary>
+        /// メッシュ表示ダイアログを表示する
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void linkLabelMeshShow_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            // ファイルを保存しないとメッシュを作成できないのでファイルを保存する
+            if (File.Exists(FemInputDatFilePath) && File.Exists(FemOutputDatFilePath))
+            {
+                /*
+                // 計算済み(入力ファイルがあり、出力ファイルもある)の場合は、メッシュの再作成はしないで計算済みのメッシュを表示する
+                MessageBox.Show("計算済みのデータのメッシュを表示します。"
+                    + System.Environment.NewLine
+                    + "図面のメッシュを表示する場合は、Cadデータを保存するするか、計算を実行してください。");
+                 */
+            }
+            else
+            {
+                DialogResult result = confirmSave();
+                if (result != DialogResult.Yes)
+                {
+                    return;
+                }
+                bool ret = doSave(true);
+                if (!ret)
+                {
+                    MessageBox.Show("メッシュを表示するにはファイルにCadデータを保存する必要があります", "メッシュ表示キャンセル", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+            }
+            //  メッシュ表示ダイアログを表示
+            if (MeshView != null)
+            {
+                if (!MeshView.IsDisposed)
+                {
+                    MeshView.Close();
+                    MeshView.Dispose();
+                    MeshView = null;
+                }
+            }
+            MeshView = new MeshViewFrm(Solver.ElemShapeDvToBeSet, Solver.ElemOrderToBeSet, PostPro);
+            MeshView.Owner = this;
+            MeshView.Show();
         }
 
 

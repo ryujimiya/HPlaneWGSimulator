@@ -1,6 +1,6 @@
 ﻿namespace HPlaneWGSimulator
 {
-    partial class CalcRangeFrm
+    partial class CalcSettingFrm
     {
         /// <summary>
         /// 必要なデザイナー変数です。
@@ -38,6 +38,8 @@
             this.btnAbort = new System.Windows.Forms.Button();
             this.labelCalcRangeNote = new System.Windows.Forms.Label();
             this.labelDeltaNote = new System.Windows.Forms.Label();
+            this.labelElemSapeDv = new System.Windows.Forms.Label();
+            this.cboxElemShapeDv = new System.Windows.Forms.ComboBox();
             this.SuspendLayout();
             // 
             // labelCalcRange
@@ -90,7 +92,7 @@
             // 
             // btnRun
             // 
-            this.btnRun.Location = new System.Drawing.Point(62, 104);
+            this.btnRun.Location = new System.Drawing.Point(61, 153);
             this.btnRun.Name = "btnRun";
             this.btnRun.Size = new System.Drawing.Size(75, 23);
             this.btnRun.TabIndex = 0;
@@ -100,7 +102,7 @@
             // 
             // btnAbort
             // 
-            this.btnAbort.Location = new System.Drawing.Point(169, 104);
+            this.btnAbort.Location = new System.Drawing.Point(168, 153);
             this.btnAbort.Name = "btnAbort";
             this.btnAbort.Size = new System.Drawing.Size(75, 23);
             this.btnAbort.TabIndex = 1;
@@ -126,11 +128,30 @@
             this.labelDeltaNote.TabIndex = 6;
             this.labelDeltaNote.Text = "※0.01～0.5で指定";
             // 
-            // CalcRangeFrm
+            // labelElemSapeDv
+            // 
+            this.labelElemSapeDv.AutoSize = true;
+            this.labelElemSapeDv.Location = new System.Drawing.Point(12, 103);
+            this.labelElemSapeDv.Name = "labelElemSapeDv";
+            this.labelElemSapeDv.Size = new System.Drawing.Size(83, 12);
+            this.labelElemSapeDv.TabIndex = 7;
+            this.labelElemSapeDv.Text = "要素形状・次数";
+            // 
+            // cboxElemShapeDv
+            // 
+            this.cboxElemShapeDv.FormattingEnabled = true;
+            this.cboxElemShapeDv.Location = new System.Drawing.Point(118, 103);
+            this.cboxElemShapeDv.Name = "cboxElemShapeDv";
+            this.cboxElemShapeDv.Size = new System.Drawing.Size(135, 20);
+            this.cboxElemShapeDv.TabIndex = 8;
+            // 
+            // CalcSettingFrm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(284, 139);
+            this.ClientSize = new System.Drawing.Size(284, 188);
+            this.Controls.Add(this.cboxElemShapeDv);
+            this.Controls.Add(this.labelElemSapeDv);
             this.Controls.Add(this.labelDeltaNote);
             this.Controls.Add(this.labelCalcRangeNote);
             this.Controls.Add(this.btnAbort);
@@ -143,9 +164,9 @@
             this.Controls.Add(this.labelCalcRange);
             this.MaximizeBox = false;
             this.MinimizeBox = false;
-            this.Name = "CalcRangeFrm";
+            this.Name = "CalcSettingFrm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "計算範囲";
+            this.Text = "計算設定";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.CalcRangeFrm_FormClosing);
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -164,6 +185,8 @@
         private System.Windows.Forms.Button btnAbort;
         private System.Windows.Forms.Label labelCalcRangeNote;
         private System.Windows.Forms.Label labelDeltaNote;
+        private System.Windows.Forms.Label labelElemSapeDv;
+        private System.Windows.Forms.ComboBox cboxElemShapeDv;
 
     }
 }

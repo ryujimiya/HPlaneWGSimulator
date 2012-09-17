@@ -393,7 +393,7 @@ namespace HPlaneWGSimulator
                                     MessageBox.Show("ポートのモードインデックスが不正です", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
                                     return false;
                                 }
-                                eigenValues[modeIndex] = FemSolver.ComplexParse(tokens[2]);
+                                eigenValues[modeIndex] = MyUtilLib.MyUtil.ComplexParse(tokens[2]);
 
                                 line = sr.ReadLine();
                                 tokens = line.Split(delimiter);
@@ -417,7 +417,7 @@ namespace HPlaneWGSimulator
                                 for (int inoB = 0; inoB < portNodeCnt; inoB++)
                                 {
                                     line = sr.ReadLine();
-                                    eigenVecs[modeIndex, inoB] = FemSolver.ComplexParse(line);
+                                    eigenVecs[modeIndex, inoB] = MyUtilLib.MyUtil.ComplexParse(line);
                                 }
                             }
                             eigenValuesList.Add(eigenValues);
@@ -455,7 +455,7 @@ namespace HPlaneWGSimulator
                         for (int ino = 0; ino < fValueCnt; ino++)
                         {
                             line = sr.ReadLine();
-                            valuesAll[ino] = FemSolver.ComplexParse(line);
+                            valuesAll[ino] = MyUtilLib.MyUtil.ComplexParse(line);
                         }
 
                         // Si1
@@ -472,7 +472,7 @@ namespace HPlaneWGSimulator
                         for (int iportno = 0; iportno < portCnt; iportno++)
                         {
                             line = sr.ReadLine();
-                            scatterVec[iportno] = FemSolver.ComplexParse(line);
+                            scatterVec[iportno] = MyUtilLib.MyUtil.ComplexParse(line);
                         }
 
                         line = sr.ReadLine();
@@ -585,7 +585,7 @@ namespace HPlaneWGSimulator
                         for (int ino = 0; ino < fValueCnt; ino++)
                         {
                             line = sr.ReadLine();
-                            valuesAll[ino] = FemSolver.ComplexParse(line);
+                            valuesAll[ino] = MyUtilLib.MyUtil.ComplexParse(line);
                         }
                         // フィールド値ベクトルを格納
                         valuesAllList.Add(valuesAll);

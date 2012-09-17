@@ -119,6 +119,34 @@ namespace HPlaneWGSimulator
             private set;
         }
         /// <summary>
+        /// 要素の数を取得する(表示用)
+        /// </summary>
+        public int ElementCnt
+        {
+            get
+            {
+                if (Elements != null)
+                {
+                    return Elements.Length;
+                }
+                return 0;
+            }
+        }
+        /// <summary>
+        /// 節点の数を取得する(表示用)
+        /// </summary>
+        public int NodeCnt
+        {
+            get
+            {
+                if (Nodes != null)
+                {
+                    return Nodes.Length;
+                }
+                return 0;
+            }
+        }
+        /// <summary>
         /// フィールド値カラーパレット
         /// </summary>
         private ColorMap FValueColorMap = new ColorMap();
@@ -286,6 +314,8 @@ namespace HPlaneWGSimulator
 
             // チャート初期化
             ResetSMatChart(SMatChart);
+            // 等高線図の凡例
+            UpdateFValueLegend(FValueLegendPanel, labelFreqValue);
             // 等高線図
             FValuePanel.Invalidate();
             // 固有値チャート初期化
@@ -593,7 +623,7 @@ namespace HPlaneWGSimulator
 
             foreach (FemElement element in Elements)
             {
-                element.Draw(g, ofs, delta, regionSize);
+                element.Draw(g, ofs, delta, regionSize, panel.ForeColor);
             }
         }
 
@@ -646,19 +676,26 @@ namespace HPlaneWGSimulator
             }
             double[] midPt = new double[] { (minPt[0] + maxPt[0]) * 0.5, (minPt[1] + maxPt[1]) * 0.5 };
 
+            int panel_width = panel.Width;
+            int panel_height = panel_height = (int)((double)panel.Width * (Constants.MaxDiv.Height + 2) / (double)(Constants.MaxDiv.Width + 2));
+            if (panel.Height < panel_height)
+            {
+                panel_height = panel.Height;
+                panel_width = (int)((double)panel.Height * (Constants.MaxDiv.Width + 2) / (double)(Constants.MaxDiv.Height + 2));
+            }
             // 描画領域の方眼桝目の寸法を決定
             // 図形をパネルのサイズにあわせて拡縮する
             int w = (int)(maxPt[0] - minPt[0]);
             int h = (int)(maxPt[1] - minPt[1]);
             int boxWidth = w > h ? w : h;
             System.Diagnostics.Debug.Assert(boxWidth > 0);
-            double marginxx = panel.Width / (double)(Constants.MaxDiv.Width + 2);
+            double marginxx = panel_width / (double)(Constants.MaxDiv.Width + 2);
             int marginx = (int)marginxx;
-            double marginyy = panel.Height / (double)(Constants.MaxDiv.Height + 2);
+            double marginyy = panel_height / (double)(Constants.MaxDiv.Height + 2);
             int marginy = (int)marginyy;
-            double deltaxx = (panel.Width - marginx * 2) / (double)boxWidth;
+            double deltaxx = (panel_width - marginx * 2) / (double)boxWidth;
             int deltax = (int)deltaxx;
-            double deltayy = (panel.Height - marginy * 2) / (double)boxWidth;
+            double deltayy = (panel_height - marginy * 2) / (double)boxWidth;
             int deltay = (int)deltayy;
             // 図形の左下がパネルの左下にくるようにする
             int ofsx = marginx - (int)(deltaxx * (minPt[0] - 0));
@@ -666,7 +703,10 @@ namespace HPlaneWGSimulator
             // 図形の中央がパネルの中央に来るようにする
             ofsx += (int)(deltaxx * (boxWidth - w) * 0.5);
             ofsy -= (int)(deltayy * (boxWidth - h) * 0.5);
-            
+            // アスペクト比を調整した分
+            ofsx += (int)((panel.Width - panel_width) * 0.5);
+            ofsy += (int)((panel.Height - panel_height) * 0.5);
+
             delta = new Size(deltax, deltay);
             ofs = new Size(ofsx, ofsy);
             regionSize = new Size(delta.Width * boxWidth, delta.Height * boxWidth);

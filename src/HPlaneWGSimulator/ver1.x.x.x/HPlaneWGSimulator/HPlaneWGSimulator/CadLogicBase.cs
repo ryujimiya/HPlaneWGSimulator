@@ -36,10 +36,11 @@ namespace HPlaneWGSimulator
         /// 媒質の個数
         /// </summary>
         protected const int MaxMediaCount = Constants.MaxMediaCount;
+        public const int VacumnMediaIndex = 0; // 真空領域
         /// <summary>
         /// 媒質インデックスの既定値
         /// </summary>
-        protected const int DefMediaIndex = 0;
+        protected const int DefMediaIndex = VacumnMediaIndex;  // 真空
         /// <summary>
         /// 媒質の表示背景色
         /// </summary>

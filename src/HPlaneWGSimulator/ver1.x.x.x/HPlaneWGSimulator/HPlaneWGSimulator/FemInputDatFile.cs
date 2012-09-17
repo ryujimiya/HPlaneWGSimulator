@@ -41,8 +41,7 @@ namespace HPlaneWGSimulator
             out int calcCnt
             )
         {
-            // 要素内節点数(2次三角形要素)
-            const int elementNodeCnt = 6;
+            int eNodeCnt = 0;
 
             nodes = new List<FemNode>();
             elements = new List<FemElement>();
@@ -117,23 +116,56 @@ namespace HPlaneWGSimulator
                     {
                         line = sr.ReadLine();
                         tokens = line.Split(delimiter);
-                        if ((tokens.Length != 1 + elementNodeCnt) && (tokens.Length != 2 + elementNodeCnt))  // ver1.1.0.0で媒質インデックスを番号の後に挿入
+                        if ((tokens.Length != 1 + Constants.TriNodeCnt_SecondOrder)
+                            && (tokens.Length != 2 + Constants.TriNodeCnt_SecondOrder)  // ver1.1.0.0で媒質インデックスを番号の後に挿入
+                            && (tokens.Length != 2 + Constants.QuadNodeCnt_SecondOrder_Type2)
+                            && (tokens.Length != 2 + Constants.TriNodeCnt_FirstOrder)
+                            && (tokens.Length != 2 + Constants.QuadNodeCnt_FirstOrder)
+                            )
                         {
                             MessageBox.Show("要素情報が不正です", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             return false;
                         }
-                        FemElement femElement = new FemElement();
-                        femElement.No = int.Parse(tokens[0]);
+                        int elemNo = int.Parse(tokens[0]);
                         int mediaIndex = 0;
                         int indexOffset = 1; // ver1.0.0.0
-                        if (tokens.Length == 2 + elementNodeCnt)
+                        int workENodeCnt = Constants.TriNodeCnt_SecondOrder;
+                        if (tokens.Length == 1 + Constants.TriNodeCnt_SecondOrder)
+                        {
+                            // 媒質インデックスのない古い形式(ver1.0.0.0)
+                        }
+                        else
                         {
                             // ver1.1.0.0で媒質インデックスを追加
                             mediaIndex = int.Parse(tokens[1]);
                             indexOffset = 2;
+
+                            workENodeCnt = tokens.Length - 2;
                         }
+                        if (workENodeCnt <= 0)
+                        {
+                            MessageBox.Show("要素節点数が不正です", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return false;
+                        }
+                        if (eNodeCnt == 0)
+                        {
+                            // 最初の要素の節点数を格納（チェックに利用)
+                            eNodeCnt = workENodeCnt;
+                        }
+                        else
+                        {
+                            // 要素の節点数が変わった？
+                            if (workENodeCnt != eNodeCnt)
+                            {
+                                MessageBox.Show("要素節点数が不正です", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                return false;
+                            }
+                        }
+                        //FemElement femElement = new FemElement();
+                        FemElement femElement = FemMeshLogic.CreateFemElementByElementNodeCnt(eNodeCnt);
+                        femElement.No = elemNo;
                         femElement.MediaIndex = mediaIndex;
-                        femElement.NodeNumbers = new int[elementNodeCnt];
+                        femElement.NodeNumbers = new int[eNodeCnt];
                         for (int n = 0; n < femElement.NodeNumbers.Length; n++)
                         {
                             femElement.NodeNumbers[n] = int.Parse(tokens[n + indexOffset]);
