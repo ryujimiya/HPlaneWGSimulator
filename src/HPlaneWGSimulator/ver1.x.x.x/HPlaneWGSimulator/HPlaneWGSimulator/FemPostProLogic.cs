@@ -43,8 +43,21 @@ namespace HPlaneWGSimulator
         /// 要素リスト
         /// </summary>
         private FemElement[] Elements;
+        /// <summary>
+        /// 媒質リスト
+        /// </summary>
+        private MediaInfo[] Medias;
+        /// <summary>
+        /// ポートの節点番号リストのリスト
+        /// </summary>
         private IList<int[]> Ports;
+        /// <summary>
+        /// 強制境界の節点番号リスト
+        /// </summary>
         private int[] ForceNodes;
+        /// <summary>
+        /// 入射ポート番号
+        /// </summary>
         private int IncidentPortNo = 1;
 
         /////////////////////////////////////////////////////////////////
@@ -177,6 +190,7 @@ namespace HPlaneWGSimulator
         {
             Nodes = null;
             Elements = null;
+            Medias = null;
             Ports = null;
             ForceNodes = null;
             WaveguideWidth = FemSolver.DefWaveguideWidth;
@@ -291,17 +305,21 @@ namespace HPlaneWGSimulator
 
             // ポストプロセッサに入力データをコピー
             // 入力データの取得
-            solver.GetFemInputInfo(out Nodes, out Elements, out Ports, out ForceNodes, out IncidentPortNo, out WaveguideWidth);
+            solver.GetFemInputInfo(out Nodes, out Elements, out Medias, out Ports, out ForceNodes, out IncidentPortNo, out WaveguideWidth);
             // チャートの設定用に開始終了波長を取得
             FirstWaveLength = solver.FirstWaveLength;
             LastWaveLength = solver.LastWaveLength;
             CalcFreqCnt = solver.CalcFreqCnt;
-            if (isInputDataReady())
+            //if (isInputDataReady())
+            // ポートが指定されていなくてもメッシュを表示できるように条件を変更
+            if (Elements != null && Elements.Length > 0 && Nodes != null && Nodes.Length > 0 && Medias != null && Medias.Length > 0)
             {
                 // 各要素に節点情報を補完する
                 foreach(FemElement element in Elements)
                 {
                     element.SetNodesFromAllNodes(Nodes);
+                    element.LineColor = Color.Black;
+                    element.BackColor = Medias[element.MediaIndex].BackColor;
                 }
             }
 
@@ -605,7 +623,9 @@ namespace HPlaneWGSimulator
         /// <param name="panel"></param>
         public void DrawMesh(Graphics g, Panel panel, bool fitFlg = false)
         {
-            if (!isInputDataReady())
+            //if (!isInputDataReady())
+            // ポートが指定されていなくてもメッシュを表示できるように条件を変更
+            if (!(Elements != null && Elements.Length > 0 && Nodes != null && Nodes.Length > 0))
             {
                 return;
             }
@@ -623,7 +643,8 @@ namespace HPlaneWGSimulator
 
             foreach (FemElement element in Elements)
             {
-                element.Draw(g, ofs, delta, regionSize, panel.ForeColor);
+                element.LineColor = panel.ForeColor;
+                element.Draw(g, ofs, delta, regionSize, true);
             }
         }
 

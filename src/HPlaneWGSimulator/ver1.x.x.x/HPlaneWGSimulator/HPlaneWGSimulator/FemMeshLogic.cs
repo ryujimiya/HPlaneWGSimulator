@@ -1422,7 +1422,10 @@ namespace HPlaneWGSimulator
                     double subArea = KerEMatTri.TriArea(subArea_pp[0], subArea_pp[1], subArea_pp[2]);
                     //Console.Write("  subArea = {0}", subArea);
                     //Console.WriteLine();
-                    if (subArea <= 0.0)
+                    //BUGFIX
+                    //if (subArea <= 0.0)
+                    // 丁度辺上の場合は、サブエリアの１つが０になるのでこれは許可しないといけない
+                    if (subArea < -1.0 * Constants.PrecisionLowerLimit)  // 0未満
                     {
                         sumOfSubArea = 0.0;
                         break;
@@ -1464,6 +1467,14 @@ namespace HPlaneWGSimulator
             }
 
             // ２つの三角形に分ける
+            //        s
+            //        |
+            //    3+  +  +2
+            //    |   |   |
+            // ---|---+---|-->r
+            //    |   |   |
+            //    0+  +  +1
+            //        |
             FemElement[] tris = new FemElement[2];
             tris[0] = new FemElement();
             tris[0].NodeNumbers = new int[] { nodeNumbers[0], nodeNumbers[1], nodeNumbers[3], 0, 0, 0 };

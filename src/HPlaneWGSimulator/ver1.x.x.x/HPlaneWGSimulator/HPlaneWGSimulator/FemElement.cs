@@ -26,6 +26,14 @@ namespace HPlaneWGSimulator
         /// </summary>
         public int MediaIndex;
         /// <summary>
+        /// 線の色
+        /// </summary>
+        public Color LineColor;
+        /// <summary>
+        /// 背景色
+        /// </summary>
+        public Color BackColor;
+        /// <summary>
         /// 節点(クラス内部で使用)
         /// </summary>
         protected FemNode[] _Nodes;
@@ -42,6 +50,8 @@ namespace HPlaneWGSimulator
             No = 0;
             NodeNumbers = null;
             MediaIndex = 0;
+            LineColor = Color.Black;
+            BackColor = Color.White;
             _Nodes = null;
             _FValues = null;
         }
@@ -50,7 +60,7 @@ namespace HPlaneWGSimulator
         /// コピー
         /// </summary>
         /// <param name="src"></param>
-        public void CP(FemElement src)
+        public virtual void CP(FemElement src)
         {
             if (src == this)
             {
@@ -67,6 +77,8 @@ namespace HPlaneWGSimulator
                 }
             }
             MediaIndex = src.MediaIndex;
+            LineColor = src.LineColor;
+            BackColor = src.BackColor;
         }
 
         /// <summary>
@@ -113,7 +125,7 @@ namespace HPlaneWGSimulator
         /// </summary>
         /// <param name="g"></param>
         /// <param name="panel"></param>
-        public void Draw(Graphics g, Size ofs, Size delta, Size regionSize, Color lineColor)
+        public void Draw(Graphics g, Size ofs, Size delta, Size regionSize, bool backFillFlg = false)
         {
             //const int vertexCnt = Constants.TriVertexCnt; //3; // 三角形の頂点の数(2次要素でも同じ)
             Constants.FemElementShapeDV elemShapeDv;
@@ -132,8 +144,17 @@ namespace HPlaneWGSimulator
                 points[ino] = new Point(x, y) + ofs;
             }
             // 三角形(or 四角形)を描画
-            using (Pen selectedPen = new Pen(lineColor, 1))
+            if (backFillFlg)
             {
+                // 要素の背景を塗りつぶす
+                using (Brush brush = new SolidBrush(BackColor))
+                {
+                    g.FillPolygon(brush, points);
+                }
+            }
+            using (Pen selectedPen = new Pen(LineColor, 1))
+            {
+                // 境界線の描画
                 //selectedPen.DashStyle = System.Drawing.Drawing2D.DashStyle.Dot;
                 g.DrawPolygon(selectedPen, points);
             }

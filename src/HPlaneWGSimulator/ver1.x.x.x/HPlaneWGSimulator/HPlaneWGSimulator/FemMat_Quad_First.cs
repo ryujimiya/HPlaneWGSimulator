@@ -24,7 +24,7 @@ namespace HPlaneWGSimulator
         /// <param name="Medias">媒質リスト</param>
         /// <param name="ForceNodeNumberH">強制境界節点ハッシュ</param>
         /// <param name="mat">マージされる全体行列</param>
-        public static  void AddElementMat(double waveLength,
+        public static void AddElementMat(double waveLength,
             Dictionary<int, int> toSorted,
             FemElement element,
             IList<FemNode> Nodes,

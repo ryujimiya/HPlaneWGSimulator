@@ -9,6 +9,9 @@ using MyUtilLib.Matrix;
 
 namespace HPlaneWGSimulator
 {
+    /// <summary>
+    /// １次線要素
+    /// </summary>
     class FemMat_Line_First
     {
         /// <summary>
@@ -19,8 +22,10 @@ namespace HPlaneWGSimulator
         /// <param name="Elements"></param>
         /// <param name="elements"></param>
         public static void MkElements(
-            IList<int> nodes, Dictionary<string, IList<int>> EdgeToElementNoH, IList<FemElement> Elements,
-            ref IList<FemElement> elements)
+            IList<int> nodes,
+            Dictionary<string, IList<int>> EdgeToElementNoH,
+            IList<FemElement> Elements,
+            ref IList<FemLineElement> elements)
         {
             // 要素内節点数
             const int nno = Constants.LineNodeCnt_FirstOrder; //2; // 1次線要素
@@ -33,7 +38,7 @@ namespace HPlaneWGSimulator
                 // 節点番号はポート上の1D節点番号(1起点の番号)
                 //  1   2
                 //  +---+
-                FemElement element = new FemElement();
+                FemLineElement element = new FemLineElement();
                 element.No = elemIndex + 1;
                 element.NodeNumbers = new int[nno];
                 element.NodeNumbers[0] = elemIndex + 1;
@@ -82,11 +87,12 @@ namespace HPlaneWGSimulator
         /// <param name="element">線要素</param>
         /// <param name="coords">座標リスト</param>
         /// <param name="toSorted">節点番号→ソート済み節点インデックスマップ</param>
+        /// <param name="Medias">媒質情報リスト</param>
         /// <param name="txx_1d">txx行列</param>
         /// <param name="ryy_1d">ryy行列</param>
         /// <param name="uzz_1d">uzz行列</param>
-        public static  void AddElementMatOf1dEigenValueProblem(
-            FemElement element,
+        public static void AddElementMatOf1dEigenValueProblem(
+            FemLineElement element,
             IList<double> coords,
             Dictionary<int, int> toSorted,
             MediaInfo[] Medias,

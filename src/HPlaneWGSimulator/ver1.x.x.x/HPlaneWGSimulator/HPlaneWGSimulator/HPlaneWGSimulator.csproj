@@ -24,7 +24,7 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>7</ApplicationRevision>
+    <ApplicationRevision>8</ApplicationRevision>
     <ApplicationVersion>1.2.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <CreateDesktopShortcut>true</CreateDesktopShortcut>
@@ -112,6 +112,7 @@
     <Compile Include="Constants.cs" />
     <Compile Include="Edge.cs" />
     <Compile Include="FemElement.cs" />
+    <Compile Include="FemLineElement.cs" />
     <Compile Include="FemMat_Line_First.cs" />
     <Compile Include="FemMat_Line_Second.cs" />
     <Compile Include="FemMat_Quad_First.cs" />

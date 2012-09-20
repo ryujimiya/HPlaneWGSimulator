@@ -192,7 +192,10 @@ namespace HPlaneWGSimulator
             double firstWaveLength = 0.0;
             double lastWaveLength = 0.0;
             int calcCnt = 0;
-            bool ret = FemInputDatFile.LoadFromFile(filename, out nodes, out elements, out ports, out forceBCNodes, out incidentPortNo, out medias, out firstWaveLength, out lastWaveLength, out calcCnt);
+            bool ret = FemInputDatFile.LoadFromFile(
+                filename,
+                out nodes, out elements, out ports, out forceBCNodes, out incidentPortNo, out medias,
+                out firstWaveLength, out lastWaveLength, out calcCnt);
             if (ret)
             {
                 System.Diagnostics.Debug.Assert(medias.Length == Medias.Length);
@@ -374,27 +377,32 @@ namespace HPlaneWGSimulator
         /// </summary>
         /// <param name="outNodes">節点リスト</param>
         /// <param name="outElements">要素リスト</param>
+        /// <param name="outMedias">媒質リスト</param>
         /// <param name="outPorts">ポート節点番号リストのリスト</param>
         /// <param name="outForceNodes">強制境界節点番号リスト</param>
         /// <param name="outIncidentPortNo">入射ポート番号</param>
         /// <param name="outWaveguideWidth">導波路の幅</param>
         public void GetFemInputInfo(
             out FemNode[] outNodes, out FemElement[] outElements,
+            out MediaInfo[] outMedias,
             out IList<int[]> outPorts,
             out int[] outForceNodes,
             out int outIncidentPortNo, out double outWaveguideWidth)
         {
             outNodes = null;
             outElements = null;
+            outMedias = null;
             outPorts = null;
             outForceNodes = null;
             outIncidentPortNo = 1;
             outWaveguideWidth = DefWaveguideWidth;
 
+            /* データの判定は取得した側が行う（メッシュ表示で、ポートを指定しないとメッシュが表示されないのを解消するためここで判定するのを止める)
             if (!isInputDataValid())
             {
                 return;
             }
+             */
 
             int nodeCnt = Nodes.Count;
             outNodes = new FemNode[nodeCnt];
@@ -412,6 +420,14 @@ namespace HPlaneWGSimulator
                 FemElement femElement = FemMeshLogic.CreateFemElementByElementNodeCnt(Elements[i].NodeNumbers.Length);
                 femElement.CP(Elements[i]);
                 outElements[i] = femElement;
+            }
+            if (Medias != null)
+            {
+                outMedias = new MediaInfo[Medias.Length];
+                for (int i = 0; i < Medias.Length; i++)
+                {
+                    outMedias[i] = Medias[i].Clone() as MediaInfo;
+                }
             }
             int portCnt = Ports.Count;
             outPorts = new List<int[]>();
@@ -721,7 +737,7 @@ namespace HPlaneWGSimulator
                 int nodeNumber = node.No;
                 if (ForceNodeNumberH.ContainsKey(nodeNumber))
                 {
-//                    forceNodes.Add(nodeNumber);
+                    //forceNodes.Add(nodeNumber);
                 }
                 else
                 {
@@ -1037,7 +1053,7 @@ namespace HPlaneWGSimulator
             // 節点座標リスト
             IList<double> coords = new List<double>();
             // 要素リスト
-            IList<FemElement> elements = new List<FemElement>();
+            IList<FemLineElement> elements = new List<FemLineElement>();
             // 1D節点番号リスト（ソート済み）
             IList<int> sortedNodes = new List<int>();
             // 1D節点番号→ソート済みリストインデックスのマップ
@@ -1083,14 +1099,18 @@ namespace HPlaneWGSimulator
             {
                 // １次線要素
                 FemMat_Line_First.MkElements(
-                    nodes, EdgeToElementNoH, Elements,
+                    nodes,
+                    EdgeToElementNoH,
+                    Elements,
                     ref elements);
             }
             else
             {
                 // ２次線要素
                 FemMat_Line_Second.MkElements(
-                    nodes, EdgeToElementNoH, Elements,
+                    nodes,
+                    EdgeToElementNoH,
+                    Elements,
                     ref elements);
             }
 
@@ -1150,7 +1170,7 @@ namespace HPlaneWGSimulator
             for (int elemIndex = 0; elemIndex < elements.Count; elemIndex++)
             {
                 // 線要素
-                FemElement element = elements[elemIndex];
+                FemLineElement element = elements[elemIndex];
 
                 // 1Dヘルムホルツ方程式固有値問題の要素行列を加算する
                 if (order == Constants.FirstOrder)

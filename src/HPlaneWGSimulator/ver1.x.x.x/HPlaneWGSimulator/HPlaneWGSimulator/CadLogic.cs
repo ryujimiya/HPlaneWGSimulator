@@ -117,6 +117,7 @@ namespace HPlaneWGSimulator
                 {
                     if (value == CadModeType.PortNumbering)
                     {
+                        // ポート番号振りモードをセットされた場合、番号シーケンスを初期化する
                         PortNumberingSeq = 1;
                     }
                     _CadMode = value;
@@ -199,7 +200,8 @@ namespace HPlaneWGSimulator
             SelectedMediaIndex = DefMediaIndex;
             
             // Memento初期化
-            CadLogicBaseMmnt = new CadLogicBaseMemento(this, this);
+            // 現在の状態をMementoに記憶させる
+            setMemento();
             // コマンド管理初期化
             CmdManager.Refresh();
             isDirty = false;
@@ -1636,7 +1638,8 @@ namespace HPlaneWGSimulator
 
 
             // Mementoの初期化
-            CadLogicBaseMmnt = new CadLogicBaseMemento(this, this);
+            // 現在の状態をMementoに記憶させる
+            setMemento();
             // コマンド管理初期化
             CmdManager.Refresh();
             return success;
@@ -1786,8 +1789,12 @@ namespace HPlaneWGSimulator
         /// </summary>
         private void invokeCadOperationCmd()
         {
+            // 現在のMementoを生成する
             CadLogicBaseMemento curMmnt = new CadLogicBaseMemento(this, this);
             var cmd = new MyUtilLib.MementoCommand<CadLogicBase, CadLogicBase>(CadLogicBaseMmnt, curMmnt);
+            // Note: 第１引数のMementoはコマンドインスタンス内に格納される。第２引数のMementoはMementoのデータが参照されるだけで格納されない
+            //       よって、第１引数の破棄の責任はMementoCommandへ移行するが、第２引数は依然こちらの責任となる
+
             // ここで、再度Cadデータが自分自身にセットされる（mementoでデータ更新するのが本来の使用方法なので)
             bool ret = CmdManager.Invoke(cmd);
             if (!ret)
@@ -1795,6 +1802,7 @@ namespace HPlaneWGSimulator
                 MessageBox.Show("状態の最大保存数を超えました。");
             }
             CadLogicBaseMmnt = curMmnt;
+            // Note: ここでCadLogicBaseMntが変更されるが、変更される前のインスタンスの破棄責任はMementoCommandへ移行したので破棄処理は必要ない
         }
         
         /// <summary>
@@ -1802,7 +1810,12 @@ namespace HPlaneWGSimulator
         /// </summary>
         public void Undo()
         {
+            // CadLogicBaseのUndoを実行
             CmdManager.Undo();
+            // BUGFIX 
+            // 現在の状態をMementoに記憶させる
+            setMemento();
+
             CadPanel.Invalidate();
             isDirty = true;
         }
@@ -1812,9 +1825,23 @@ namespace HPlaneWGSimulator
         /// </summary>
         public void Redo()
         {
+            // CadLogicBaseのRedoを実行
             CmdManager.Redo();
+            // BUGFIX 
+            // 現在の状態をMementoに記憶させる
+            setMemento();
+
             CadPanel.Invalidate();
             isDirty = true;
+        }
+
+        /// <summary>
+        /// 現在の状態をMementoに記憶させる
+        /// </summary>
+        private void setMemento()
+        {
+            //   Mementoを生成
+            CadLogicBaseMmnt = new CadLogicBaseMemento(this, this);
         }
 
         /// <summary>

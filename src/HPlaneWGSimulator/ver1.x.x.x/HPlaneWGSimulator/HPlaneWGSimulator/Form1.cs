@@ -120,7 +120,7 @@ namespace HPlaneWGSimulator
         /// <summary>
         /// 計算中？
         /// </summary>
-        private bool isCalculating
+        private bool IsCalculating
         {
             get
             {
@@ -130,7 +130,7 @@ namespace HPlaneWGSimulator
         /// <summary>
         /// 読み込み中？
         /// </summary>
-        private bool isLoading = false;
+        private bool IsLoading = false;
 
         /// <summary>
         /// ウィンドウコンストラクタ
@@ -535,14 +535,14 @@ namespace HPlaneWGSimulator
         /// <param name="e"></param>
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (isCalculating)
+            if (IsCalculating)
             {
                 MessageBox.Show("計算中は終了できません", "", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 // イベントをキャンセルする
                 e.Cancel = true;
                 return;
             }
-            if (isLoading)
+            if (IsLoading)
             {
                 MessageBox.Show("読み込み中は終了できません", "", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 e.Cancel = true;
@@ -695,7 +695,7 @@ namespace HPlaneWGSimulator
             if (PostPro != null)
             {
                 PostPro.DrawField(g, FValuePanel);
-                if (PostPro != null && isCalculating)
+                if (PostPro != null && IsCalculating)
                 {
                     //見づらいので削除
                     // 計算実行中はメッシュ表示
@@ -1330,7 +1330,7 @@ namespace HPlaneWGSimulator
         {
             resetGUI();
             // ロード中は操作させない
-            isLoading = true;
+            IsLoading = true;
             //this.Enabled = false;
             setCtrlEnable(false);
             btnCalc.Enabled = false;
@@ -1444,7 +1444,7 @@ namespace HPlaneWGSimulator
             //this.Enabled = true;
             setCtrlEnable(true);
             btnCalc.Enabled = true;
-            isLoading = false;
+            IsLoading = false;
         }
 
         /// <summary>
@@ -1902,7 +1902,7 @@ namespace HPlaneWGSimulator
         {
             bool executed = false;
             // 媒質パネルが表示されているときは、テキストボックスのショートカットキーと重複するので処理しない
-            if (CadLgc.CanUndo() && (MaximizedControl == null || MaximizedControl == CadPanel) && !panelMedia.Visible && !isCalculating)
+            if (CadLgc.CanUndo() && (MaximizedControl == null || MaximizedControl == CadPanel) && !panelMedia.Visible && !IsCalculating)
             {
                 // 元に戻す
                 CadLgc.Undo();
@@ -1925,7 +1925,7 @@ namespace HPlaneWGSimulator
         {
             bool executed = false;
             // 媒質パネルが表示されているときは、テキストボックスのショートカットキーと重複するので処理しない
-            if (CadLgc.CanRedo() && (MaximizedControl == null || MaximizedControl == CadPanel) && !panelMedia.Visible && !isCalculating)
+            if (CadLgc.CanRedo() && (MaximizedControl == null || MaximizedControl == CadPanel) && !panelMedia.Visible && !IsCalculating)
             {
                 // やり直し
                 CadLgc.Redo();
