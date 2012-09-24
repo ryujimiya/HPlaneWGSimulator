@@ -30,15 +30,15 @@
         {
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea7 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Legend legend7 = new System.Windows.Forms.DataVisualization.Charting.Legend();
-            System.Windows.Forms.DataVisualization.Charting.Title title7 = new System.Windows.Forms.DataVisualization.Charting.Title();
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea8 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Legend legend8 = new System.Windows.Forms.DataVisualization.Charting.Legend();
-            System.Windows.Forms.DataVisualization.Charting.Title title8 = new System.Windows.Forms.DataVisualization.Charting.Title();
-            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea9 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
-            System.Windows.Forms.DataVisualization.Charting.Legend legend9 = new System.Windows.Forms.DataVisualization.Charting.Legend();
-            System.Windows.Forms.DataVisualization.Charting.Title title9 = new System.Windows.Forms.DataVisualization.Charting.Title();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend1 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.Windows.Forms.DataVisualization.Charting.Title title1 = new System.Windows.Forms.DataVisualization.Charting.Title();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea2 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend2 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.Windows.Forms.DataVisualization.Charting.Title title2 = new System.Windows.Forms.DataVisualization.Charting.Title();
+            System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea3 = new System.Windows.Forms.DataVisualization.Charting.ChartArea();
+            System.Windows.Forms.DataVisualization.Charting.Legend legend3 = new System.Windows.Forms.DataVisualization.Charting.Legend();
+            System.Windows.Forms.DataVisualization.Charting.Title title3 = new System.Windows.Forms.DataVisualization.Charting.Title();
             this.CadPanel = new System.Windows.Forms.Panel();
             this.FValuePanel = new System.Windows.Forms.Panel();
             this.btnCalc = new System.Windows.Forms.Button();
@@ -78,6 +78,7 @@
             this.EigenVecChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             this.linkLblEigenShow = new System.Windows.Forms.LinkLabel();
             this.linkLabelMeshShow = new System.Windows.Forms.LinkLabel();
+            this.btnLoadCancel = new System.Windows.Forms.Button();
             this.GroupBoxCadMode.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.SMatChart)).BeginInit();
             this.FValueLegendPanel.SuspendLayout();
@@ -114,11 +115,13 @@
             // btnCalc
             // 
             this.btnCalc.AutoSize = true;
+            this.btnCalc.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.btnCalc.ForeColor = System.Drawing.Color.Black;
-            this.btnCalc.Location = new System.Drawing.Point(325, 22);
+            this.btnCalc.Location = new System.Drawing.Point(325, 15);
             this.btnCalc.Name = "btnCalc";
-            this.btnCalc.Size = new System.Drawing.Size(75, 23);
-            this.btnCalc.TabIndex = 6;
+            this.btnCalc.Padding = new System.Windows.Forms.Padding(3);
+            this.btnCalc.Size = new System.Drawing.Size(69, 28);
+            this.btnCalc.TabIndex = 7;
             this.btnCalc.Text = "計算開始";
             this.btnCalc.UseVisualStyleBackColor = true;
             this.btnCalc.Click += new System.EventHandler(this.btnCalc_Click);
@@ -136,7 +139,7 @@
             this.GroupBoxCadMode.Name = "GroupBoxCadMode";
             this.GroupBoxCadMode.Padding = new System.Windows.Forms.Padding(0);
             this.GroupBoxCadMode.Size = new System.Drawing.Size(251, 54);
-            this.GroupBoxCadMode.TabIndex = 8;
+            this.GroupBoxCadMode.TabIndex = 9;
             this.GroupBoxCadMode.TabStop = false;
             // 
             // radioBtnNone
@@ -257,7 +260,7 @@
             this.btnMediaSelect.Location = new System.Drawing.Point(268, 503);
             this.btnMediaSelect.Name = "btnMediaSelect";
             this.btnMediaSelect.Size = new System.Drawing.Size(44, 40);
-            this.btnMediaSelect.TabIndex = 9;
+            this.btnMediaSelect.TabIndex = 10;
             this.btnMediaSelect.Text = "媒質";
             this.toolTip1.SetToolTip(this.btnMediaSelect, "媒質");
             this.btnMediaSelect.UseVisualStyleBackColor = false;
@@ -340,19 +343,19 @@
             // 
             // SMatChart
             // 
-            chartArea7.Name = "ChartArea1";
-            this.SMatChart.ChartAreas.Add(chartArea7);
-            legend7.Name = "Legend1";
-            this.SMatChart.Legends.Add(legend7);
+            chartArea1.Name = "ChartArea1";
+            this.SMatChart.ChartAreas.Add(chartArea1);
+            legend1.Name = "Legend1";
+            this.SMatChart.Legends.Add(legend1);
             this.SMatChart.Location = new System.Drawing.Point(453, 326);
             this.SMatChart.Name = "SMatChart";
             this.SMatChart.Size = new System.Drawing.Size(448, 240);
             this.SMatChart.TabIndex = 0;
             this.SMatChart.TabStop = false;
             this.SMatChart.Text = "chart1";
-            title7.Docking = System.Windows.Forms.DataVisualization.Charting.Docking.Bottom;
-            title7.Name = "Title1";
-            this.SMatChart.Titles.Add(title7);
+            title1.Docking = System.Windows.Forms.DataVisualization.Charting.Docking.Bottom;
+            title1.Name = "Title1";
+            this.SMatChart.Titles.Add(title1);
             this.SMatChart.DoubleClick += new System.EventHandler(this.SMatChart_DoubleClick);
             // 
             // FValueLegendPanel
@@ -365,7 +368,7 @@
             this.FValueLegendPanel.Margin = new System.Windows.Forms.Padding(0);
             this.FValueLegendPanel.Name = "FValueLegendPanel";
             this.FValueLegendPanel.Size = new System.Drawing.Size(68, 320);
-            this.FValueLegendPanel.TabIndex = 12;
+            this.FValueLegendPanel.TabIndex = 13;
             // 
             // labelFreqValue
             // 
@@ -490,43 +493,43 @@
             this.panelMedia.BackColor = System.Drawing.SystemColors.Control;
             this.panelMedia.Controls.Add(this.GroupBoxMedia);
             this.panelMedia.ForeColor = System.Drawing.SystemColors.ControlText;
-            this.panelMedia.Location = new System.Drawing.Point(462, 8);
+            this.panelMedia.Location = new System.Drawing.Point(482, 12);
             this.panelMedia.Name = "panelMedia";
             this.panelMedia.Size = new System.Drawing.Size(242, 147);
-            this.panelMedia.TabIndex = 10;
+            this.panelMedia.TabIndex = 11;
             // 
             // BetaChart
             // 
-            chartArea8.Name = "ChartArea1";
-            this.BetaChart.ChartAreas.Add(chartArea8);
-            legend8.Name = "Legend1";
-            this.BetaChart.Legends.Add(legend8);
+            chartArea2.Name = "ChartArea1";
+            this.BetaChart.ChartAreas.Add(chartArea2);
+            legend2.Name = "Legend1";
+            this.BetaChart.Legends.Add(legend2);
             this.BetaChart.Location = new System.Drawing.Point(5, 568);
             this.BetaChart.Name = "BetaChart";
             this.BetaChart.Size = new System.Drawing.Size(448, 240);
             this.BetaChart.TabIndex = 0;
             this.BetaChart.TabStop = false;
             this.BetaChart.Text = "chart1";
-            title8.Docking = System.Windows.Forms.DataVisualization.Charting.Docking.Bottom;
-            title8.Name = "Title1";
-            this.BetaChart.Titles.Add(title8);
+            title2.Docking = System.Windows.Forms.DataVisualization.Charting.Docking.Bottom;
+            title2.Name = "Title1";
+            this.BetaChart.Titles.Add(title2);
             this.BetaChart.DoubleClick += new System.EventHandler(this.BetaChart_DoubleClick);
             // 
             // EigenVecChart
             // 
-            chartArea9.Name = "ChartArea1";
-            this.EigenVecChart.ChartAreas.Add(chartArea9);
-            legend9.Name = "Legend1";
-            this.EigenVecChart.Legends.Add(legend9);
+            chartArea3.Name = "ChartArea1";
+            this.EigenVecChart.ChartAreas.Add(chartArea3);
+            legend3.Name = "Legend1";
+            this.EigenVecChart.Legends.Add(legend3);
             this.EigenVecChart.Location = new System.Drawing.Point(453, 568);
             this.EigenVecChart.Name = "EigenVecChart";
             this.EigenVecChart.Size = new System.Drawing.Size(448, 240);
             this.EigenVecChart.TabIndex = 0;
             this.EigenVecChart.TabStop = false;
             this.EigenVecChart.Text = "chart1";
-            title9.Docking = System.Windows.Forms.DataVisualization.Charting.Docking.Bottom;
-            title9.Name = "Title1";
-            this.EigenVecChart.Titles.Add(title9);
+            title3.Docking = System.Windows.Forms.DataVisualization.Charting.Docking.Bottom;
+            title3.Name = "Title1";
+            this.EigenVecChart.Titles.Add(title3);
             this.EigenVecChart.DoubleClick += new System.EventHandler(this.EigenVecChart_DoubleClick);
             // 
             // linkLblEigenShow
@@ -535,7 +538,7 @@
             this.linkLblEigenShow.Location = new System.Drawing.Point(335, 531);
             this.linkLblEigenShow.Name = "linkLblEigenShow";
             this.linkLblEigenShow.Size = new System.Drawing.Size(87, 12);
-            this.linkLblEigenShow.TabIndex = 11;
+            this.linkLblEigenShow.TabIndex = 12;
             this.linkLblEigenShow.TabStop = true;
             this.linkLblEigenShow.Text = "固有モードを見る";
             this.linkLblEigenShow.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLblEigenShow_LinkClicked);
@@ -546,10 +549,22 @@
             this.linkLabelMeshShow.Location = new System.Drawing.Point(251, 22);
             this.linkLabelMeshShow.Name = "linkLabelMeshShow";
             this.linkLabelMeshShow.Size = new System.Drawing.Size(68, 12);
-            this.linkLabelMeshShow.TabIndex = 7;
+            this.linkLabelMeshShow.TabIndex = 6;
             this.linkLabelMeshShow.TabStop = true;
             this.linkLabelMeshShow.Text = "メッシュを見る";
             this.linkLabelMeshShow.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabelMeshShow_LinkClicked);
+            // 
+            // btnLoadCancel
+            // 
+            this.btnLoadCancel.AutoSize = true;
+            this.btnLoadCancel.ForeColor = System.Drawing.Color.Black;
+            this.btnLoadCancel.Location = new System.Drawing.Point(406, 11);
+            this.btnLoadCancel.Name = "btnLoadCancel";
+            this.btnLoadCancel.Size = new System.Drawing.Size(75, 34);
+            this.btnLoadCancel.TabIndex = 8;
+            this.btnLoadCancel.Text = "読み込み\r\nキャンセル";
+            this.btnLoadCancel.UseVisualStyleBackColor = true;
+            this.btnLoadCancel.Click += new System.EventHandler(this.btnLoadCancel_Click);
             // 
             // Form1
             // 
@@ -557,7 +572,8 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoScroll = true;
             this.BackColor = System.Drawing.Color.White;
-            this.ClientSize = new System.Drawing.Size(919, 567);
+            this.ClientSize = new System.Drawing.Size(936, 567);
+            this.Controls.Add(this.btnLoadCancel);
             this.Controls.Add(this.linkLabelMeshShow);
             this.Controls.Add(this.FValueLegendPanel);
             this.Controls.Add(this.panelMedia);
@@ -642,6 +658,7 @@
         private System.Windows.Forms.Button btnRedo;
         private System.Windows.Forms.LinkLabel linkLblEigenShow;
         private System.Windows.Forms.LinkLabel linkLabelMeshShow;
+        private System.Windows.Forms.Button btnLoadCancel;
     }
 }
 

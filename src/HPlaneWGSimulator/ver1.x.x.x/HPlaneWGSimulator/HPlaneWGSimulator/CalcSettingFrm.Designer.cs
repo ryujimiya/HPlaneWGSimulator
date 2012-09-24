@@ -139,6 +139,8 @@
             // 
             // cboxElemShapeDv
             // 
+            this.cboxElemShapeDv.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cboxElemShapeDv.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.cboxElemShapeDv.FormattingEnabled = true;
             this.cboxElemShapeDv.Location = new System.Drawing.Point(118, 103);
             this.cboxElemShapeDv.Name = "cboxElemShapeDv";

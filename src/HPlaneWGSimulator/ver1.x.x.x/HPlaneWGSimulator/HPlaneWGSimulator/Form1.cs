@@ -131,6 +131,10 @@ namespace HPlaneWGSimulator
         /// 読み込み中？
         /// </summary>
         private bool IsLoading = false;
+        /// <summary>
+        /// 読み込みアニメーションをキャンセルする
+        /// </summary>
+        private bool IsLoadCancelled = false;
 
         /// <summary>
         /// ウィンドウコンストラクタ
@@ -185,10 +189,20 @@ namespace HPlaneWGSimulator
             System.Diagnostics.Debug.Assert(MediaRadioButtons.Length == Constants.MaxMediaCount);
             System.Diagnostics.Debug.Assert(EpsTextBoxes.Length == Constants.MaxMediaCount);
             panelMedia.Visible = false;
+            btnLoadCancel.Visible = false;
 
             CadLgc = new CadLogic(CadPanel);
             Solver = new FemSolver();
             PostPro = new FemPostProLogic();
+
+            // アプリケーションの終了イベントハンドラを設定する
+            AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
+            {
+                Console.WriteLine("Process exiting");
+                System.Diagnostics.Debug.WriteLine("Process exiting");
+                // フォームの破棄処理を呼び出す
+                this.Dispose();
+            };
 
             // パネルサイズを記憶する
             savePanelSize();
@@ -776,13 +790,13 @@ namespace HPlaneWGSimulator
                 return;
             }
 
-            // [計算開始]ボタンの無効化
-            setCtrlEnable(false);
-            btnCalc.Text = "計算キャンセル";
-
             // Cadモードを操作なしにする
             setupCadModeRadioButtons(CadLogic.CadModeType.None);
             CadLgc.CadMode = CadLogic.CadModeType.None;
+
+            // [計算開始]ボタンの無効化
+            setCtrlEnable(false);
+            btnCalc.Text = "計算キャンセル";
 
             // 選択中媒質を真空にする
             radioBtnMedia0.Checked = true;
@@ -859,8 +873,18 @@ namespace HPlaneWGSimulator
         {
             //btnCalc.Enabled = enabled;
             // ポストプロセッサ系ボタン
-            btnPrevFreq.Enabled = enabled;
-            btnNextFreq.Enabled = enabled;
+            //BUGFIX 読み込み後に前の周波数ボタンが無効にならないバグ
+            //btnPrevFreq.Enabled = enabled;
+            //btnNextFreq.Enabled = enabled;
+            if (enabled)
+            {
+                setupBtnFreqEnable();
+            }
+            else
+            {
+                btnPrevFreq.Enabled = enabled;
+                btnNextFreq.Enabled = enabled;
+            }
             // 編集系ボタン
             btnNew.Enabled = enabled;
             btnOpen.Enabled = enabled;
@@ -899,24 +923,30 @@ namespace HPlaneWGSimulator
             return cadMode;
         }
         /// <summary>
+        /// 描画モードラジオボタンのチェック状態が変更されたときの処理
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void CadModeRadionBtn_CheckedChangedProc(object sender, EventArgs e)
+        {
+            RadioButton rb = sender as RadioButton;
+            if (!rb.Checked)
+            {
+                // OFFのイベントは無視する(必ず対でONのイベントがあるので)
+                return;
+            }
+            CadLogic.CadModeType nextCadMode = getCadModeFromCadModeRadioButtons();
+            // 変更されたCadモードをセットする
+            CadLgc.CadMode = nextCadMode;
+        }
+        /// <summary>
         /// 「描画モード解除」ラジオボタンチェック状態変更イベントハンドラ
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void radioBtnNone_CheckedChanged(object sender, EventArgs e)
         {
-            /*
-            if (radioBtnNone.Checked)
-            {
-                CadLgc.CadMode = CadLogic.CadModeType.None;
-            }
-            else
-            {
-                CadLgc.CadMode = CadLogic.CadModeType.None;
-            }
-            //Console.WriteLine("CadMode:{0}", CadLgc.CadMode);
-             */
-            CadLgc.CadMode = getCadModeFromCadModeRadioButtons();
+            CadModeRadionBtn_CheckedChangedProc(sender, e);
         }
         /// <summary>
         /// 「マス目」ラジオボタンチェック状態変更イベントハンドラ
@@ -925,18 +955,7 @@ namespace HPlaneWGSimulator
         /// <param name="e"></param>
         private void radioBtnArea_CheckedChanged(object sender, EventArgs e)
         {
-            /*
-            if (radioBtnArea.Checked)
-            {
-                CadLgc.CadMode = CadLogic.CadModeType.Area;
-            }
-            else
-            {
-                CadLgc.CadMode = CadLogic.CadModeType.None;
-            }
-             */
-            CadLgc.CadMode = getCadModeFromCadModeRadioButtons();
-            //Console.WriteLine("CadMode:{0}", CadLgc.CadMode);
+            CadModeRadionBtn_CheckedChangedProc(sender, e);
         }
         /// <summary>
         /// 「ポート境界」ラジオボタンチェック状態変更イベントハンドラ
@@ -945,18 +964,7 @@ namespace HPlaneWGSimulator
         /// <param name="e"></param>
         private void radioBtnPort_CheckedChanged(object sender, EventArgs e)
         {
-            /*
-            if (radioBtnPort.Checked)
-            {
-                CadLgc.CadMode = CadLogic.CadModeType.Port;
-            }
-            else
-            {
-                CadLgc.CadMode = CadLogic.CadModeType.None;
-            }
-             */
-            CadLgc.CadMode = getCadModeFromCadModeRadioButtons();
-            //Console.WriteLine("CadMode:{0}", CadLgc.CadMode);
+            CadModeRadionBtn_CheckedChangedProc(sender, e);
         }
         /// <summary>
         /// 「消しゴム」ラジオボタンチェック状態変更イベントハンドラ
@@ -965,18 +973,7 @@ namespace HPlaneWGSimulator
         /// <param name="e"></param>
         private void radioBtnErase_CheckedChanged(object sender, EventArgs e)
         {
-            /*
-            if (radioBtnErase.Checked)
-            {
-                CadLgc.CadMode = CadLogic.CadModeType.Erase;
-            }
-            else
-            {
-                CadLgc.CadMode = CadLogic.CadModeType.None;
-            }
-             */
-            CadLgc.CadMode = getCadModeFromCadModeRadioButtons();
-            //Console.WriteLine("CadMode:{0}", CadLgc.CadMode);
+            CadModeRadionBtn_CheckedChangedProc(sender, e);
         }
         /// <summary>
         /// 「入射ポート選択」ラジオボタンチェック状態変更イベントハンドラ
@@ -985,19 +982,7 @@ namespace HPlaneWGSimulator
         /// <param name="e"></param>
         private void radioBtnIncidentPort_CheckedChanged(object sender, EventArgs e)
         {
-            /*
-            if (radioBtnIncidentPort.Checked)
-            {
-                CadLgc.CadMode = CadLogic.CadModeType.IncidentPort;
-            }
-            else
-            {
-                CadLgc.CadMode = CadLogic.CadModeType.None;
-            }
-             */
-            CadLgc.CadMode = getCadModeFromCadModeRadioButtons();
-            //Console.WriteLine("CadMode:{0}", CadLgc.CadMode);
-
+            CadModeRadionBtn_CheckedChangedProc(sender, e);
         }
         /// <summary>
         /// 「ポート番号振り」ラジオボタンチェック状態変更イベントハンドラ
@@ -1006,18 +991,7 @@ namespace HPlaneWGSimulator
         /// <param name="e"></param>
         private void radioBtnPortNumbering_CheckedChanged(object sender, EventArgs e)
         {
-            /*
-            if (radioBtnPortNumbering.Checked)
-            {
-                CadLgc.CadMode = CadLogic.CadModeType.PortNumbering;
-            }
-            else
-            {
-                CadLgc.CadMode = CadLogic.CadModeType.None;
-            }
-             */
-            CadLgc.CadMode = getCadModeFromCadModeRadioButtons();
-            //Console.WriteLine("CadMode:{0}", CadLgc.CadMode);
+            CadModeRadionBtn_CheckedChangedProc(sender, e);
         }
 
         /// <summary>
@@ -1334,6 +1308,8 @@ namespace HPlaneWGSimulator
             //this.Enabled = false;
             setCtrlEnable(false);
             btnCalc.Enabled = false;
+            IsLoadCancelled = false;
+            btnLoadCancel.Visible = true;
 
             // Cadデータの読み込み
             CadLgc.DeserializeCadData(CadDatFilePath);
@@ -1418,6 +1394,10 @@ namespace HPlaneWGSimulator
 
                     //描画の途中経過を表示
                     Application.DoEvents();
+                    if (IsLoadCancelled)
+                    {
+                        break;
+                    }
                 }
 
                 // 周波数
@@ -1444,6 +1424,8 @@ namespace HPlaneWGSimulator
             //this.Enabled = true;
             setCtrlEnable(true);
             btnCalc.Enabled = true;
+            IsLoadCancelled = false;
+            btnLoadCancel.Visible = false;
             IsLoading = false;
         }
 
@@ -2139,6 +2121,18 @@ namespace HPlaneWGSimulator
             MeshView.Show();
         }
 
-
+        /// <summary>
+        /// [キャンセル]ボタンクリックイベントハンドラ
+        ///     ロード時のデータ読み込みキャンセル
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btnLoadCancel_Click(object sender, EventArgs e)
+        {
+            if (IsLoading)
+            {
+                IsLoadCancelled = true;
+            }
+        }
     }
 }

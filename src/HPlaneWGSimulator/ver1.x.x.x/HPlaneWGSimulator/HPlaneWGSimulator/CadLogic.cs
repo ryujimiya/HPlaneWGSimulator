@@ -846,23 +846,45 @@ namespace HPlaneWGSimulator
                     PortNumberingSeq = 1;
                 }
 
+                // 以前の入射ポート番号を退避
+                int saveIncidentPortNo = IncidentPortNo;
+                // 辺番号をリナンバリングする
                 EdgeList[hitIndex].No = newNumber;
+                if (hitPortNo == saveIncidentPortNo)
+                {
+                    // リナンバリングした辺が入射ポートだった場合、入射ポート番号も変更する
+                    IncidentPortNo = newNumber;
+                }
+                // 他の辺をリナンバリングする（重複があるはずなので)
                 for (int i = 0; i < EdgeList.Count; i++)
                 {
                     if (i == hitIndex) continue;
                     Edge edge = EdgeList[i];
+                    int oldEdgeNo = edge.No;
                     if (hitPortNo > newNumber)
                     {
                         if (edge.No >= newNumber && edge.No < hitPortNo)
                         {
+                            // リナンバリング
                             edge.No = edge.No + 1;
+                            if (oldEdgeNo == saveIncidentPortNo)
+                            {
+                                // リナンバリングした辺が入射ポートだった場合、入射ポート番号も変更する
+                                IncidentPortNo = edge.No;
+                            }
                         }
                     }
                     if (hitPortNo < newNumber)
                     {
                         if (edge.No > hitPortNo && edge.No <= newNumber)
                         {
+                            // リナンバリング
                             edge.No = edge.No - 1;
+                            if (oldEdgeNo == saveIncidentPortNo)
+                            {
+                                // リナンバリングした辺が入射ポートだった場合、入射ポート番号も変更する
+                                IncidentPortNo = edge.No;
+                            }
                         }
                     }
                     //Console.Write("{0},", edge.No);

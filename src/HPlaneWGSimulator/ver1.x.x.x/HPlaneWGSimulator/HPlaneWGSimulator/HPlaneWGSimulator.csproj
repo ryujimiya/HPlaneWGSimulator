@@ -24,7 +24,7 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>8</ApplicationRevision>
+    <ApplicationRevision>9</ApplicationRevision>
     <ApplicationVersion>1.2.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <CreateDesktopShortcut>true</CreateDesktopShortcut>
@@ -72,7 +72,7 @@
     <ApplicationManifest>Properties\app.manifest</ApplicationManifest>
   </PropertyGroup>
   <PropertyGroup>
-    <ApplicationIcon>H面導波管シミュレータ.ico</ApplicationIcon>
+    <ApplicationIcon>HPlaneWGSimulator.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="CLW, Version=0.6.4.0, Culture=neutral, processorArchitecture=x86">
@@ -169,7 +169,6 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
-    <None Include="HPlaneWGSimulator_TemporaryKey.pfx" />
     <None Include="Properties\app.manifest" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -222,7 +221,7 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="H面導波管シミュレータ.ico" />
+    <Content Include="HPlaneWGSimulator.ico" />
     <Content Include="ReleaseNotes.txt" />
     <None Include="Resources\やり直し.png" />
     <None Include="Resources\元に戻す.png" />
