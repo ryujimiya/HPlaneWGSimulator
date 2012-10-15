@@ -1,25 +1,27 @@
-# H�ʓ��g�ǃV�~�����[�^�[(HPlaneWGSimulator)  
+﻿# H面導波管シミュレーター(HPlaneWGSimulator)  
   
-2�����L���v�f�@���g�p����H�ʓ��g�ǉ�H�̔��ˁA���ߓ������v�Z����A�v���P�[�V�����ł��B  
-30x30(�Œ�)�̐����`�}�X�ڂ�I�����ĉ�H���쐬�ł��܂��B  
-30�~30�̃}�X�ڂ���Ȃ���ᎆ��Ń}�X�ڂ�I�����ĉ�H�`����w��ł��܂��B  
-�d�E���z�y�юU���W���̎��g��������}���ł��܂��B  
-�U�d�̂��[�U�������g�ǂ���o�͂Ɏw��ł��܂��B�ꕔ�[�U���ł��܂��B  
+**News**
 
-�Ȃ��A�{�A�v���P�[�V�����ł͍s��̌ŗL�l�v�Z�y�ѐ��`�������v�Z��KrdLab����Lisys��p���Ă��܂��B  
-�܂��A�L���v�f�@�s��̌v�Z�Ɋւ��Ĉꕔ�~�J�M�s����DelFEM���Q�l�ɂ��Ă��܂��B�����ɋL���[�Ӓv���܂��B  
+***2012-10-15 version1.2.0.9 Release***
+線形方程式の求解処理でメモリの確保方法を効率化しました。計算速度は上がっていると思います。よろしければお試しください。  
+
+**Summary**  
+2次元有限要素法を使用してH面導波管回路の反射、透過特性を計算するアプリケーションです。  
+30×30のマス目からなる方眼紙上でマス目を選択して回路形状を指定できます。  
+電界分布及び散乱係数の周波数特性を図示できます。  
+誘電体を充填した導波管を入出力に指定できます。一部充填もできます。  
+
+なお、本アプリケーションでは行列の固有値計算及び線形方程式計算にKrdLab氏のLisysを用いています。  
+また、有限要素法行列の計算に関して一部梅谷信行氏のDelFEMを参考にしています。ここに記し深謝致します。  
   
-**���p���ɂ���**  
-HPlaneWGSimulator�̃A�Z���u���A�\�[�X�R�[�h�͖����ŗ��p�ł��܂��B  
-
-**���쌠�ɂ���**  
-HPlaneWGSimulator�̃A�Z���u���A�\�[�X�R�[�h�i���L���߂������j�̒��쌠�́A��イ���݂�ɂ���܂����A�����̗��p�ɂȂ�琧���͂���܂���B�������A����̕ۏ؂͂ł��܂���̂ŗ\�ߌ䗹���肢�܂��B  
-��DelFEM�\�[�X�R�[�h�̒��쌠�́A�~�J�M�s���ɂ���܂��B  
-����������Ă���Lisys�̒��쌠�́AKrdLab���ɂ���܂��B  
-�@�@DelFEM�@[�L���v�f�@(FEM)�̃y�[�W](http://ums.futene.net/)  
-�@�@Lisys�@ [KrdLab�̕s������L 2009-05-07](http://d.hatena.ne.jp/KrdLab/20090507)  
-
-**�A����**  
-�����������܂����牺�L�܂ł��A�����������B  
-��イ���݂� ryujimiya(������)mail.goo.ne.jp  
+**About License**  
+HPlaneWGSimulatorのアセンブリ、ソースコード（下記注釈を除く）の著作権は、りゅうじみやにありますが、それらの利用になんら制限はありません。ただし、動作の保証はできませんので予め御了承願います。  
+※DelFEMソースコードの著作権は、梅谷信行氏にあります。  
+※同梱されているLisysの著作権は、KrdLab氏にあります。  
+　　DelFEM　[有限要素法(FEM)のページ](http://ums.futene.net/)  
+　　Lisys　 [KrdLabの不定期日記 2009-05-07](http://d.hatena.ne.jp/KrdLab/20090507)  
+  
+**Contact To Human**  
+何かございましたら下記までご連絡ください。  
+りゅうじみや ryujimiya(あっと)mail.goo.ne.jp  
   
