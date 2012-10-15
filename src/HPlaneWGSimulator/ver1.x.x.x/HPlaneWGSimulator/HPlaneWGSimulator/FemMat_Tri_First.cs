@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
-using System.Numerics; // Complex
+//using System.Numerics; // Complex
+using KrdLab.clapack; // KrdLab.clapack.Complex
 //using System.Text.RegularExpressions;
 using MyUtilLib.Matrix;
 
@@ -100,7 +101,7 @@ namespace HPlaneWGSimulator
                 };
 
             // 要素剛性行列を作る
-            Complex[,] emat = new Complex[nno, nno];
+            double[,] emat = new double[nno, nno];
             for (int ino = 0; ino < nno; ino++)
             {
                 for (int jno = 0; jno < nno; jno++)
@@ -122,7 +123,10 @@ namespace HPlaneWGSimulator
                     if (ForceNodeNumberH.ContainsKey(jNodeNumber)) continue;
                     int jnoGlobal = toSorted[jNodeNumber];
 
-                    mat[inoGlobal, jnoGlobal] += emat[ino, jno];
+                    //mat[inoGlobal, jnoGlobal] += emat[ino, jno];
+                    //mat._body[inoGlobal + jnoGlobal * mat.RowSize] += emat[ino, jno];
+                    // 実数部に加算する
+                    mat._body[inoGlobal + jnoGlobal * mat.RowSize].Real += emat[ino, jno];
                 }
             }
         }

@@ -19,4 +19,5 @@ extern "C" {
 
 #include "Exceptions.h"
 #include "CLW.h"
+#include "CLW_Added.h"
 #include "Checker.h"

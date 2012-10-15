@@ -4,7 +4,8 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using System.Windows.Forms;
-using System.Numerics; // Complex
+//using System.Numerics; // Complex
+using KrdLab.clapack; // KrdLab.clapack.Complex
 using System.Text.RegularExpressions;
 
 namespace HPlaneWGSimulator
@@ -326,6 +327,7 @@ namespace HPlaneWGSimulator
             }
             catch (Exception exception)
             {
+                Console.WriteLine(exception.Message + " " + exception.StackTrace);
                 MessageBox.Show(exception.Message, "", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
@@ -455,6 +457,7 @@ namespace HPlaneWGSimulator
             }
             catch (Exception exception)
             {
+                Console.WriteLine(exception.Message + " " + exception.StackTrace);
                 MessageBox.Show(exception.Message);
             }
         }

@@ -57,6 +57,12 @@ namespace HPlaneWGSimulator
         /// <param name="e"></param>
         private void MeshViewFrm_Load(object sender, EventArgs e)
         {
+            if (this.Owner != null)
+            {
+                // 色を親ウィンドウに合わせる
+                this.BackColor = this.Owner.BackColor;
+                this.ForeColor = this.Owner.ForeColor;
+            }
             if (!this.Modal && this.Owner != null && this.StartPosition == FormStartPosition.CenterParent)
             {
                 // モードレスの場合は、StartPositionが処理されないようなので、自力で位置を合わせる

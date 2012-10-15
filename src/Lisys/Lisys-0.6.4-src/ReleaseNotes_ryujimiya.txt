@@ -1,0 +1,32 @@
+﻿//////////////////////////////////////////////
+ryujimiyaの変更箇所
+//////////////////////////////////////////////
+
+
+■変更箇所
+CLW_Added.h
+  zgesv
+    AX = Bを解く (A:複素行列)
+  zgeev
+    固有値分解 (複素数)
+  CompressMatFor_zgesv
+    zgesvで使用するマトリクス圧縮
+  deCompressMat
+    zgesvで使用するマトリクス解凍
+
+■履歴
+
+(2012-10-15)
+  複素数構造体KrbLab.clapack.Complexを追加しました。
+  これをzgesvとzgeevのI/Fとして使用することで、内部でメモリの再確保していたのを解消しました。
+  (nativeのdoublecomplexへのポインタ変換が可能)
+
+  その他
+    ryujimiya追加分を別ファイルにしました。(CLW_Added.h)
+    その為、ryujimiya追加分は別クラスになりました。(KrbLab.clapack.FunctionExt)
+    
+    System::Numerics::Complexのバージョンのzgesv, zgeevも追加しています。
+    こちらはnullは許されないのと内部でメモリを再確保しているためあまり速くないですが、C#のComplexをそのまま使用したい場合にご利用ください。
+
+(2012-10-09)
+  CompressMatFor_zgesvでnull要素を０扱いにするようにした(メモリ節約）

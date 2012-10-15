@@ -116,6 +116,7 @@
   <ItemGroup>
     <ClInclude Include="Checker.h" />
     <ClInclude Include="CLW.h" />
+    <ClInclude Include="CLW_Added.h" />
     <ClInclude Include="Exceptions.h" />
     <ClInclude Include="f2cCanceller.h" />
     <ClInclude Include="Stdafx.h" />

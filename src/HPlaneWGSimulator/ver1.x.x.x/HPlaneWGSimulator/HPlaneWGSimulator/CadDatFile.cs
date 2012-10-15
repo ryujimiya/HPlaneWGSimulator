@@ -108,11 +108,11 @@ namespace HPlaneWGSimulator
                         line = line.Remove(line.Length - 1); // 最後の,を削除
                         sw.WriteLine(line);
                     }
-
                 }
             }
             catch (Exception exception)
             {
+                Console.WriteLine(exception.Message + " " + exception.StackTrace);
                 MessageBox.Show(exception.Message);
             }
         }
@@ -351,6 +351,7 @@ namespace HPlaneWGSimulator
             }
             catch (Exception exception)
             {
+                Console.WriteLine(exception.Message + " " + exception.StackTrace);
                 MessageBox.Show(exception.Message);
             }
 

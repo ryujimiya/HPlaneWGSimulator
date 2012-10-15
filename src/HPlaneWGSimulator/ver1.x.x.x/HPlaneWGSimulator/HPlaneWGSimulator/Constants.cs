@@ -56,8 +56,12 @@ namespace HPlaneWGSimulator
         /// <summary>
         /// 考慮するモード数
         /// </summary>
-        public const int MaxModeCount = 20;
-
+        //public const int MaxModeCount = 20;
+        public const int MaxModeCount = int.MaxValue; // 固有値解析で取得可能なすべてのモードを考慮する(境界の節点数)
+        /// <summary>
+        /// 界分布表示における三角形要素内の分割数
+        /// </summary>
+        public const int TriDrawFieldMshDivCnt = 4;
 
         /////////////////////////////////////////////////////////////////////////
         // 要素関連
@@ -120,8 +124,8 @@ namespace HPlaneWGSimulator
         /// <summary>
         /// 有限要素の形状区分既定値
         /// </summary>
-        public const FemElementShapeDV DefElemShapeDv = FemElementShapeDV.Triangle;
-        //public const FemElementShapeDV DefElemShapeDv = FemElementShapeDV.QuadType2;
+        //public const FemElementShapeDV DefElemShapeDv = FemElementShapeDV.Triangle;
+        public const FemElementShapeDV DefElemShapeDv = FemElementShapeDV.QuadType2;  // 素のHPlaneWGSimulatorの既定値を四角形要素に変更
         /// <summary>
         /// 有限要素の補間次数既定値
         /// </summary>

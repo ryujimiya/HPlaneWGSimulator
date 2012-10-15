@@ -640,16 +640,23 @@ namespace HPlaneWGSimulator
         /// <param name="e"></param>
         private void CadPanel_Paint(object sender, PaintEventArgs e)
         {
-            Graphics g = e.Graphics;
-            if (CadLgc != null)
+            try
             {
-                CadLgc.CadPanelPaint(g);
+                Graphics g = e.Graphics;
+                if (CadLgc != null)
+                {
+                    CadLgc.CadPanelPaint(g);
+                }
+                //if (PostPro != null && isCalculating)
+                //{
+                //    // 計算実行中はメッシュ表示
+                //    PostPro.DrawMesh(g, CadPanel);
+                //}
             }
-            //if (PostPro != null && isCalculating)
-            //{
-            //    // 計算実行中はメッシュ表示
-            //    PostPro.DrawMesh(g, CadPanel);
-            //}
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception.Message + " " + exception.StackTrace);
+            }
         }
 
         /// <summary>
@@ -704,19 +711,26 @@ namespace HPlaneWGSimulator
         /// <param name="e"></param>
         private void FValuePanel_Paint(object sender, PaintEventArgs e)
         {
-            Graphics g = e.Graphics;
-
-            if (PostPro != null)
+            try
             {
-                PostPro.DrawField(g, FValuePanel);
-                if (PostPro != null && IsCalculating)
+                Graphics g = e.Graphics;
+
+                if (PostPro != null)
                 {
-                    //見づらいので削除
-                    // 計算実行中はメッシュ表示
-                    //PostPro.DrawMesh(g, FValuePanel, true);
+                    PostPro.DrawField(g, FValuePanel);
+                    if (PostPro != null && IsCalculating)
+                    {
+                        //見づらいので削除
+                        // 計算実行中はメッシュ表示
+                        //PostPro.DrawMesh(g, FValuePanel, true);
+                    }
+                    // 媒質の境界を表示
+                    PostPro.DrawMediaB(g, FValuePanel, true);
                 }
-                // 媒質の境界を表示
-                PostPro.DrawMediaB(g, FValuePanel, true);
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception.Message + " " + exception.StackTrace);
             }
         }
 
@@ -771,7 +785,8 @@ namespace HPlaneWGSimulator
             // 解析機へ入力データを読み込む
             Solver.Load(FemInputDatFilePath);
             // 解析機の情報が確定したので、計算範囲画面で設定した計算範囲をファイルへ書き込み
-            Solver.UpdateAndSaveToInputFile(FemInputDatFilePath, calcSettingFrm.NormalizedFreq1, calcSettingFrm.NormalizedFreq2, calcSettingFrm.CalcFreqCnt);
+            Solver.UpdateAndSaveToInputFile(FemInputDatFilePath,
+                calcSettingFrm.NormalizedFreq1, calcSettingFrm.NormalizedFreq2, calcSettingFrm.CalcFreqCnt);
 
             // ポストプロセッサの初期化
             PostPro.InitData(
@@ -798,9 +813,11 @@ namespace HPlaneWGSimulator
             setCtrlEnable(false);
             btnCalc.Text = "計算キャンセル";
 
+            /*
             // 選択中媒質を真空にする
             radioBtnMedia0.Checked = true;
             CadLgc.SelectedMediaIndex = CadLogic.VacumnMediaIndex;
+            */
             // 媒質選択グループボックスへ読み込み値を反映
             setupGroupBoxMedia();
             // 媒質選択ボタンの背景色とテキストを設定
@@ -830,6 +847,8 @@ namespace HPlaneWGSimulator
                                         EigenVecChart,
                                         true);
                                 }));
+                            // 描画イベントを処理させる
+                            Application.DoEvents();
 
                         });
                     // 解析実行
@@ -1549,7 +1568,8 @@ namespace HPlaneWGSimulator
             // 解析機へ入力データを読み込む
             Solver.Load(FemInputDatFilePath);
             // 解析機の情報が確定したので、計算範囲画面で設定した計算範囲をファイルへ書き込み
-            Solver.UpdateAndSaveToInputFile(FemInputDatFilePath, firstNormalizedFreq, lastNormalizedFreq, calcFreqCnt);
+            Solver.UpdateAndSaveToInputFile(FemInputDatFilePath,
+                firstNormalizedFreq, lastNormalizedFreq, calcFreqCnt);
             // ポストプロセッサの入力データ初期化
             PostPro.InitData(
                 Solver,

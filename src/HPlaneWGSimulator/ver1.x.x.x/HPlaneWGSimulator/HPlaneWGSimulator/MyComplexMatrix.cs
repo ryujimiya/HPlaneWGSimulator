@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Text;
 using System.Collections;
 using System.Diagnostics;
-using System.Numerics;
+//using System.Numerics;
+using KrdLab.clapack;  // KrdLab.clapack.Complex
 
 namespace MyUtilLib.Matrix
 {
@@ -21,7 +22,7 @@ namespace MyUtilLib.Matrix
     /// </summary>
     public class MyComplexMatrix
     {
-        internal ValueType[] _body = null;
+        internal Complex[] _body = null;
         internal int _rsize = 0;
         internal int _csize = 0;
 
@@ -39,7 +40,7 @@ namespace MyUtilLib.Matrix
         /// <param name="body">コピーされる配列</param>
         /// <param name="rowSize">新しい行数</param>
         /// <param name="columnSize">新しい列数</param>
-        internal MyComplexMatrix(ValueType[] body, int rowSize, int columnSize)
+        internal MyComplexMatrix(Complex[] body, int rowSize, int columnSize)
         {
             CopyFrom(body, rowSize, columnSize);
         }
@@ -99,7 +100,7 @@ namespace MyUtilLib.Matrix
                 {
                     throw new IndexOutOfRangeException();
                 }
-                return (Complex)this._body[row + col * this._rsize];
+                return this._body[row + col * this._rsize];
             }
             set
             {
@@ -107,7 +108,7 @@ namespace MyUtilLib.Matrix
                 {
                     throw new IndexOutOfRangeException();
                 }
-                this._body[row + col * this._rsize] = (Complex)value; // Complexへのキャストは、double等がそのまま配列に格納されるのを防ぐため
+                this._body[row + col * this._rsize] = value;
             }
         }
 
@@ -132,7 +133,7 @@ namespace MyUtilLib.Matrix
         /// </summary>
         public void Clear()
         {
-            this._body = new ValueType[0];
+            this._body = new Complex[0];
             this._rsize = 0;
             this._csize = 0;
         }
@@ -145,7 +146,7 @@ namespace MyUtilLib.Matrix
         /// <returns>リサイズ後の自身への参照</returns>
         public MyComplexMatrix Resize(int rowSize, int columnSize)
         {
-            this._body = new ValueType[rowSize * columnSize];
+            this._body = new Complex[rowSize * columnSize];
             this._rsize = rowSize;
             this._csize = columnSize;
             return this;
@@ -186,7 +187,7 @@ namespace MyUtilLib.Matrix
         /// <param name="rowSize">行数</param>
         /// <param name="columnSize">列数</param>
         /// <returns>コピー後の自身への参照</returns>
-        internal MyComplexMatrix CopyFrom(ValueType[] body, int rowSize, int columnSize)
+        internal MyComplexMatrix CopyFrom(Complex[] body, int rowSize, int columnSize)
         {
             // 入力の検証
             System.Diagnostics.Debug.Assert(body.Length == rowSize * columnSize);

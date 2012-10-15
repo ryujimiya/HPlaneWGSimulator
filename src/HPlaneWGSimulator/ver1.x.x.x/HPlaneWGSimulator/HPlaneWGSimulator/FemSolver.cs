@@ -4,7 +4,8 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using System.Windows.Forms;
-using System.Numerics; // Complex
+//using System.Numerics; // Complex
+using KrdLab.clapack; // KrdLab.clapack.Complex
 //using System.Text.RegularExpressions;
 using MyUtilLib.Matrix;
 
@@ -126,6 +127,10 @@ namespace HPlaneWGSimulator
             set;
         }
 
+        /// <summary>
+        /// clapack使用時のFEM行列
+        /// </summary>
+        private MyComplexMatrix FemMat = null;
         /// <summary>
         /// コンストラクタ
         /// </summary>
@@ -306,7 +311,8 @@ namespace HPlaneWGSimulator
         /// <param name="normalizedFreq1"></param>
         /// <param name="normalizedFreq2"></param>
         /// <param name="calcCnt"></param>
-        public void UpdateAndSaveToInputFile(string filename, double normalizedFreq1, double normalizedFreq2, int calcCnt)
+        public void UpdateAndSaveToInputFile(string filename,
+            double normalizedFreq1, double normalizedFreq2, int calcCnt)
         {
             // 計算対象周波数を波長に変換
             double firstWaveLength = GetWaveLengthFromNormalizedFreq(normalizedFreq1, WaveguideWidth);
@@ -318,7 +324,8 @@ namespace HPlaneWGSimulator
             CalcFreqCnt = calcCnt;
 
             // FEM入力ファイルへ更新書き込み
-            FemInputDatFile.UpdateToFile(filename, FirstWaveLength, LastWaveLength, CalcFreqCnt);
+            FemInputDatFile.UpdateToFile(filename,
+                FirstWaveLength, LastWaveLength, CalcFreqCnt);
         }
 
         /// <summary>
@@ -552,6 +559,7 @@ namespace HPlaneWGSimulator
                 File.Delete(indexfilename);
             }
 
+            FemMat = null;
             int calcFreqCnt = CalcFreqCnt;
             double firstNormalizedFreq = FirstNormalizedFreq;
             double lastNormalizedFreq = LastNormalizedFreq;
@@ -575,6 +583,7 @@ namespace HPlaneWGSimulator
                     break;
                 }
             }
+            FemMat = null;
         }
 
         /// <summary>
@@ -585,18 +594,23 @@ namespace HPlaneWGSimulator
         /// <param name="waveLength">波長</param>
         private void runEach(int freqNo, string filename, double waveLength, int maxMode)
         {
+            Console.WriteLine("runEach 1");
             // 全体剛性行列作成
             int[] nodesRegion = null;
             MyComplexMatrix mat = null;
             getHelmholtzLinearSystemMatrix(waveLength, out nodesRegion, out mat);
+            Console.WriteLine("runEach 2");
 
             // 残差ベクトル初期化
             int nodeCnt = nodesRegion.Length;
             Complex[] resVec = new Complex[nodeCnt];
+            /*
             for (int i = 0; i < nodeCnt; i++)
             {
                 resVec[i] = new Complex();
             }
+             */
+            Console.WriteLine("runEach 3");
 
             // 開口面境界条件の適用
             int portCnt = Ports.Count;
@@ -624,18 +638,28 @@ namespace HPlaneWGSimulator
                 // 境界条件をリニア方程式に追加
                 addPortBC(waveLength, isInputPort, nodesBoundary, ryy_1d, eigenValues, eigenVecs, nodesRegion, mat, resVec);
             }
+            Console.WriteLine("runEach 4");
+
+            Complex[] valuesAll = null;
+            //---------------------------------------------------------
+            // clapack zgesv (KrdLab Lisys)
+            //---------------------------------------------------------
+            valuesAll = null;
 
             // リニア方程式を解く
-            ValueType[] X = null;
+            Complex[] X = null;
             // clapackの行列の1次元ベクトルへの変換は列を先に埋める
-            ValueType[] A = MyMatrixUtil.matrix_ToBuffer(mat, false);
-            ValueType[] B = new ValueType[nodeCnt];
+            Complex[] A = MyMatrixUtil.matrix_ToBuffer(mat, false);
+            /*
+            Complex[] B = new Complex[nodeCnt];
             for (int ino = 0; ino < nodeCnt; ino++)
             {
                 B[ino] = resVec[ino];
             }
+             */
+            Complex[] B = resVec;
             ///////////////////////
-            // TEST
+            /*
             MyMatrixUtil.compressVec(ref A); // 配列圧縮
             mat._body = null;
             mat = null;
@@ -655,6 +679,7 @@ namespace HPlaneWGSimulator
                 Console.WriteLine(exception.Message + " " + exception.StackTrace);
                 MessageBox.Show(exception.Message);
             }
+             */
             ///////////////////////
             int x_row = nodeCnt;
             int x_col = 1;
@@ -665,8 +690,8 @@ namespace HPlaneWGSimulator
             Console.WriteLine("run zgesv");
             try
             {
-                //KrdLab.clapack.Function.zgesv(ref X, ref x_row, ref x_col, A, a_row, a_col, B, b_row, b_col);
-                KrdLab.clapack.Function.zgesv(ref X, ref x_row, ref x_col, A, a_row, a_col, B, b_row, b_col, true);
+                KrdLab.clapack.FunctionExt.zgesv(ref X, ref x_row, ref x_col, A, a_row, a_col, B, b_row, b_col);
+                //KrdLab.clapack.FunctionExt.zgesv(ref X, ref x_row, ref x_col, A, a_row, a_col, B, b_row, b_col, true);
             }
             catch (Exception exception)
             {
@@ -678,13 +703,17 @@ namespace HPlaneWGSimulator
                 //X = new ValueType[nodeCnt];
                 //for (int i = 0; i < nodeCnt; i++) { X[i] = new Complex(); }
             }
-            Complex[] valuesAll = new Complex[nodeCnt];
+
+            /*
+            valuesAll = new Complex[nodeCnt];
             for (int ino = 0; ino < nodeCnt; ino++)
             {
                 Complex c = (Complex)X[ino];
                 //Console.WriteLine("({0})  {1} + {2}i", ino, c.Real, c.Imaginary);
                 valuesAll[ino] = c;
             }
+             */
+            valuesAll = X;
 
             // 散乱行列Sij
             // ポートj = IncidentPortNoからの入射のみ対応
@@ -761,14 +790,28 @@ namespace HPlaneWGSimulator
             nodesRegion = sortedNodes.ToArray();
 
             // 全体剛性行列初期化
-            mat = new MyComplexMatrix(nodeCnt, nodeCnt);
-            for (int i = 0; i < nodeCnt; i++)
+            //mat = new MyComplexMatrix(nodeCnt, nodeCnt);
+            // メモリ割り当てのコストが高いので変更する
+            if (FemMat == null)
             {
-                for (int j = 0; j < nodeCnt; j++)
+                FemMat = new MyComplexMatrix(nodeCnt, nodeCnt);
+            }
+            else
+            {
+                System.Diagnostics.Debug.Assert(FemMat.RowSize == nodeCnt);
+                for (int i = 0; i < nodeCnt * nodeCnt; i++)
                 {
-                    mat[i, j] = new Complex();
+                    FemMat._body[i].Real = 0;
+                    FemMat._body[i].Imaginary = 0;
                 }
             }
+            mat = FemMat;
+            /*
+            for (int i = 0; i < nodeCnt * nodeCnt; i++)
+            {
+                mat._body[i] = new Complex();
+            }
+             */
             foreach (FemElement element in Elements)
             {
                 addElementMat(waveLength, toSorted, element, ref mat);
@@ -863,6 +906,7 @@ namespace HPlaneWGSimulator
 
             // 全体剛性行列の作成
             MyComplexMatrix matB = new MyComplexMatrix(nodeCnt, nodeCnt);
+            /*
             for (int inoB = 0; inoB < nodeCnt; inoB++)
             {
                 for (int jnoB = 0; jnoB < nodeCnt; jnoB++)
@@ -870,18 +914,25 @@ namespace HPlaneWGSimulator
                     matB[inoB, jnoB] = new Complex();
                 }
             }
+             */
             for (int imode = 0; imode < maxMode; imode++)
             {
                 Complex betam = eigenValues[imode];
 
                 Complex[] fmVec = MyMatrixUtil.matrix_GetRowVec(eigenVecs, (int)imode);
+                // 2Dの境界積分
                 Complex[] veci = MyMatrixUtil.product(ryy_1d, fmVec);
+                // モード電力規格化の積分(1Dの積分)
+                //Complex[] vecj = MyMatrixUtil.product(MyMatrixUtil.matrix_ConjugateTranspose(ryy_1d), MyMatrixUtil.vector_Conjugate(fmVec));
+                // [ryy]が実数の場合
                 Complex[] vecj = MyMatrixUtil.product(ryy_1d, MyMatrixUtil.vector_Conjugate(fmVec));
                 for (int inoB = 0; inoB < nodeCnt; inoB++)
                 {
                     for (int jnoB = 0; jnoB < nodeCnt; jnoB++)
                     {
-                        matB[inoB, jnoB] += ((new Complex(0.0, 1.0)) / (omega * myu0)) * betam * Complex.Abs(betam) * veci[inoB] * vecj[jnoB];
+                        Complex cvalue = (Complex.ImaginaryOne / (omega * myu0)) * betam * Complex.Abs(betam) * veci[inoB] * vecj[jnoB];
+                        //matB[inoB, jnoB] += cvalue;
+                        matB._body[inoB + jnoB * matB.RowSize] += cvalue;
                     }
                 }
             }
@@ -889,19 +940,25 @@ namespace HPlaneWGSimulator
 
             // 残差ベクトルの作成
             Complex[] resVecB = new Complex[nodeCnt];
+            /*
             for (int inoB = 0; inoB < nodeCnt; inoB++)
             {
                 resVecB[inoB] = 0.0;
             }
+             */
             if (isInputPort)
             {
                 int imode = 0;
                 Complex betam = eigenValues[imode];
                 Complex[] fmVec = MyMatrixUtil.matrix_GetRowVec(eigenVecs, (int)imode);
+                // 2Dの境界積分
                 Complex[] veci = MyMatrixUtil.product(ryy_1d, fmVec);
                 for (int inoB = 0; inoB < nodeCnt; inoB++)
                 {
-                    resVecB[inoB] = 2.0 * (new Complex(0.0, 1.0)) * betam * veci[inoB];
+                    Complex cvalue = 2.0 * Complex.ImaginaryOne * betam * veci[inoB];
+                    //resVecB[inoB] = cvalue;
+                    resVecB[inoB].Real = cvalue.Real;
+                    resVecB[inoB].Imaginary = cvalue.Imaginary;
                 }
             }
             //printVec("resVecB", resVecB);
@@ -932,7 +989,8 @@ namespace HPlaneWGSimulator
                     if (ForceNodeNumberH.ContainsKey(jNodeNumber)) continue;
                     int jnoGlobal = toSorted[jNodeNumber];
 
-                    mat[inoGlobal, jnoGlobal] += matB[inoB, jnoB];
+                    //mat[inoGlobal, jnoGlobal] += matB[inoB, jnoB];
+                    mat._body[inoGlobal + jnoGlobal * mat.RowSize] += matB._body[inoB + jnoB * matB.RowSize];
                 }
             }
 
@@ -994,29 +1052,17 @@ namespace HPlaneWGSimulator
 
             int maxMode = eigenValues.Length;
 
-            Complex[] tmp_vec = new Complex[nodeCnt];
-            // {tmp_vec}t = {fm}t[uzz]
-            // {tmp_vec} = [uzz]t {fm}
-            //   [uzz]t = [uzz]
-            for (int ino_boundary = 0; ino_boundary < nodeCnt; ino_boundary++)
-            {
-                Complex sum = new Complex(0.0, 0.0);
-                for (int k_tmp = 0; k_tmp < nodeCnt; k_tmp++)
-                {
-                    Complex fm = eigenVecs[iMode, k_tmp];
-                    //Console.WriteLine( "(" + fm.Real + "," + fm.Imag + ")" + Complex.Norm(fm));
-                    sum += ryy_1d[ino_boundary, k_tmp] * Complex.Conjugate(fm);
-                }
-                tmp_vec[ino_boundary] = sum;
-            }
+            // {tmp_vec}*t = {fm}*t[ryy]*t
+            // {tmp_vec}* = [ryy]* {fm}*
+            //   ([ryy]*)t = [ryy]*
+            //    [ryy]が実数のときは、[ryy]* -->[ryy]
+            Complex[] fmVec = MyMatrixUtil.matrix_GetRowVec(eigenVecs, iMode);
+            //Complex[] tmp_vec = MyMatrixUtil.product(MyMatrixUtil.matrix_ConjugateTranspose(ryy_1d), MyMatrixUtil.vector_Conjugate(fmVec));
+            // ryyが実数のとき
+            Complex[] tmp_vec = MyMatrixUtil.product(ryy_1d, MyMatrixUtil.vector_Conjugate(fmVec));
+
             // s11 = {tmp_vec}t {value_all}
-            for (int ino_boundary = 0; ino_boundary < nodeCnt; ino_boundary++)
-            {
-                s11 += tmp_vec[ino_boundary] * valuesB[ino_boundary];
-                //Console.WriteLine(nodesBoundary[ino_boundary] + " " + "(" + valuesB[ino_boundary].Real + ", " + valuesB[ino_boundary].Imaginary + ") " + Complex.Abs(valuesB[ino_boundary]));
-                //Complex fm = eigen_vecs[imode, ino_boundary];
-                //Console.WriteLine( no_c_all[ino_boundary] + " " + "(" + fm.Real + "," + fm.Imag + ")" + Complex.Norm(fm));
-            }
+            s11 = MyMatrixUtil.vector_Dot(tmp_vec, valuesB);
             Complex betam = eigenValues[iMode];
             s11 *= (Complex.Abs(betam) / (omega * myu0));
 
@@ -1032,7 +1078,7 @@ namespace HPlaneWGSimulator
         /// <summary>
         /// ポート固有値解析
         /// </summary>
-        private void solvePortWaveguideEigen(double waveLength, int portNo, int maxMode, out int[] nodesBoundary, out MyDoubleMatrix ryy_1d, out Complex[] eigenValues, out Complex[,] eigenVecs)
+        private void solvePortWaveguideEigen(double waveLength, int portNo, int maxModeSpecified, out int[] nodesBoundary, out MyDoubleMatrix ryy_1d, out Complex[] eigenValues, out Complex[,] eigenVecs)
         {
             //Console.WriteLine("solvePortWaveguideEigen: {0},{1}", waveLength, portNo);
             nodesBoundary = null;
@@ -1149,6 +1195,11 @@ namespace HPlaneWGSimulator
             // 節点数
             int nodeCnt = sortedNodes.Count;
             // 固有値、固有ベクトル
+            int maxMode = maxModeSpecified;
+            if (maxMode > nodeCnt)
+            {
+                maxMode = nodeCnt;
+            }
             eigenValues = new Complex[maxMode];
             eigenVecs = new Complex[maxMode, nodeCnt];
             // 固有モード解析でのみ使用するuzz_1d, txx_1d
@@ -1157,6 +1208,7 @@ namespace HPlaneWGSimulator
             // ryy_1dマトリクス (線要素)
             ryy_1d = new MyDoubleMatrix(nodeCnt, nodeCnt);
 
+            /*
             for (int i = 0; i < nodeCnt; i++)
             {
                 for (int j = 0; j < nodeCnt; j++)
@@ -1166,7 +1218,7 @@ namespace HPlaneWGSimulator
                     uzz_1d[i, j] = 0.0;
                 }
             }
-
+            */
             for (int elemIndex = 0; elemIndex < elements.Count; elemIndex++)
             {
                 // 線要素
@@ -1203,11 +1255,17 @@ namespace HPlaneWGSimulator
             {
                 for (int jno = 0; jno < nodeCnt; jno++)
                 {
+                    // 剛性行列
                     matA[ino, jno] = txx_1d[ino, jno] - (k0 * k0) * uzz_1d[ino, jno];
                 }
             }
-            // [Ryy]-1[A]
-            matA = MyMatrixUtil.product(MyMatrixUtil.matrix_Inverse(ryy_1d), matA);
+            // 定式化のBUGFIX
+            //matA = MyMatrixUtil.product(MyMatrixUtil.matrix_Inverse(ryy_1d), matA);
+            // ( [txx] - k0^2[uzz] + β^2[ryy]){Ez} = {0}より
+            // [A]{x} = λ[B]{x}としたとき、λ = β^2 とすると[B] = -[ryy]
+            MyDoubleMatrix matB = MyMatrixUtil.product(-1.0, ryy_1d);
+            // ([B])-1[A]
+            matA = MyMatrixUtil.product(MyMatrixUtil.matrix_Inverse(matB), matA);
 
             Complex[] evals = null;
             Complex[,] evecs = null;
@@ -1248,9 +1306,17 @@ namespace HPlaneWGSimulator
                 }
                 // 伝搬定数は固有値のsqrt
                 Complex betam = Complex.Sqrt(evals[tagtModeIdx]);
+                // 定式化BUGFIX
+                //   減衰定数は符号がマイナス(β = -jα)
+                if (betam.Imaginary >= 0.0)
+                {
+                    betam = new Complex(betam.Real, -betam.Imaginary);
+                }
                 // 固有ベクトル
                 Complex[] evec = MyMatrixUtil.matrix_GetRowVec(evecs, tagtModeIdx);
                 // 規格化定数を求める
+                //Complex[] workVec = MyMatrixUtil.product(MyMatrixUtil.matrix_ConjugateTranspose(ryy_1d), evec);
+                // 実数の場合 [ryy]*t = [ryy]t ryyは対称行列より[ryy]t = [ryy]
                 Complex[] workVec = MyMatrixUtil.product(ryy_1d, evec);
                 double dm = Complex.Abs(MyMatrixUtil.vector_Dot(MyMatrixUtil.vector_Conjugate(evec), workVec));
                 dm = Math.Sqrt(omega * myu0 / Complex.Abs(betam) / dm);
@@ -1278,23 +1344,26 @@ namespace HPlaneWGSimulator
         private static bool solveEigen(MyComplexMatrix srcMat, out Complex[] evals, out Complex[,] evecs)
         {
             // Lisys(Lapack)による固有値解析
-            ValueType[] X = MyMatrixUtil.matrix_ToBuffer(srcMat, false);
-            ValueType[] c_evals = null;
-            ValueType[][] c_evecs = null;
-            KrdLab.clapack.Function.zgeev(X, srcMat.RowSize, srcMat.ColumnSize, ref c_evals, ref c_evecs);
+            Complex[] X = MyMatrixUtil.matrix_ToBuffer(srcMat, false);
+            Complex[] c_evals = null;
+            Complex[][] c_evecs = null;
+            KrdLab.clapack.FunctionExt.zgeev(X, srcMat.RowSize, srcMat.ColumnSize, ref c_evals, ref c_evecs);
 
+            /*
             evals = new Complex[c_evals.Length];
             for (int i = 0; i < evals.Length; i++)
             {
-                evals[i] = (Complex)c_evals[i];
+                evals[i] = c_evals[i];
                 //Console.WriteLine("( " + i + " ) = " + evals[i].Real + " + " + evals[i].Imaginary + " i ");
             }
+             */
+            evals = c_evals;
             evecs = new Complex[c_evecs.Length, c_evecs[0].Length];
             for (int i = 0; i < evecs.GetLength(0); i++)
             {
                 for (int j = 0; j < evecs.GetLength(1); j++)
                 {
-                    evecs[i, j] = (Complex)c_evecs[i][j];
+                    evecs[i, j] = c_evecs[i][j];
                     //Console.WriteLine("( " + i + ", " + j + " ) = " + evecs[i, j].Real + " + " + evecs[i, j].Imaginary + " i ");
                 }
             }
@@ -1319,7 +1388,9 @@ namespace HPlaneWGSimulator
             evals = new Complex[r_evals.Length];
             for (int i = 0; i < evals.Length; i++)
             {
-                evals[i] = new Complex(r_evals[i], i_evals[i]);
+                //evals[i] = new Complex(r_evals[i], i_evals[i]);
+                evals[i].Real = r_evals[i];
+                evals[i].Imaginary = i_evals[i];
                 //Console.WriteLine("( " + i + " ) = " + evals[i].Real + " + " + evals[i].Imaginary + " i ");
             }
             evecs = new Complex[r_evecs.Length, r_evecs[0].Length];
@@ -1327,7 +1398,9 @@ namespace HPlaneWGSimulator
             {
                 for (int j = 0; j < evecs.GetLength(1); j++)
                 {
-                    evecs[i, j] = new Complex(r_evecs[i][j], i_evecs[i][j]);
+                    //evecs[i, j] = new Complex(r_evecs[i][j], i_evecs[i][j]);
+                    evecs[i, j].Real = r_evecs[i][j];
+                    evecs[i, j].Imaginary = i_evecs[i][j];
                     //Console.WriteLine("( " + i + ", " + j + " ) = " + evecs[i, j].Real + " + " + evecs[i, j].Imaginary + " i ");
                 }
             }
@@ -1383,6 +1456,7 @@ namespace HPlaneWGSimulator
         /// <param name="evecs"></param>
         private void sort1DEigenMode(double k0, Complex[] evals, Complex[,] evecs)
         {
+            /*
             // 符号調整
             {
                 // 正の固有値をカウント
@@ -1415,6 +1489,7 @@ namespace HPlaneWGSimulator
                     Console.WriteLine("eval sign changed");
                 }
             }
+             */
 
             EigenModeItem[] items = new EigenModeItem[evals.Length];
             for (int i = 0; i < evals.Length; i++)

@@ -10,7 +10,8 @@ using System.Windows.Forms; //Control
 using System.Collections; //Hashtable
 using System.Text.RegularExpressions; // Regex
 using System.Drawing; // Color
-using System.Numerics; // Complex
+//using System.Numerics; // Complex
+using KrdLab.clapack; // KrdLab.clapack.Complex
 
 namespace MyUtilLib
 {

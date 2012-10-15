@@ -1,0 +1,128 @@
+ImageRuntimeVersion: v4.0.30319
+Assembly CLW, Version=0.6.*, Culture=ロケールに依存しない言語 (ロケールに依存しない国): 
+	hash=SHA1, flags=PublicKey
+Assembly mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089: 
+	hash=None, flags=None
+Assembly System.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089: 
+	hash=None, flags=None
+Assembly System.Data, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089: 
+	hash=None, flags=None
+Assembly System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089: 
+	hash=None, flags=None
+Assembly System.Numerics, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089: 
+	hash=None, flags=None
+Assembly System.Xml, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089: 
+	hash=None, flags=None
+Assembly Microsoft.VisualC, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a: 
+	hash=None, flags=None
+Class KrdLab.clapack.exception.ClwException: AutoLayout, AnsiClass, Class, Public, BeforeFieldInit
+  :System.Exception
+    Void .ctor(System.String, System.Exception): PrivateScope, Public, HideBySig, SpecialName, RTSpecialName
+    Void .ctor(System.String): PrivateScope, Public, HideBySig, SpecialName, RTSpecialName
+    Void .ctor(): PrivateScope, Public, HideBySig, SpecialName, RTSpecialName
+Class KrdLab.clapack.exception.IllegalClapackResultException: AutoLayout, AnsiClass, Class, Public, BeforeFieldInit
+  :KrdLab.clapack.exception.ClwException
+    Void .ctor(System.String, Int32, System.Exception): PrivateScope, Public, HideBySig, SpecialName, RTSpecialName
+    Void .ctor(System.String, Int32): PrivateScope, Public, HideBySig, SpecialName, RTSpecialName
+    Void .ctor(Int32): PrivateScope, Public, HideBySig, SpecialName, RTSpecialName
+  Properties:
+    Int32 Info 'get ' : 
+  Methods:
+    get_Info(): PrivateScope, Public, HideBySig, SpecialName
+Class KrdLab.clapack.exception.IllegalClapackArgumentException: AutoLayout, AnsiClass, Class, Public, BeforeFieldInit
+  :KrdLab.clapack.exception.ClwException
+    Void .ctor(System.String, Int32, System.Exception): PrivateScope, Public, HideBySig, SpecialName, RTSpecialName
+    Void .ctor(System.String, Int32): PrivateScope, Public, HideBySig, SpecialName, RTSpecialName
+    Void .ctor(Int32): PrivateScope, Public, HideBySig, SpecialName, RTSpecialName
+  Properties:
+    Int32 Index 'get ' : 
+  Methods:
+    get_Index(): PrivateScope, Public, HideBySig, SpecialName
+Class KrdLab.clapack.exception.MismatchSizeException: AutoLayout, AnsiClass, Class, Public, BeforeFieldInit
+  :KrdLab.clapack.exception.ClwException
+    Void .ctor(System.String, System.Exception): PrivateScope, Public, HideBySig, SpecialName, RTSpecialName
+    Void .ctor(System.String): PrivateScope, Public, HideBySig, SpecialName, RTSpecialName
+    Void .ctor(): PrivateScope, Public, HideBySig, SpecialName, RTSpecialName
+Class KrdLab.clapack.Function: AutoLayout, AnsiClass, Class, Public, BeforeFieldInit
+    Void .ctor(): PrivateScope, Public, HideBySig, SpecialName, RTSpecialName
+  Fields:
+    Double CalculationLowerLimit : Public, Static
+  Methods:
+    dnrm2(Double[]): PrivateScope, Public, Static, HideBySig
+    dscal(Double[], Double): PrivateScope, Public, Static, HideBySig
+    ddot(Double[], Double[]): PrivateScope, Public, Static, HideBySig
+    dgemm(Double[]&, Int32&, Int32&, Double[], Int32, Int32, Double[], Int32, Int32): PrivateScope, Public, Static, HideBySig
+    dgemv(Double[]&, Double[], Double[], Int32, Int32): PrivateScope, Public, Static, HideBySig
+    dgemv(Double[]&, Double[], Int32, Int32, Double[]): PrivateScope, Public, Static, HideBySig
+    dgesv(Double[]&, Int32&, Int32&, Double[], Int32, Int32, Double[], Int32, Int32): PrivateScope, Public, Static, HideBySig
+    dgesvd(Double[], Int32, Int32, Double[]&, Int32&, Int32&, Double[]&, Int32&, Int32&, Double[]&, Int32&, Int32&): PrivateScope, Public, Static, HideBySig
+    dgeev(Double[], Int32, Int32, Double[]&, Double[]&): PrivateScope, Public, Static, HideBySig
+    dgeev(Double[], Int32, Int32, Double[]&, Double[]&, Double[][]&, Double[][]&): PrivateScope, Public, Static, HideBySig
+    dgetrf(Double[], Int32, Int32, Int32[]&): PrivateScope, Public, Static, HideBySig
+Struct KrdLab.clapack.Complex: AutoLayout, AnsiClass, Class, Public, SequentialLayout, Sealed, BeforeFieldInit
+  :System.ValueType
+    Void .ctor(Double, Double): PrivateScope, Public, HideBySig, SpecialName, RTSpecialName
+  Fields:
+    KrdLab.clapack.Complex Zero IsConst : Public, Static
+    KrdLab.clapack.Complex ImaginaryOne IsConst : Public, Static
+  Properties:
+    Double Phase 'get ' : 
+    Double Magnitude 'get ' : 
+    Double Imaginary 'get set' : 
+    Double Real 'get set' : 
+  Methods:
+    get_Real(): PrivateScope, Public, HideBySig, SpecialName
+    set_Real(Double): PrivateScope, Public, HideBySig, SpecialName
+    get_Imaginary(): PrivateScope, Public, HideBySig, SpecialName
+    set_Imaginary(Double): PrivateScope, Public, HideBySig, SpecialName
+    get_Magnitude(): PrivateScope, Public, HideBySig, SpecialName
+    get_Phase(): PrivateScope, Public, HideBySig, SpecialName
+    Equals(Complex): PrivateScope, Public, Final, Virtual, HideBySig, VtableLayoutMask
+    Equals(Object): PrivateScope, Public, Final, Virtual, HideBySig
+    op_Implicit(Int32): PrivateScope, Public, Static, HideBySig, SpecialName
+    op_Implicit(Double): PrivateScope, Public, Static, HideBySig, SpecialName
+    ToDotNetComplex(Complex): PrivateScope, Public, Static, HideBySig
+    Abs(Complex): PrivateScope, Public, Static, HideBySig
+    Conjugate(Complex): PrivateScope, Public, Static, HideBySig
+    Sqrt(Complex): PrivateScope, Public, Static, HideBySig
+    Exp(Complex): PrivateScope, Public, Static, HideBySig
+    Add(Complex, Double): PrivateScope, Public, Static, HideBySig
+    Add(Double, Complex): PrivateScope, Public, Static, HideBySig
+    Add(Complex, Complex): PrivateScope, Public, Static, HideBySig
+    op_Addition(Complex, Double): PrivateScope, Public, Static, HideBySig, SpecialName
+    op_Addition(Double, Complex): PrivateScope, Public, Static, HideBySig, SpecialName
+    op_Addition(Complex, Complex): PrivateScope, Public, Static, HideBySig, SpecialName
+    Subtract(Complex, Double): PrivateScope, Public, Static, HideBySig
+    Subtract(Double, Complex): PrivateScope, Public, Static, HideBySig
+    Subtract(Complex, Complex): PrivateScope, Public, Static, HideBySig
+    op_Subtraction(Complex, Double): PrivateScope, Public, Static, HideBySig, SpecialName
+    op_Subtraction(Double, Complex): PrivateScope, Public, Static, HideBySig, SpecialName
+    op_Subtraction(Complex, Complex): PrivateScope, Public, Static, HideBySig, SpecialName
+    Multiply(Complex, Double): PrivateScope, Public, Static, HideBySig
+    Multiply(Double, Complex): PrivateScope, Public, Static, HideBySig
+    Multiply(Complex, Complex): PrivateScope, Public, Static, HideBySig
+    op_Multiply(Complex, Double): PrivateScope, Public, Static, HideBySig, SpecialName
+    op_Multiply(Double, Complex): PrivateScope, Public, Static, HideBySig, SpecialName
+    op_Multiply(Complex, Complex): PrivateScope, Public, Static, HideBySig, SpecialName
+    Divide(Complex, Double): PrivateScope, Public, Static, HideBySig
+    Divide(Double, Complex): PrivateScope, Public, Static, HideBySig
+    Divide(Complex, Complex): PrivateScope, Public, Static, HideBySig
+    op_Division(Complex, Double): PrivateScope, Public, Static, HideBySig, SpecialName
+    op_Division(Double, Complex): PrivateScope, Public, Static, HideBySig, SpecialName
+    op_Division(Complex, Complex): PrivateScope, Public, Static, HideBySig, SpecialName
+Class KrdLab.clapack.FunctionExt: AutoLayout, AnsiClass, Class, Public, BeforeFieldInit
+  :KrdLab.clapack.Function
+    Void .ctor(): PrivateScope, Public, HideBySig, SpecialName, RTSpecialName
+  Methods:
+    zgesv(ValueType[]&, Int32&, Int32&, ValueType[], Int32, Int32, ValueType[], Int32, Int32, Boolean(HasFieldMarshal)): PrivateScope, Public, Static, HideBySig
+    zgesv(ValueType[]&, Int32&, Int32&, ValueType[], Int32, Int32, ValueType[], Int32, Int32): PrivateScope, Public, Static, HideBySig
+    zgesv(Complex[]&, Int32&, Int32&, Complex[], Int32, Int32, Complex[], Int32, Int32): PrivateScope, Public, Static, HideBySig
+    zgesv(Complex[]&, Int32&, Int32&, Complex[], Int32, Int32, Complex[], Int32, Int32): PrivateScope, Public, Static, HideBySig
+    zgeev(ValueType[], Int32, Int32, ValueType[]&, ValueType[][]&): PrivateScope, Public, Static, HideBySig
+    zgeev(Complex[], Int32, Int32, Complex[]&, Complex[][]&): PrivateScope, Public, Static, HideBySig
+    zgeev(Complex[], Int32, Int32, Complex[]&, Complex[][]&): PrivateScope, Public, Static, HideBySig
+    CompressMatFor_zgesv(ValueType[]&): PrivateScope, Public, Static, HideBySig
+Class KrdLab.clapack.CalculationChecker: AutoLayout, AnsiClass, Class, Public, BeforeFieldInit
+    Void .ctor(): PrivateScope, Public, HideBySig, SpecialName, RTSpecialName
+  Methods:
+    IsLessThanLimit(Double): PrivateScope, Public, Static, HideBySig

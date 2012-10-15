@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using System.Text;
 using System.Collections;
 using System.Diagnostics;
-using System.Numerics;
+//using System.Numerics;
+using KrdLab.clapack;  // KrdLab.clapack.Complex
 
 namespace MyUtilLib.Matrix
 {
@@ -113,6 +114,7 @@ namespace MyUtilLib.Matrix
                                    + "(" + val.Real + "," + val.Imaginary + ") " + Complex.Abs(val));
             }
         }
+        /*
         public static void printVec(string tag, ValueType[] vec)
         {
             for (int i = 0; i < vec.Length; i++)
@@ -122,44 +124,13 @@ namespace MyUtilLib.Matrix
                                    + "(" + val.Real + "," + val.Imaginary + ") " + Complex.Abs(val));
             }
         }
-
+        */
+        /*
         public static void compressVec(ref ValueType[] vec)
         {
-            /* ライブラリ側に移動した(圧縮、解凍処理は同じ場所にあった方が理解しやすいので)
-            ValueType[] compressed = new ValueType[vec.Length];
-
-            int indexCounter = 0;
-            int zeroCounter = 0;
-            for (int i = 0; i < vec.Length; i++)
-            {
-                if (Complex.Abs((Complex)vec[i]) < Constants.PrecisionLowerLimit)
-                {
-                    zeroCounter++;
-                    if (i == vec.Length - 1 && zeroCounter > 0)
-                    {
-                        compressed[indexCounter++] = new Complex();
-                        compressed[indexCounter++] = new Complex((double)zeroCounter, 0);
-                        zeroCounter = 0;
-                    }
-                }
-                else
-                {
-                    if (zeroCounter > 0)
-                    {
-                        compressed[indexCounter++] = new Complex();
-                        compressed[indexCounter++] = new Complex((double)zeroCounter, 0);
-                        zeroCounter = 0;
-                    }
-                    compressed[indexCounter++] = vec[i];
-                }
-            }
-            if (vec.Length != indexCounter)
-            {
-                vec = compressed;
-            }
-             */
-            KrdLab.clapack.Function.CompressMatFor_zgesv(ref vec);
+            KrdLab.clapack.FunctionExt.CompressMatFor_zgesv(ref vec);
         }
+         */
 
         public static double[] matrix_ToBuffer(MyDoubleMatrix mat, bool copyFlg = true)
         {
@@ -244,10 +215,10 @@ namespace MyUtilLib.Matrix
             return matA_.ToArray();
         }
 
-        public static ValueType[] matrix_ToBuffer(MyComplexMatrix mat, bool copyFlg = true)
+        public static Complex[] matrix_ToBuffer(MyComplexMatrix mat, bool copyFlg = true)
         {
             /*
-            ValueType[] mat_ = new ValueType[mat.RowSize * mat.ColumnSize];
+            Complex[] mat_ = new Complex[mat.RowSize * mat.ColumnSize];
             // rowから先に埋めていく
             for (int j = 0; j < mat.ColumnSize; j++) //col
             {
@@ -258,10 +229,10 @@ namespace MyUtilLib.Matrix
             }
             */
 
-            ValueType[] mat_ = null;
+            Complex[] mat_ = null;
             if (copyFlg)
             {
-                mat_ = new ValueType[mat.RowSize * mat.ColumnSize];
+                mat_ = new Complex[mat.RowSize * mat.ColumnSize];
                 mat._body.CopyTo(mat_, 0);
             }
             else
@@ -271,7 +242,7 @@ namespace MyUtilLib.Matrix
             return mat_;
         }
 
-        public static MyComplexMatrix matrix_FromBuffer(ValueType[] mat_, int nRow, int nCol, bool copyFlg = true)
+        public static MyComplexMatrix matrix_FromBuffer(Complex[] mat_, int nRow, int nCol, bool copyFlg = true)
         {
             /*
             MyComplexMatrix mat = new MyComplexMatrix(nRow, nCol);
@@ -301,8 +272,8 @@ namespace MyUtilLib.Matrix
         {
             System.Diagnostics.Debug.Assert(matA.RowSize == matA.ColumnSize);
             int n = matA.RowSize;
-            ValueType[] matA_ = matrix_ToBuffer(matA, true);
-            ValueType[] matB_ = new ValueType[n * n];
+            Complex[] matA_ = matrix_ToBuffer(matA, true);
+            Complex[] matB_ = new Complex[n * n];
             // 単位行列
             for (int i = 0; i < matB_.Length; i++)
             {
@@ -316,7 +287,7 @@ namespace MyUtilLib.Matrix
             //  [B]の内容が書き換えられるので、matXを新たに生成せず、matBを出力に指定している
             int x_row = 0;
             int x_col = 0;
-            KrdLab.clapack.Function.zgesv(ref matB_, ref x_row, ref x_col, matA_, n, n, matB_, n, n);
+            KrdLab.clapack.FunctionExt.zgesv(ref matB_, ref x_row, ref x_col, matA_, n, n, matB_, n, n);
 
             MyComplexMatrix matX = matrix_FromBuffer(matB_, x_row, x_col, false);
             return matX;
@@ -612,6 +583,20 @@ namespace MyUtilLib.Matrix
         */
 
         // [X] = [A]t
+        public static MyDoubleMatrix matrix_Transpose(MyDoubleMatrix matA)
+        {
+            MyDoubleMatrix matX = new MyDoubleMatrix(matA.ColumnSize, matA.RowSize);
+            for (int i = 0; i < matX.RowSize; i++)
+            {
+                for (int j = 0; j < matX.ColumnSize; j++)
+                {
+                    matX[i, j] = matA[j, i];
+                }
+            }
+            return matX;
+        }
+
+        // [X] = [A]t
         public static MyComplexMatrix matrix_Transpose(MyComplexMatrix matA)
         {
             MyComplexMatrix matX = new MyComplexMatrix(matA.ColumnSize, matA.RowSize);
@@ -620,6 +605,20 @@ namespace MyUtilLib.Matrix
                 for (int j = 0; j < matX.ColumnSize; j++)
                 {
                     matX[i, j] = matA[j, i];
+                }
+            }
+            return matX;
+        }
+
+        // [X] = ([A]*)t
+        public static MyComplexMatrix matrix_ConjugateTranspose(MyComplexMatrix matA)
+        {
+            MyComplexMatrix matX = new MyComplexMatrix(matA.ColumnSize, matA.RowSize);
+            for (int i = 0; i < matX.RowSize; i++)
+            {
+                for (int j = 0; j < matX.ColumnSize; j++)
+                {
+                    matX[i, j] = new Complex(matA[j, i].Real, -matA[j, i].Imaginary);
                 }
             }
             return matX;

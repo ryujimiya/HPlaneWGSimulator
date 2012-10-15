@@ -4,7 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Drawing;
 using System.Windows.Forms;
-using System.Numerics; // Complex
+//using System.Numerics; // Complex
+using KrdLab.clapack; // KrdLab.clapack.Complex
 
 namespace HPlaneWGSimulator
 {
@@ -32,6 +33,10 @@ namespace HPlaneWGSimulator
         public override void DrawField(Graphics g, Size ofs, Size delta, Size regionSize, ColorMap colorMap)
         {
             //base.DrawField(g, ofs, delta, regionSize, colorMap);
+            if (_Nodes == null || _FValues == null)
+            {
+                return;
+            }
 
             const int ndim = Constants.CoordDim2D; //2;      // 座標の次元数
             const int vertexCnt = Constants.QuadVertexCnt; //3; // 四角形形の頂点の数(2次要素でも同じ)

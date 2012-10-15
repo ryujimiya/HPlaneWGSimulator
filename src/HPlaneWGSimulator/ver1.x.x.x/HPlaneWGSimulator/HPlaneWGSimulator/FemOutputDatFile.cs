@@ -4,7 +4,8 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using System.Windows.Forms;
-using System.Numerics; // Complex
+//using System.Numerics; // Complex
+using KrdLab.clapack; //KrdLab.clapack.Complex
 using System.Text.RegularExpressions;
 
 namespace HPlaneWGSimulator
@@ -131,6 +132,7 @@ namespace HPlaneWGSimulator
             }
             catch (Exception exception)
             {
+                Console.WriteLine(exception.Message + " " + exception.StackTrace);
                 MessageBox.Show(exception.Message, "", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
@@ -148,6 +150,7 @@ namespace HPlaneWGSimulator
             }
             catch (Exception exception)
             {
+                Console.WriteLine(exception.Message + " " + exception.StackTrace);
                 MessageBox.Show(exception.Message, "", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
@@ -178,6 +181,9 @@ namespace HPlaneWGSimulator
             }
             try
             {
+                // 周波数が順番に並んでいない場合を考慮
+                int minFreq = int.MaxValue;
+                int maxFreq = int.MinValue;
                 using (StreamReader sr = new StreamReader(indexfilename))
                 {
                     string line;
@@ -196,18 +202,34 @@ namespace HPlaneWGSimulator
                             return freqCnt;
                         }
                         long tmpFOfs = long.Parse(tokens[1]);
-                        if (freqCnt == 0)
+                        //if (freqCnt == 0)
+                        //{
+                        //    firstFreq = tmpfreqNo;
+                        //}
+                        //lastFreq = tmpfreqNo;
+                        // 周波数が順番に並んでいない場合を考慮
+                        if (minFreq > tmpfreqNo)
                         {
-                            firstFreq = tmpfreqNo;
+                            minFreq = tmpfreqNo;
                         }
-                        lastFreq = tmpfreqNo;
+                        if (maxFreq < tmpfreqNo)
+                        {
+                            maxFreq = tmpfreqNo;
+                        }
 
                         freqCnt++;
                     }
                 }
+                // 周波数が順番に並んでいない場合を考慮
+                if (freqCnt > 0)
+                {
+                    firstFreq = minFreq;
+                    lastFreq = maxFreq;
+                }
             }
             catch (Exception exception)
             {
+                Console.WriteLine(exception.Message + " " + exception.StackTrace);
                 MessageBox.Show(exception.Message, "", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return freqCnt;
             }
@@ -297,6 +319,7 @@ namespace HPlaneWGSimulator
             }
             catch (Exception exception)
             {
+                Console.WriteLine(exception.Message + " " + exception.StackTrace);
                 MessageBox.Show(exception.Message, "", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
@@ -485,6 +508,7 @@ namespace HPlaneWGSimulator
             }
             catch (Exception exception)
             {
+                Console.WriteLine(exception.Message + " " + exception.StackTrace);
                 MessageBox.Show(exception.Message, "", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return false;
             }
@@ -594,6 +618,7 @@ namespace HPlaneWGSimulator
             }
             catch (Exception exception)
             {
+                Console.WriteLine(exception.Message + " " + exception.StackTrace);
                 MessageBox.Show(exception.Message, "", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 

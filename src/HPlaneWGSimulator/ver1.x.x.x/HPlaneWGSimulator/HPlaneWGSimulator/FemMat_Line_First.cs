@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
-using System.Numerics; // Complex
+//using System.Numerics; // Complex
 //using System.Text.RegularExpressions;
 using MyUtilLib.Matrix;
 

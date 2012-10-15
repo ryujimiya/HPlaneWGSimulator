@@ -4,7 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Drawing;
 using System.Windows.Forms;
-using System.Numerics; // Complex
+//using System.Numerics; // Complex
+using KrdLab.clapack; // KrdLab.clapack.Complex
 
 namespace HPlaneWGSimulator
 {
@@ -32,6 +33,10 @@ namespace HPlaneWGSimulator
         public override void DrawField(Graphics g, Size ofs, Size delta, Size regionSize, ColorMap colorMap)
         {
             //base.DrawField(g, ofs, delta, regionSize, colorMap);
+            if (_Nodes == null || _FValues == null)
+            {
+                return;
+            }
 
             const int ndim = Constants.CoordDim2D; //2;      // 座標の次元数
             const int vertexCnt = Constants.TriVertexCnt; //3; // 三角形の頂点の数(2次要素でも同じ)
@@ -87,7 +92,8 @@ namespace HPlaneWGSimulator
             }
             // 三角形内部を四角形で分割
             // 面積座標L1方向分割数
-            int ndiv = 4;
+            //int ndiv = 4;
+            int ndiv = Constants.TriDrawFieldMshDivCnt;
             double defdL1 = 1.0 / (double)ndiv;
             double defdL2 = defdL1;
             for (int i1 = 0; i1 < ndiv; i1++)

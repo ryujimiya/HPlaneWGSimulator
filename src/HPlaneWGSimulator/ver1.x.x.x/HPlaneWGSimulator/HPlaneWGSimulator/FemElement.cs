@@ -4,7 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Drawing;
 using System.Windows.Forms;
-using System.Numerics; // Complex
+//using System.Numerics; // Complex
+using KrdLab.clapack; // KrdLab.clapack.Complex
 
 namespace HPlaneWGSimulator
 {
@@ -110,12 +111,14 @@ namespace HPlaneWGSimulator
                 if (nodesRegionToIndex.ContainsKey(nodeNumber))
                 {
                     int nodeIndex = nodesRegionToIndex[nodeNumber];
-                    _FValues[ino] = valuesAll[nodeIndex];
+                    //_FValues[ino] = valuesAll[nodeIndex];
+                    _FValues[ino].Real = valuesAll[nodeIndex].Real;
+                    _FValues[ino].Imaginary = valuesAll[nodeIndex].Imaginary;
                 }
                 else
                 {
                     // 強制境界とみなす
-                    _FValues[ino] = new Complex();
+                    //_FValues[ino] = new Complex();
                 }
             }
         }
