@@ -64,7 +64,11 @@ namespace HPlaneWGSimulator
         /// <returns></returns>
         public Color GetColor(double value)
         {
-            double r = (value - Min) / (Max - Min);
+            double r = 0.0;
+            if (Math.Abs(Max - Min) >= Constants.PrecisionLowerLimit)
+            {
+                r = (value - Min) / (Max - Min);
+            }
             double d = 2.0 * r - 1;
             int[] color = new int[3]; // rgb
             if (r > 0.75)

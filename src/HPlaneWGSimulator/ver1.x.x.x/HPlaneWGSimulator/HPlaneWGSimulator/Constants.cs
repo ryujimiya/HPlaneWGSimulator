@@ -12,7 +12,7 @@ namespace HPlaneWGSimulator
         ////////////////////////////////////////////////////////////////////////
         // 定数
         ////////////////////////////////////////////////////////////////////////
-        public const double pi = 3.1416;
+        public const double pi = Math.PI;//3.1416;
         public const double c0 = 2.99792458e+8;
         public const double myu0 = 4.0e-7 * pi;
         public const double eps0 = 8.85418782e-12;//1.0 / (myu0 * c0 * c0);
@@ -58,6 +58,15 @@ namespace HPlaneWGSimulator
         /// </summary>
         //public const int MaxModeCount = 20;
         public const int MaxModeCount = int.MaxValue; // 固有値解析で取得可能なすべてのモードを考慮する(境界の節点数)
+        /// <summary>
+        /// 線形方程式解法区分(既定値)
+        /// </summary>
+        //public const FemSolver.LinearSystemEqnSoverDV DefLsEqnSolverDv = FemSolver.LinearSystemEqnSoverDV.Zgesv;
+        public const FemSolver.LinearSystemEqnSoverDV DefLsEqnSolverDv = FemSolver.LinearSystemEqnSoverDV.Zgbsv;
+        /// <summary>
+        /// 計算する波のモード区分（既定値）
+        /// </summary>
+        public const FemSolver.WaveModeDV DefWaveModeDv = FemSolver.WaveModeDV.TE;
         /// <summary>
         /// 界分布表示における三角形要素内の分割数
         /// </summary>

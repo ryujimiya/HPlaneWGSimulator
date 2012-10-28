@@ -26,6 +26,17 @@ namespace MyUtilLib.Matrix
         internal int _csize = 0;
 
         /// <summary>
+        /// 内部バッファのインデックスを取得する
+        /// </summary>
+        /// <param name="row"></param>
+        /// <param name="col"></param>
+        /// <returns></returns>
+        internal int GetBufferIndex(int row, int col)
+        {
+            return (row + col * _rsize);
+        }
+
+        /// <summary>
         /// 空のオブジェクトを作成する．
         /// </summary>
         internal MyDoubleMatrix()
@@ -234,7 +245,6 @@ namespace MyUtilLib.Matrix
             return ret;
         }
 
-        /*
         /// <summary>
         /// この行列をゼロ行列にする．
         /// </summary>
@@ -303,6 +313,5 @@ namespace MyUtilLib.Matrix
 
             return this;
         }
-        */
     }
 }

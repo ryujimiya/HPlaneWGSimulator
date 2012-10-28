@@ -118,6 +118,7 @@ Class KrdLab.clapack.FunctionExt: AutoLayout, AnsiClass, Class, Public, BeforeFi
     zgesv(ValueType[]&, Int32&, Int32&, ValueType[], Int32, Int32, ValueType[], Int32, Int32): PrivateScope, Public, Static, HideBySig
     zgesv(Complex[]&, Int32&, Int32&, Complex[], Int32, Int32, Complex[], Int32, Int32): PrivateScope, Public, Static, HideBySig
     zgesv(Complex[]&, Int32&, Int32&, Complex[], Int32, Int32, Complex[], Int32, Int32): PrivateScope, Public, Static, HideBySig
+    zgbsv(Complex[]&, Int32&, Int32&, Complex[], Int32, Int32, Int32, Int32, Complex[], Int32, Int32): PrivateScope, Public, Static, HideBySig
     zgeev(ValueType[], Int32, Int32, ValueType[]&, ValueType[][]&): PrivateScope, Public, Static, HideBySig
     zgeev(Complex[], Int32, Int32, Complex[]&, Complex[][]&): PrivateScope, Public, Static, HideBySig
     zgeev(Complex[], Int32, Int32, Complex[]&, Complex[][]&): PrivateScope, Public, Static, HideBySig

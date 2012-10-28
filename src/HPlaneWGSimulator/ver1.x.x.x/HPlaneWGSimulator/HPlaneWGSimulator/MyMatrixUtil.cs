@@ -134,21 +134,11 @@ namespace MyUtilLib.Matrix
 
         public static double[] matrix_ToBuffer(MyDoubleMatrix mat, bool copyFlg = true)
         {
-            /*
-            double[] mat_ = new double[mat.RowSize * mat.ColumnSize];
-
-            for (int j = 0; j < mat.ColumnSize; j++) //col
-            {
-                for (int i = 0; i < mat.RowSize; i++) // row
-                {
-                    mat_[j * mat.RowSize + i] = mat[i, j];
-                }
-            }
-             */
             double[] mat_ = null;
             if (copyFlg)
             {
-                mat_ = new double[mat.RowSize * mat.ColumnSize];
+                int size = mat._rsize * mat._csize;
+                mat_ = new double[size];
                 mat._body.CopyTo(mat_, 0);
             }
             else
@@ -160,16 +150,6 @@ namespace MyUtilLib.Matrix
 
         public static MyDoubleMatrix matrix_FromBuffer(double[] mat_, int nRow, int nCol, bool copyFlg = true)
         {
-            /*
-            MyDoubleMatrix mat = new MyDoubleMatrix(nRow, nCol);
-            for (int j = 0; j < mat.RowSize; j++) // col
-            {
-                for (int i = 0; i < mat.ColumnSize; i++)  // row
-                {
-                    mat[i, j] = mat_[j * mat.RowSize + i];
-                }
-            }
-             */
             MyDoubleMatrix mat = null;
             if (copyFlg)
             {
@@ -217,22 +197,11 @@ namespace MyUtilLib.Matrix
 
         public static Complex[] matrix_ToBuffer(MyComplexMatrix mat, bool copyFlg = true)
         {
-            /*
-            Complex[] mat_ = new Complex[mat.RowSize * mat.ColumnSize];
-            // rowから先に埋めていく
-            for (int j = 0; j < mat.ColumnSize; j++) //col
-            {
-                for (int i = 0; i < mat.RowSize; i++) // row
-                {
-                    mat_[j * mat.RowSize + i] = mat[i, j];
-                }
-            }
-            */
-
             Complex[] mat_ = null;
             if (copyFlg)
             {
-                mat_ = new Complex[mat.RowSize * mat.ColumnSize];
+                int size = mat._rsize * mat._csize;
+                mat_ = new Complex[size];
                 mat._body.CopyTo(mat_, 0);
             }
             else
@@ -244,17 +213,6 @@ namespace MyUtilLib.Matrix
 
         public static MyComplexMatrix matrix_FromBuffer(Complex[] mat_, int nRow, int nCol, bool copyFlg = true)
         {
-            /*
-            MyComplexMatrix mat = new MyComplexMatrix(nRow, nCol);
-            // rowから先に埋めていく
-            for (int j = 0; j < mat.ColumnSize; j++) // col
-            {
-                for (int i = 0; i < mat.RowSize; i++)  // row
-                {
-                    mat[i, j] = (Complex)mat_[j * mat.RowSize + i];
-                }
-            }
-             */
             MyComplexMatrix mat = null;
             if (copyFlg)
             {
@@ -263,6 +221,37 @@ namespace MyUtilLib.Matrix
             else
             {
                 mat = new MyComplexMatrix(nRow, nCol);
+                mat._body = mat_;
+            }
+            return mat;
+        }
+
+        public static Complex[] matrix_ToBuffer(MyComplexBandMatrix mat, bool copyFlg = true)
+        {
+            Complex[] mat_ = null;
+            if (copyFlg)
+            {
+                int size = mat._rsize * mat._csize;
+                mat_ = new Complex[size];
+                mat._body.CopyTo(mat_, 0);
+            }
+            else
+            {
+                mat_ = mat._body;
+            }
+            return mat_;
+        }
+
+        public static MyComplexBandMatrix matrix_FromBuffer(Complex[] mat_, int nRowCol, int nSubdia, int nSuperdia, bool copyFlg = true)
+        {
+            MyComplexBandMatrix mat = null;
+            if (copyFlg)
+            {
+                mat = new MyComplexBandMatrix(mat_, nRowCol, nSubdia, nSuperdia);
+            }
+            else
+            {
+                mat = new MyComplexBandMatrix(nRowCol, nSubdia, nSuperdia);
                 mat._body = mat_;
             }
             return mat;
@@ -372,6 +361,70 @@ namespace MyUtilLib.Matrix
             return matX;
         }
 
+        // バンドマトリクスにならない可能性があるので、一般行列で返却
+        public static MyComplexMatrix product(MyComplexBandMatrix matA, MyDoubleMatrix matB)
+        {
+            System.Diagnostics.Debug.Assert(matA.ColumnSize == matB.RowSize);
+            // 一般行列で返却
+            MyComplexMatrix matX = new MyComplexMatrix(matA.RowSize, matB.ColumnSize);
+            for (int i = 0; i < matX.RowSize; i++)
+            {
+                for (int j = 0; j < matX.ColumnSize; j++)
+                {
+                    matX[i, j] = 0.0;
+                    for (int k = 0; k < matA.ColumnSize; k++)
+                    {
+                        matX[i, j] += matA[i, k] * matB[k, j];
+                    }
+                }
+            }
+            return matX;
+        }
+
+        // バンドマトリクスにならない可能性があるので、一般行列で返却
+        public static MyComplexMatrix product(MyDoubleMatrix matA, MyComplexBandMatrix matB)
+        {
+            System.Diagnostics.Debug.Assert(matA.ColumnSize == matB.RowSize);
+            // 一般行列で返却
+            MyComplexMatrix matX = new MyComplexMatrix(matA.RowSize, matB.ColumnSize);
+            for (int i = 0; i < matX.RowSize; i++)
+            {
+                for (int j = 0; j < matX.ColumnSize; j++)
+                {
+                    matX[i, j] = 0.0;
+                    for (int k = 0; k < matA.ColumnSize; k++)
+                    {
+                        matX[i, j] += matA[i, k] * matB[k, j];
+                    }
+                }
+            }
+            return matX;
+        }
+
+        // これはバンドマトリクスになる？
+        public static MyComplexBandMatrix product(MyComplexBandMatrix matA, MyComplexBandMatrix matB)
+        {
+            System.Diagnostics.Debug.Assert(matA.ColumnSize == matB.RowSize);
+
+            System.Diagnostics.Debug.Assert(matA.RowSize == matB.ColumnSize);
+            int rowcolSize = matA.RowSize;
+            int subdiaSize = matA.SubdiaSize >= matB.SubdiaSize ? matA.SubdiaSize : matB.SubdiaSize;
+            int superdiaSize = matA.SuperdiaSize >= matB.SuperdiaSize ? matA.SuperdiaSize : matB.SuperdiaSize;
+            MyComplexBandMatrix matX = new MyComplexBandMatrix(rowcolSize, subdiaSize, superdiaSize);
+            for (int i = 0; i < matX.RowSize; i++)
+            {
+                for (int j = 0; j < matX.ColumnSize; j++)
+                {
+                    matX[i, j] = 0.0;
+                    for (int k = 0; k < matA.ColumnSize; k++)
+                    {
+                        matX[i, j] += matA[i, k] * matB[k, j];
+                    }
+                }
+            }
+            return matX;
+        }
+
         // [X] = [A] + [B]
         public static MyDoubleMatrix plus(MyDoubleMatrix matA, MyDoubleMatrix matB)
         {
@@ -458,6 +511,23 @@ namespace MyUtilLib.Matrix
         }
 
         // {x} = [A]{v}
+        public static Complex[] product(MyComplexBandMatrix matA, Complex[] vec)
+        {
+            System.Diagnostics.Debug.Assert(matA.ColumnSize == vec.Length);
+            Complex[] retVec = new Complex[vec.Length];
+
+            for (int i = 0; i < matA.RowSize; i++)
+            {
+                retVec[i] = new Complex(0.0, 0.0);
+                for (int k = 0; k < matA.ColumnSize; k++)
+                {
+                    retVec[i] += matA[i, k] * vec[k];
+                }
+            }
+            return retVec;
+        }
+
+        // {x} = [A]{v}
         public static Complex[] product(MyDoubleMatrix matA, Complex[] vec)
         {
             System.Diagnostics.Debug.Assert(matA.ColumnSize == vec.Length);
@@ -488,6 +558,20 @@ namespace MyUtilLib.Matrix
             return matX;
         }
 
+        // [X] = alpha * [A]
+        public static MyComplexBandMatrix product(Complex alpha, MyComplexBandMatrix matA)
+        {
+            MyComplexBandMatrix matX = new MyComplexBandMatrix(matA.RowSize, matA.SubdiaSize, matA.SuperdiaSize);
+            for (int i = 0; i < matA.RowSize; i++)
+            {
+                for (int j = 0; j < matA.ColumnSize; j++)
+                {
+                    matX[i, j] = alpha * matA[i, j];
+                }
+            }
+            return matX;
+        }
+
         // {x} = alpha * {a}
         public static Complex[] product(Complex alpha, Complex[] vecA)
         {
@@ -498,7 +582,6 @@ namespace MyUtilLib.Matrix
             }
             return vecX;
         }
-
 
         // [X] = [A] + [B]
         public static MyComplexMatrix plus(MyComplexMatrix matA, MyComplexMatrix matB)
@@ -516,12 +599,52 @@ namespace MyUtilLib.Matrix
             return matX;
         }
 
+        // [X] = [A] + [B]
+        public static MyComplexBandMatrix plus(MyComplexBandMatrix matA, MyComplexBandMatrix matB)
+        {
+            System.Diagnostics.Debug.Assert(matA.RowSize == matB.RowSize);
+            System.Diagnostics.Debug.Assert(matA.ColumnSize == matB.ColumnSize);
+            int rowcolSize = matA.RowSize;
+            int subdiaSize = matA.SubdiaSize >= matB.SubdiaSize ? matA.SubdiaSize : matB.SubdiaSize;
+            int superdiaSize = matA.SuperdiaSize >= matB.SuperdiaSize ? matA.SuperdiaSize : matB.SuperdiaSize;
+
+            MyComplexBandMatrix matX = new MyComplexBandMatrix(rowcolSize, subdiaSize, superdiaSize);
+            for (int i = 0; i < matA.RowSize; i++)
+            {
+                for (int j = 0; j < matA.ColumnSize; j++)
+                {
+                    matX[i, j] = matA[i, j] + matB[i, j];
+                }
+            }
+            return matX;
+        }
+
         // [X] = [A] - [B]
         public static MyComplexMatrix minus(MyComplexMatrix matA, MyComplexMatrix matB)
         {
             System.Diagnostics.Debug.Assert(matA.RowSize == matB.RowSize);
             System.Diagnostics.Debug.Assert(matA.ColumnSize == matB.ColumnSize);
             MyComplexMatrix matX = new MyComplexMatrix(matA.RowSize, matA.ColumnSize);
+            for (int i = 0; i < matA.RowSize; i++)
+            {
+                for (int j = 0; j < matA.ColumnSize; j++)
+                {
+                    matX[i, j] = matA[i, j] - matB[i, j];
+                }
+            }
+            return matX;
+        }
+
+        // [X] = [A] - [B]
+        public static MyComplexBandMatrix minus(MyComplexBandMatrix matA, MyComplexBandMatrix matB)
+        {
+            System.Diagnostics.Debug.Assert(matA.RowSize == matB.RowSize);
+            System.Diagnostics.Debug.Assert(matA.ColumnSize == matB.ColumnSize);
+            int rowcolSize = matA.RowSize;
+            int subdiaSize = matA.SubdiaSize >= matB.SubdiaSize ? matA.SubdiaSize : matB.SubdiaSize;
+            int superdiaSize = matA.SuperdiaSize >= matB.SuperdiaSize ? matA.SuperdiaSize : matB.SuperdiaSize;
+
+            MyComplexBandMatrix matX = new MyComplexBandMatrix(rowcolSize, subdiaSize, superdiaSize);
             for (int i = 0; i < matA.RowSize; i++)
             {
                 for (int j = 0; j < matA.ColumnSize; j++)
@@ -610,6 +733,14 @@ namespace MyUtilLib.Matrix
             return matX;
         }
 
+        // [X] = [A]t
+        public static MyComplexBandMatrix matrix_Transpose(MyComplexBandMatrix matA)
+        {
+            MyComplexBandMatrix matX = new MyComplexBandMatrix(matA);
+            matX.Transpose();
+            return matX;
+        }
+
         // [X] = ([A]*)t
         public static MyComplexMatrix matrix_ConjugateTranspose(MyComplexMatrix matA)
         {
@@ -621,6 +752,14 @@ namespace MyUtilLib.Matrix
                     matX[i, j] = new Complex(matA[j, i].Real, -matA[j, i].Imaginary);
                 }
             }
+            return matX;
+        }
+
+        // [X] = ([A]*)t
+        public static MyComplexBandMatrix matrix_ConjugateTranspose(MyComplexBandMatrix matA)
+        {
+            MyComplexBandMatrix matX = new MyComplexBandMatrix(matA);
+            matX.ConjugateTranspose();
             return matX;
         }
 

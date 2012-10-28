@@ -27,6 +27,17 @@ namespace MyUtilLib.Matrix
         internal int _csize = 0;
 
         /// <summary>
+        /// 内部バッファのインデックスを取得する
+        /// </summary>
+        /// <param name="row"></param>
+        /// <param name="col"></param>
+        /// <returns></returns>
+        internal virtual int GetBufferIndex(int row, int col)
+        {
+            return (row + col * _rsize);
+        }
+
+        /// <summary>
         /// 空のオブジェクトを作成する．
         /// </summary>
         internal MyComplexMatrix()
@@ -92,7 +103,7 @@ namespace MyUtilLib.Matrix
         /// <param name="row">行index（範囲：[0, <see cref="RowSize"/>) ）</param>
         /// <param name="col">列index（範囲：[0, <see cref="ColumnSize"/>) ）</param>
         /// <returns>要素の値</returns>
-        public Complex this[int row, int col]
+        public virtual Complex this[int row, int col]
         {
             get
             {
@@ -115,7 +126,7 @@ namespace MyUtilLib.Matrix
         /// <summary>
         /// このオブジェクトの行数を取得する．
         /// </summary>
-        public int RowSize
+        public virtual int RowSize
         {
             get { return this._rsize; }
         }
@@ -123,7 +134,7 @@ namespace MyUtilLib.Matrix
         /// <summary>
         /// このオブジェクトの列数を取得する．
         /// </summary>
-        public int ColumnSize
+        public virtual int ColumnSize
         {
             get { return this._csize; }
         }
@@ -131,7 +142,7 @@ namespace MyUtilLib.Matrix
         /// <summary>
         /// このオブジェクトをクリアする（<c>RowSize == 0 and ColumnSize == 0</c> になる）．
         /// </summary>
-        public void Clear()
+        public virtual void Clear()
         {
             this._body = new Complex[0];
             this._rsize = 0;
@@ -144,7 +155,7 @@ namespace MyUtilLib.Matrix
         /// <param name="rowSize">新しい行数</param>
         /// <param name="columnSize">新しい列数</param>
         /// <returns>リサイズ後の自身への参照</returns>
-        public MyComplexMatrix Resize(int rowSize, int columnSize)
+        public virtual MyComplexMatrix Resize(int rowSize, int columnSize)
         {
             this._body = new Complex[rowSize * columnSize];
             this._rsize = rowSize;
@@ -174,7 +185,7 @@ namespace MyUtilLib.Matrix
         /// </summary>
         /// <param name="m">コピーされる行列</param>
         /// <returns>コピー後の自身への参照</returns>
-        public MyComplexMatrix CopyFrom(MyComplexMatrix m)
+        public virtual MyComplexMatrix CopyFrom(MyComplexMatrix m)
         {
             return CopyFrom(m._body, m._rsize, m._csize);
         }
@@ -187,7 +198,7 @@ namespace MyUtilLib.Matrix
         /// <param name="rowSize">行数</param>
         /// <param name="columnSize">列数</param>
         /// <returns>コピー後の自身への参照</returns>
-        internal MyComplexMatrix CopyFrom(Complex[] body, int rowSize, int columnSize)
+        internal virtual MyComplexMatrix CopyFrom(Complex[] body, int rowSize, int columnSize)
         {
             // 入力の検証
             System.Diagnostics.Debug.Assert(body.Length == rowSize * columnSize);
@@ -227,12 +238,12 @@ namespace MyUtilLib.Matrix
             {
                 for (int c = 0; c < this.ColumnSize; ++c)
                 {
-                    ret[r, c] = (Complex)this[r, c];
+                    ret[r, c] = this[r, c];
                 }
             }
             return ret;
         }
-        /*
+
         /// <summary>
         /// この行列をゼロ行列にする．
         /// </summary>
@@ -273,7 +284,23 @@ namespace MyUtilLib.Matrix
             int size = this._body.Length;
             for (int i = 0; i < size; ++i)
             {
-                this._body[i] = - (Complex)this._body[i];
+                this._body[i].Real =  - this._body[i].Real;
+                this._body[i].Imaginary =  - this._body[i].Imaginary;
+            }
+            return this;
+        }
+
+        /// <summary>
+        /// 全ての要素の複素共役をとる．
+        /// </summary>
+        /// <returns>自身への参照</returns>
+        public MyComplexMatrix Conjugate()
+        {
+            int size = this._body.Length;
+            for (int i = 0; i < size; ++i)
+            {
+                this._body[i].Real = this._body[i].Real;
+                this._body[i].Imaginary = -this._body[i].Imaginary;
             }
             return this;
         }
@@ -282,7 +309,7 @@ namespace MyUtilLib.Matrix
         /// 転置する．
         /// </summary>
         /// <returns>転置後の自身への参照</returns>
-        public MyComplexMatrix Transpose()
+        public virtual MyComplexMatrix Transpose()
         {
             MyComplexMatrix t = new MyComplexMatrix(this._csize, this._rsize);
 
@@ -290,7 +317,10 @@ namespace MyUtilLib.Matrix
             {
                 for (int c = 0; c < this._csize; ++c)
                 {
-                    t[c, r] = this[r, c];
+                    //t[c, r] = this[r, c];
+                    //t._body[c + r * this._csize] = this._body[r + c * this._rsize];
+                    t._body[c + r * this._csize].Real = this._body[r + c * this._rsize].Real;
+                    t._body[c + r * this._csize].Imaginary = this._body[r + c * this._rsize].Imaginary;
                 }
             }
 
@@ -301,6 +331,33 @@ namespace MyUtilLib.Matrix
 
             return this;
         }
-         */
+
+        /// <summary>
+        /// 複素共役転置する．
+        /// </summary>
+        /// <returns>転置後の自身への参照</returns>
+        public virtual MyComplexMatrix ConjugateTranspose()
+        {
+            MyComplexMatrix t = new MyComplexMatrix(this._csize, this._rsize);
+
+            for (int r = 0; r < this._rsize; ++r)
+            {
+                for (int c = 0; c < this._csize; ++c)
+                {
+                    //t[c, r] = Complex.Conjugate(this[r, c]);
+                    //t._body[c + r * this._csize] = Complex.Conjugate(this._body[r + c * this._rsize]);
+                    t._body[c + r * this._csize].Real = this._body[r + c * this._rsize].Real;
+                    t._body[c + r * this._csize].Imaginary = - this._body[r + c * this._rsize].Imaginary;
+
+                }
+            }
+
+            this.Clear();
+            this._body = t._body;
+            this._rsize = t._rsize;
+            this._csize = t._csize;
+
+            return this;
+        }
     }
 }

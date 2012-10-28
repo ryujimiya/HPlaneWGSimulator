@@ -16,6 +16,9 @@ CLW_Added.h
 
 ■履歴
 
+(2012-10-22)
+  zgbsv追加
+
 (2012-10-15)
   複素数構造体KrbLab.clapack.Complexを追加しました。
   これをzgesvとzgeevのI/Fとして使用することで、内部でメモリの再確保していたのを解消しました。

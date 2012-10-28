@@ -41,8 +41,13 @@
             System.Windows.Forms.DataVisualization.Charting.Title title3 = new System.Windows.Forms.DataVisualization.Charting.Title();
             this.CadPanel = new System.Windows.Forms.Panel();
             this.FValuePanel = new System.Windows.Forms.Panel();
+            this.btnNextFValuePanel = new System.Windows.Forms.Button();
+            this.btnPrevFValuePanel = new System.Windows.Forms.Button();
             this.btnCalc = new System.Windows.Forms.Button();
             this.GroupBoxCadMode = new System.Windows.Forms.GroupBox();
+            this.imageListCadModeErase = new System.Windows.Forms.ImageList(this.components);
+            this.imageListCadModeArea = new System.Windows.Forms.ImageList(this.components);
+            this.radioBtnLocation = new System.Windows.Forms.RadioButton();
             this.radioBtnNone = new System.Windows.Forms.RadioButton();
             this.radioBtnPortNumbering = new System.Windows.Forms.RadioButton();
             this.radioBtnIncidentPort = new System.Windows.Forms.RadioButton();
@@ -53,6 +58,7 @@
             this.btnPrevFreq = new System.Windows.Forms.Button();
             this.btnNextFreq = new System.Windows.Forms.Button();
             this.btnMediaSelect = new System.Windows.Forms.Button();
+            this.chkboxAutoCalc = new System.Windows.Forms.CheckBox();
             this.btnRedo = new System.Windows.Forms.Button();
             this.btnUndo = new System.Windows.Forms.Button();
             this.btnSaveAs = new System.Windows.Forms.Button();
@@ -79,6 +85,9 @@
             this.linkLblEigenShow = new System.Windows.Forms.LinkLabel();
             this.linkLabelMeshShow = new System.Windows.Forms.LinkLabel();
             this.btnLoadCancel = new System.Windows.Forms.Button();
+            this.imgcbxCadModeErase = new HPlaneWGSimulator.ImageCombobox();
+            this.imgcbxCadModeArea = new HPlaneWGSimulator.ImageCombobox();
+            this.FValuePanel.SuspendLayout();
             this.GroupBoxCadMode.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.SMatChart)).BeginInit();
             this.FValueLegendPanel.SuspendLayout();
@@ -104,6 +113,8 @@
             // 
             // FValuePanel
             // 
+            this.FValuePanel.Controls.Add(this.btnNextFValuePanel);
+            this.FValuePanel.Controls.Add(this.btnPrevFValuePanel);
             this.FValuePanel.Location = new System.Drawing.Point(514, 4);
             this.FValuePanel.Margin = new System.Windows.Forms.Padding(0);
             this.FValuePanel.Name = "FValuePanel";
@@ -111,23 +122,58 @@
             this.FValuePanel.TabIndex = 0;
             this.FValuePanel.Paint += new System.Windows.Forms.PaintEventHandler(this.FValuePanel_Paint);
             this.FValuePanel.DoubleClick += new System.EventHandler(this.FValuePanel_DoubleClick);
+            this.FValuePanel.MouseEnter += new System.EventHandler(this.FValuePanel_MouseEnter);
+            this.FValuePanel.MouseLeave += new System.EventHandler(this.FValuePanel_MouseLeave);
+            this.FValuePanel.MouseHover += new System.EventHandler(this.FValuePanel_MouseHover);
+            this.FValuePanel.MouseMove += new System.Windows.Forms.MouseEventHandler(this.FValuePanel_MouseMove);
+            // 
+            // btnNextFValuePanel
+            // 
+            this.btnNextFValuePanel.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnNextFValuePanel.Location = new System.Drawing.Point(3, 219);
+            this.btnNextFValuePanel.Name = "btnNextFValuePanel";
+            this.btnNextFValuePanel.Size = new System.Drawing.Size(40, 40);
+            this.btnNextFValuePanel.TabIndex = 0;
+            this.btnNextFValuePanel.Text = ">";
+            this.toolTip1.SetToolTip(this.btnNextFValuePanel, "次のパネル");
+            this.btnNextFValuePanel.UseVisualStyleBackColor = true;
+            this.btnNextFValuePanel.Click += new System.EventHandler(this.btnNextFValuePanel_Click);
+            this.btnNextFValuePanel.MouseEnter += new System.EventHandler(this.btnNextFValuePanel_MouseEnter);
+            this.btnNextFValuePanel.MouseLeave += new System.EventHandler(this.btnNextFValuePanel_MouseLeave);
+            // 
+            // btnPrevFValuePanel
+            // 
+            this.btnPrevFValuePanel.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnPrevFValuePanel.Location = new System.Drawing.Point(3, 174);
+            this.btnPrevFValuePanel.Name = "btnPrevFValuePanel";
+            this.btnPrevFValuePanel.Size = new System.Drawing.Size(40, 40);
+            this.btnPrevFValuePanel.TabIndex = 0;
+            this.btnPrevFValuePanel.Text = "<";
+            this.toolTip1.SetToolTip(this.btnPrevFValuePanel, "前のパネル");
+            this.btnPrevFValuePanel.UseVisualStyleBackColor = true;
+            this.btnPrevFValuePanel.Click += new System.EventHandler(this.btnPrevFValuePanel_Click);
+            this.btnPrevFValuePanel.MouseEnter += new System.EventHandler(this.btnPrevFValuePanel_MouseEnter);
+            this.btnPrevFValuePanel.MouseLeave += new System.EventHandler(this.btnPrevFValuePanel_MouseLeave);
             // 
             // btnCalc
             // 
             this.btnCalc.AutoSize = true;
             this.btnCalc.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.btnCalc.ForeColor = System.Drawing.Color.Black;
-            this.btnCalc.Location = new System.Drawing.Point(325, 15);
+            this.btnCalc.Location = new System.Drawing.Point(348, 16);
             this.btnCalc.Name = "btnCalc";
             this.btnCalc.Padding = new System.Windows.Forms.Padding(3);
             this.btnCalc.Size = new System.Drawing.Size(69, 28);
-            this.btnCalc.TabIndex = 7;
+            this.btnCalc.TabIndex = 8;
             this.btnCalc.Text = "計算開始";
             this.btnCalc.UseVisualStyleBackColor = true;
             this.btnCalc.Click += new System.EventHandler(this.btnCalc_Click);
             // 
             // GroupBoxCadMode
             // 
+            this.GroupBoxCadMode.Controls.Add(this.imgcbxCadModeErase);
+            this.GroupBoxCadMode.Controls.Add(this.imgcbxCadModeArea);
+            this.GroupBoxCadMode.Controls.Add(this.radioBtnLocation);
             this.GroupBoxCadMode.Controls.Add(this.radioBtnNone);
             this.GroupBoxCadMode.Controls.Add(this.radioBtnPortNumbering);
             this.GroupBoxCadMode.Controls.Add(this.radioBtnIncidentPort);
@@ -138,17 +184,48 @@
             this.GroupBoxCadMode.Margin = new System.Windows.Forms.Padding(0);
             this.GroupBoxCadMode.Name = "GroupBoxCadMode";
             this.GroupBoxCadMode.Padding = new System.Windows.Forms.Padding(0);
-            this.GroupBoxCadMode.Size = new System.Drawing.Size(251, 54);
-            this.GroupBoxCadMode.TabIndex = 9;
+            this.GroupBoxCadMode.Size = new System.Drawing.Size(223, 71);
+            this.GroupBoxCadMode.TabIndex = 10;
             this.GroupBoxCadMode.TabStop = false;
+            // 
+            // imageListCadModeErase
+            // 
+            this.imageListCadModeErase.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imageListCadModeErase.ImageStream")));
+            this.imageListCadModeErase.TransparentColor = System.Drawing.Color.Transparent;
+            this.imageListCadModeErase.Images.SetKeyName(0, "消しゴムフリーハンド25x25.png");
+            this.imageListCadModeErase.Images.SetKeyName(1, "消しゴム長方形25x25.png");
+            this.imageListCadModeErase.Images.SetKeyName(2, "消しゴム直線25x25.png");
+            // 
+            // imageListCadModeArea
+            // 
+            this.imageListCadModeArea.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imageListCadModeArea.ImageStream")));
+            this.imageListCadModeArea.TransparentColor = System.Drawing.Color.Transparent;
+            this.imageListCadModeArea.Images.SetKeyName(0, "エリア選択フリーハンド25x25 .png");
+            this.imageListCadModeArea.Images.SetKeyName(1, "エリア選択25x25.png");
+            this.imageListCadModeArea.Images.SetKeyName(2, "エリア選択直線25x25 .png");
+            this.imageListCadModeArea.Images.SetKeyName(3, "エリア選択楕円25x25.png");
+            // 
+            // radioBtnLocation
+            // 
+            this.radioBtnLocation.Appearance = System.Windows.Forms.Appearance.Button;
+            this.radioBtnLocation.Image = ((System.Drawing.Image)(resources.GetObject("radioBtnLocation.Image")));
+            this.radioBtnLocation.Location = new System.Drawing.Point(36, 10);
+            this.radioBtnLocation.Name = "radioBtnLocation";
+            this.radioBtnLocation.Size = new System.Drawing.Size(30, 30);
+            this.radioBtnLocation.TabIndex = 1;
+            this.radioBtnLocation.TabStop = true;
+            this.radioBtnLocation.Text = "　";
+            this.toolTip1.SetToolTip(this.radioBtnLocation, "位置移動");
+            this.radioBtnLocation.UseVisualStyleBackColor = true;
+            this.radioBtnLocation.CheckedChanged += new System.EventHandler(this.radioBtnLocation_CheckedChanged);
             // 
             // radioBtnNone
             // 
             this.radioBtnNone.Appearance = System.Windows.Forms.Appearance.Button;
-            this.radioBtnNone.Image = global::HPlaneWGSimulator.Properties.Resources.モードクリア;
+            this.radioBtnNone.Image = global::HPlaneWGSimulator.Properties.Resources.モードクリア25x25;
             this.radioBtnNone.Location = new System.Drawing.Point(6, 10);
             this.radioBtnNone.Name = "radioBtnNone";
-            this.radioBtnNone.Size = new System.Drawing.Size(40, 40);
+            this.radioBtnNone.Size = new System.Drawing.Size(30, 30);
             this.radioBtnNone.TabIndex = 0;
             this.radioBtnNone.TabStop = true;
             this.radioBtnNone.Text = "　";
@@ -159,11 +236,11 @@
             // radioBtnPortNumbering
             // 
             this.radioBtnPortNumbering.Appearance = System.Windows.Forms.Appearance.Button;
-            this.radioBtnPortNumbering.Image = ((System.Drawing.Image)(resources.GetObject("radioBtnPortNumbering.Image")));
-            this.radioBtnPortNumbering.Location = new System.Drawing.Point(206, 10);
+            this.radioBtnPortNumbering.Image = global::HPlaneWGSimulator.Properties.Resources.入射ポート番号振り25x25;
+            this.radioBtnPortNumbering.Location = new System.Drawing.Point(156, 10);
             this.radioBtnPortNumbering.Name = "radioBtnPortNumbering";
-            this.radioBtnPortNumbering.Size = new System.Drawing.Size(40, 40);
-            this.radioBtnPortNumbering.TabIndex = 5;
+            this.radioBtnPortNumbering.Size = new System.Drawing.Size(30, 30);
+            this.radioBtnPortNumbering.TabIndex = 6;
             this.radioBtnPortNumbering.TabStop = true;
             this.radioBtnPortNumbering.Text = "　";
             this.toolTip1.SetToolTip(this.radioBtnPortNumbering, "ポート番号振り");
@@ -173,11 +250,11 @@
             // radioBtnIncidentPort
             // 
             this.radioBtnIncidentPort.Appearance = System.Windows.Forms.Appearance.Button;
-            this.radioBtnIncidentPort.Image = global::HPlaneWGSimulator.Properties.Resources.入射ポート選択;
-            this.radioBtnIncidentPort.Location = new System.Drawing.Point(166, 10);
+            this.radioBtnIncidentPort.Image = global::HPlaneWGSimulator.Properties.Resources.入射ポート選択25x25;
+            this.radioBtnIncidentPort.Location = new System.Drawing.Point(126, 10);
             this.radioBtnIncidentPort.Name = "radioBtnIncidentPort";
-            this.radioBtnIncidentPort.Size = new System.Drawing.Size(40, 40);
-            this.radioBtnIncidentPort.TabIndex = 4;
+            this.radioBtnIncidentPort.Size = new System.Drawing.Size(30, 30);
+            this.radioBtnIncidentPort.TabIndex = 5;
             this.radioBtnIncidentPort.TabStop = true;
             this.radioBtnIncidentPort.Text = "　";
             this.toolTip1.SetToolTip(this.radioBtnIncidentPort, "入射ポート選択");
@@ -187,11 +264,11 @@
             // radioBtnErase
             // 
             this.radioBtnErase.Appearance = System.Windows.Forms.Appearance.Button;
-            this.radioBtnErase.Image = global::HPlaneWGSimulator.Properties.Resources.消しゴム;
-            this.radioBtnErase.Location = new System.Drawing.Point(126, 10);
+            this.radioBtnErase.Image = global::HPlaneWGSimulator.Properties.Resources.消しゴム長方形25x25;
+            this.radioBtnErase.Location = new System.Drawing.Point(186, 10);
             this.radioBtnErase.Name = "radioBtnErase";
-            this.radioBtnErase.Size = new System.Drawing.Size(40, 40);
-            this.radioBtnErase.TabIndex = 3;
+            this.radioBtnErase.Size = new System.Drawing.Size(30, 30);
+            this.radioBtnErase.TabIndex = 7;
             this.radioBtnErase.TabStop = true;
             this.radioBtnErase.Text = "　";
             this.toolTip1.SetToolTip(this.radioBtnErase, "消しゴム");
@@ -201,11 +278,11 @@
             // radioBtnPort
             // 
             this.radioBtnPort.Appearance = System.Windows.Forms.Appearance.Button;
-            this.radioBtnPort.Image = global::HPlaneWGSimulator.Properties.Resources.境界選択;
-            this.radioBtnPort.Location = new System.Drawing.Point(86, 10);
+            this.radioBtnPort.Image = global::HPlaneWGSimulator.Properties.Resources.境界選択25x25;
+            this.radioBtnPort.Location = new System.Drawing.Point(96, 10);
             this.radioBtnPort.Name = "radioBtnPort";
-            this.radioBtnPort.Size = new System.Drawing.Size(40, 40);
-            this.radioBtnPort.TabIndex = 2;
+            this.radioBtnPort.Size = new System.Drawing.Size(30, 30);
+            this.radioBtnPort.TabIndex = 4;
             this.radioBtnPort.TabStop = true;
             this.radioBtnPort.Text = "　";
             this.toolTip1.SetToolTip(this.radioBtnPort, "ポーt境界");
@@ -215,12 +292,12 @@
             // radioBtnArea
             // 
             this.radioBtnArea.Appearance = System.Windows.Forms.Appearance.Button;
-            this.radioBtnArea.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("radioBtnArea.BackgroundImage")));
             this.radioBtnArea.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Center;
-            this.radioBtnArea.Location = new System.Drawing.Point(46, 10);
+            this.radioBtnArea.Image = global::HPlaneWGSimulator.Properties.Resources.エリア選択25x25;
+            this.radioBtnArea.Location = new System.Drawing.Point(66, 10);
             this.radioBtnArea.Name = "radioBtnArea";
-            this.radioBtnArea.Size = new System.Drawing.Size(40, 40);
-            this.radioBtnArea.TabIndex = 1;
+            this.radioBtnArea.Size = new System.Drawing.Size(30, 30);
+            this.radioBtnArea.TabIndex = 2;
             this.radioBtnArea.TabStop = true;
             this.radioBtnArea.Text = "　";
             this.toolTip1.SetToolTip(this.radioBtnArea, "マス目選択");
@@ -256,15 +333,29 @@
             // btnMediaSelect
             // 
             this.btnMediaSelect.BackColor = System.Drawing.Color.Gray;
+            this.btnMediaSelect.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnMediaSelect.ForeColor = System.Drawing.Color.Black;
-            this.btnMediaSelect.Location = new System.Drawing.Point(268, 503);
+            this.btnMediaSelect.Location = new System.Drawing.Point(242, 505);
             this.btnMediaSelect.Name = "btnMediaSelect";
             this.btnMediaSelect.Size = new System.Drawing.Size(44, 40);
-            this.btnMediaSelect.TabIndex = 10;
+            this.btnMediaSelect.TabIndex = 11;
             this.btnMediaSelect.Text = "媒質";
             this.toolTip1.SetToolTip(this.btnMediaSelect, "媒質");
             this.btnMediaSelect.UseVisualStyleBackColor = false;
             this.btnMediaSelect.Click += new System.EventHandler(this.btnMediaSelect_Click);
+            // 
+            // chkboxAutoCalc
+            // 
+            this.chkboxAutoCalc.Appearance = System.Windows.Forms.Appearance.Button;
+            this.chkboxAutoCalc.Image = ((System.Drawing.Image)(resources.GetObject("chkboxAutoCalc.Image")));
+            this.chkboxAutoCalc.Location = new System.Drawing.Point(319, 16);
+            this.chkboxAutoCalc.Name = "chkboxAutoCalc";
+            this.chkboxAutoCalc.Size = new System.Drawing.Size(28, 28);
+            this.chkboxAutoCalc.TabIndex = 7;
+            this.chkboxAutoCalc.Text = " ";
+            this.toolTip1.SetToolTip(this.chkboxAutoCalc, "自動計算");
+            this.chkboxAutoCalc.UseVisualStyleBackColor = true;
+            this.chkboxAutoCalc.CheckedChanged += new System.EventHandler(this.chkboxAutoCalc_CheckedChanged);
             // 
             // btnRedo
             // 
@@ -368,7 +459,7 @@
             this.FValueLegendPanel.Margin = new System.Windows.Forms.Padding(0);
             this.FValueLegendPanel.Name = "FValueLegendPanel";
             this.FValueLegendPanel.Size = new System.Drawing.Size(68, 320);
-            this.FValueLegendPanel.TabIndex = 13;
+            this.FValueLegendPanel.TabIndex = 14;
             // 
             // labelFreqValue
             // 
@@ -493,10 +584,10 @@
             this.panelMedia.BackColor = System.Drawing.SystemColors.Control;
             this.panelMedia.Controls.Add(this.GroupBoxMedia);
             this.panelMedia.ForeColor = System.Drawing.SystemColors.ControlText;
-            this.panelMedia.Location = new System.Drawing.Point(482, 12);
+            this.panelMedia.Location = new System.Drawing.Point(456, 51);
             this.panelMedia.Name = "panelMedia";
             this.panelMedia.Size = new System.Drawing.Size(242, 147);
-            this.panelMedia.TabIndex = 11;
+            this.panelMedia.TabIndex = 12;
             // 
             // BetaChart
             // 
@@ -535,10 +626,10 @@
             // linkLblEigenShow
             // 
             this.linkLblEigenShow.AutoSize = true;
-            this.linkLblEigenShow.Location = new System.Drawing.Point(335, 531);
+            this.linkLblEigenShow.Location = new System.Drawing.Point(292, 533);
             this.linkLblEigenShow.Name = "linkLblEigenShow";
             this.linkLblEigenShow.Size = new System.Drawing.Size(87, 12);
-            this.linkLblEigenShow.TabIndex = 12;
+            this.linkLblEigenShow.TabIndex = 13;
             this.linkLblEigenShow.TabStop = true;
             this.linkLblEigenShow.Text = "固有モードを見る";
             this.linkLblEigenShow.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLblEigenShow_LinkClicked);
@@ -546,7 +637,7 @@
             // linkLabelMeshShow
             // 
             this.linkLabelMeshShow.AutoSize = true;
-            this.linkLabelMeshShow.Location = new System.Drawing.Point(251, 22);
+            this.linkLabelMeshShow.Location = new System.Drawing.Point(251, 32);
             this.linkLabelMeshShow.Name = "linkLabelMeshShow";
             this.linkLabelMeshShow.Size = new System.Drawing.Size(68, 12);
             this.linkLabelMeshShow.TabIndex = 6;
@@ -558,13 +649,37 @@
             // 
             this.btnLoadCancel.AutoSize = true;
             this.btnLoadCancel.ForeColor = System.Drawing.Color.Black;
-            this.btnLoadCancel.Location = new System.Drawing.Point(406, 11);
+            this.btnLoadCancel.Location = new System.Drawing.Point(420, 10);
             this.btnLoadCancel.Name = "btnLoadCancel";
             this.btnLoadCancel.Size = new System.Drawing.Size(75, 34);
-            this.btnLoadCancel.TabIndex = 8;
+            this.btnLoadCancel.TabIndex = 9;
             this.btnLoadCancel.Text = "読み込み\r\nキャンセル";
             this.btnLoadCancel.UseVisualStyleBackColor = true;
             this.btnLoadCancel.Click += new System.EventHandler(this.btnLoadCancel_Click);
+            // 
+            // imgcbxCadModeErase
+            // 
+            this.imgcbxCadModeErase.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
+            this.imgcbxCadModeErase.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.imgcbxCadModeErase.FormattingEnabled = true;
+            this.imgcbxCadModeErase.ImageList = this.imageListCadModeErase;
+            this.imgcbxCadModeErase.Location = new System.Drawing.Point(95, 46);
+            this.imgcbxCadModeErase.Name = "imgcbxCadModeErase";
+            this.imgcbxCadModeErase.Size = new System.Drawing.Size(121, 20);
+            this.imgcbxCadModeErase.TabIndex = 10;
+            this.imgcbxCadModeErase.SelectedIndexChanged += new System.EventHandler(this.imgcbxCadModeErase_SelectedIndexChanged);
+            // 
+            // imgcbxCadModeArea
+            // 
+            this.imgcbxCadModeArea.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
+            this.imgcbxCadModeArea.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.imgcbxCadModeArea.FormattingEnabled = true;
+            this.imgcbxCadModeArea.ImageList = this.imageListCadModeArea;
+            this.imgcbxCadModeArea.Location = new System.Drawing.Point(66, 46);
+            this.imgcbxCadModeArea.Name = "imgcbxCadModeArea";
+            this.imgcbxCadModeArea.Size = new System.Drawing.Size(121, 20);
+            this.imgcbxCadModeArea.TabIndex = 9;
+            this.imgcbxCadModeArea.SelectedIndexChanged += new System.EventHandler(this.imgcbxCadModeArea_SelectedIndexChanged);
             // 
             // Form1
             // 
@@ -572,7 +687,8 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoScroll = true;
             this.BackColor = System.Drawing.Color.White;
-            this.ClientSize = new System.Drawing.Size(936, 567);
+            this.ClientSize = new System.Drawing.Size(918, 567);
+            this.Controls.Add(this.chkboxAutoCalc);
             this.Controls.Add(this.btnLoadCancel);
             this.Controls.Add(this.linkLabelMeshShow);
             this.Controls.Add(this.FValueLegendPanel);
@@ -603,6 +719,7 @@
             this.SizeChanged += new System.EventHandler(this.Form1_SizeChanged);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.Form1_KeyDown);
             this.Resize += new System.EventHandler(this.Form1_Resize);
+            this.FValuePanel.ResumeLayout(false);
             this.GroupBoxCadMode.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.SMatChart)).EndInit();
             this.FValueLegendPanel.ResumeLayout(false);
@@ -659,6 +776,14 @@
         private System.Windows.Forms.LinkLabel linkLblEigenShow;
         private System.Windows.Forms.LinkLabel linkLabelMeshShow;
         private System.Windows.Forms.Button btnLoadCancel;
+        private System.Windows.Forms.Button btnPrevFValuePanel;
+        private System.Windows.Forms.Button btnNextFValuePanel;
+        private System.Windows.Forms.RadioButton radioBtnLocation;
+        private ImageCombobox imgcbxCadModeArea;
+        private System.Windows.Forms.ImageList imageListCadModeArea;
+        private ImageCombobox imgcbxCadModeErase;
+        private System.Windows.Forms.ImageList imageListCadModeErase;
+        private System.Windows.Forms.CheckBox chkboxAutoCalc;
     }
 }
 

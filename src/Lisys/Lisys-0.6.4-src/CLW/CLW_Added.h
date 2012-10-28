@@ -440,7 +440,7 @@ namespace KrdLab {
                         
                         if(info < 0)
                         {
-                            throw gcnew IllegalClapackArgumentException("Error occurred: " + -info + "-th argument had an illegal value in the clapack.Function.dgesv", -info);
+                            throw gcnew IllegalClapackArgumentException("Error occurred: " + -info + "-th argument had an illegal value in the clapack.Function.zgesv", -info);
                         }
                         else
                         {
@@ -455,6 +455,117 @@ namespace KrdLab {
 
                 return ret;
             }
+
+            /// <summary>
+            /// <para>A * X = B を解く（X が解）．</para>
+            /// <para>A は n×n のバンド行列，X と B は n×nrhs の行列である．</para>
+            /// </summary>
+            /// <param name="X"><c>A * X = B</c> の解である X が格納される（実際には B と同じオブジェクトを指す）</param>
+            /// <param name="x_row">行列 X の行数が格納される（<c>== <paramref name="b_row"/></c>）</param>
+            /// <param name="x_col">行列 X の列数が格納される（<c>== <paramref name="b_col"/></c>）</param>
+            /// <param name="A">バンドストレージ形式で格納された係数行列（LU分解の結果である P*L*U に書き換えられる．）</param>
+            /// <param name="a_row">行列Aの行数</param>
+            /// <param name="a_col">行列Aの列数</param>
+            /// <param name="kl">バンド行列A内のsubdiagonalの数</param>
+            /// <param name="ku">バンド行列A内のsuperdiagonalの数</param>
+            /// <param name="B">行列 B（内部のCLAPACK関数により X の値が格納される）</param>
+            /// <param name="b_row">行列Bの行数</param>
+            /// <param name="b_col">行列Bの列数</param>
+            /// <returns>常に 0 が返ってくる．</returns>
+            /// <exception cref="IllegalClapackArgumentException">
+            /// 内部で zgbsv_関数に渡された引数に問題があると throw される．
+            /// </exception>
+            /// <exception cref="IllegalClapackResultException">
+            /// 行列 A の LU分解において，U[i, i] が 0 となってしまった場合に throw される．
+            /// この場合，解を求めることができない．
+            /// </exception>
+            /// <remarks>
+            /// <para>対応するCLAPACK関数（CLAPACK/SRC/zgbsv.c）</para>
+            /// <code>
+            /// int zgbsv_(integer *n, integer *kl, integer *ku, integer *nrhs,
+            ///            doublecomplex *ab, integer *ldab, integer *ipiv,
+            ///            doublecomplex *b, integer *ldb, integer *info)
+            /// </code>
+            /// <para>zgbsv_ 関数の内部では LU分解が使用されている．</para>
+            /// </remarks>
+            static int zgbsv(array<Complex>^% X, int% x_row, int% x_col,
+                             array<Complex>^  A, int  a_row, int  a_col,
+                             int kl, int ku,
+                             array<Complex>^  B, int  b_row, int  b_col)
+            {
+                pin_ptr<void> a_ptr = &A[0];
+                doublecomplex* a = (doublecomplex *)(void *)a_ptr;
+                // COMPLEX*16 array, dimension (LDAB,N)
+                // On entry, the matrix A in band storage, in rows KL+1 to 2*KL+KU+1; rows 1 to KL of the array need not be set.
+                // The j-th column of A is stored in the j-th column of the array AB as follows:
+                // AB(KL+KU+1+i-j,j) = A(i,j) for max(1,j-KU)<=i<=min(N,j+KL)
+                
+                pin_ptr<void> b_ptr = &B[0];
+                doublecomplex* b = (doublecomplex *)(void *)b_ptr;
+                // COMPLEX*16 array, dimension (LDB,NRHS)
+                // On entry, the N-by-NRHS right hand side matrix B.
+                
+                integer n = a_row;
+                // The number of linear equations, i.e., the order of the matrix A.  N >= 0.
+
+                integer kl_ = kl;
+                // The number of subdiagonals within the band of A.  KL >= 0.
+
+                integer ku_ = ku;
+                // The number of superdiagonals within the band of A.  KU >= 0.
+
+                integer nrhs = b_col;
+                // The number of right hand sides, i.e., the number of columns
+
+                integer lda = 2 * kl + ku + 1;
+                // The leading dimension of the array AB.  LDAB >= 2*KL+KU+1.
+
+                integer* ipiv = new integer[n];
+
+                integer ldb = b_row;
+
+                integer info = 1;
+                // output:
+                // info==0: 正常終了
+                // info < 0: info==-i ならば，i番目の引数の値が間違っていることを示す．
+                // 0 < info <N-1: 固有ベクトルは計算されていないことを示す．
+                // info > N: LAPACK内で問題が生じたことを示す．
+
+                int ret;
+                try
+                {
+                    ret = zgbsv_(&n, &kl_, &ku_, &nrhs, a, &lda, ipiv, b, &ldb, &info);
+                    
+                    if(info == 0)
+                    {
+                        X = B;
+                        x_row = b_row;
+                        x_col = b_col;
+                    }
+                    else
+                    {
+                        X = nullptr;
+                        x_row = 0;
+                        x_col = 0;
+                        
+                        if(info < 0)
+                        {
+                            throw gcnew IllegalClapackArgumentException("Error occurred: " + -info + "-th argument had an illegal value in the clapack.Function.zgbsv", -info);
+                        }
+                        else
+                        {
+                            throw gcnew IllegalClapackResultException("Error occurred: zgbsv_", info);
+                        }
+                    }
+                }
+                finally
+                {
+                    delete[] ipiv; ipiv = nullptr;
+                }
+
+                return ret;
+            }
+
             /// <summary>
             /// <para>固有値分解</para>
             /// <para>計算された固有ベクトルは，大きさ（ユークリッドノルム）が 1 に規格化されている．</para>
@@ -583,11 +694,11 @@ namespace KrdLab {
                         {
                             throw gcnew IllegalClapackArgumentException(
                                 "Error occurred: " + -info
-                                    + "-th argument had an illegal value in the clapack.Function.dgeev", -info);
+                                    + "-th argument had an illegal value in the clapack.Function.zgeev", -info);
                         }
                         else
                         {
-                            throw gcnew IllegalClapackResultException("Error occurred: dgeev_", info);
+                            throw gcnew IllegalClapackResultException("Error occurred: zgeev_", info);
                         }
                     }
                 }
@@ -743,7 +854,7 @@ namespace KrdLab {
                         
                         if(info < 0)
                         {
-                            throw gcnew IllegalClapackArgumentException("Error occurred: " + -info + "-th argument had an illegal value in the clapack.Function.dgesv", -info);
+                            throw gcnew IllegalClapackArgumentException("Error occurred: " + -info + "-th argument had an illegal value in the clapack.Function.zgesv", -info);
                         }
                         else
                         {
@@ -1162,7 +1273,7 @@ namespace KrdLab {
                         
                         if(info < 0)
                         {
-                            throw gcnew IllegalClapackArgumentException("Error occurred: " + -info + "-th argument had an illegal value in the clapack.Function.dgesv", -info);
+                            throw gcnew IllegalClapackArgumentException("Error occurred: " + -info + "-th argument had an illegal value in the clapack.Function.zgesv", -info);
                         }
                         else
                         {

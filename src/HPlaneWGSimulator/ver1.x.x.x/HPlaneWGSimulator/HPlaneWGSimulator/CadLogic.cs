@@ -5,6 +5,7 @@ using System.Text;
 using System.Drawing;
 using System.Windows.Forms;
 using System.IO;
+using System.Threading;
 
 namespace HPlaneWGSimulator
 {
@@ -16,6 +17,13 @@ namespace HPlaneWGSimulator
         ////////////////////////////////////////////////////////////////////////
         // 型
         ////////////////////////////////////////////////////////////////////////
+        /// <summary>
+        /// 変更通知デリゲート
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="prevCadMode"></param>
+        public delegate void ChangeDeleagte(object sender, CadModeType prevCadMode);
+
         /// <summary>
         /// 領域選択フラグアレイの思い出具象クラス
         /// </summary>
@@ -60,6 +68,11 @@ namespace HPlaneWGSimulator
         ////////////////////////////////////////////////////////////////////////
         // フィールド
         ////////////////////////////////////////////////////////////////////////
+        /// <summary>
+        /// 変更通知イベント
+        /// </summary>
+        public event ChangeDeleagte Change = null;
+
         /// <summary>
         /// Cadパネル
         /// </summary>
@@ -120,6 +133,11 @@ namespace HPlaneWGSimulator
                         // ポート番号振りモードをセットされた場合、番号シーケンスを初期化する
                         PortNumberingSeq = 1;
                     }
+                    if (value == CadModeType.Location)
+                    {
+                        // 領域移動モードをセットされた場合、移動領域をクリアする
+                        LocationRect = new Rectangle();
+                    }
                     _CadMode = value;
                 }
             }
@@ -136,6 +154,14 @@ namespace HPlaneWGSimulator
             get;
             set;
         }
+        /// <summary>
+        /// 領域移動の移動領域
+        /// </summary>
+        private Rectangle LocationRect;
+        /// <summary>
+        /// フリーハンド描画が実行された？
+        /// </summary>
+        private bool FHExecuted = false;
         /// <summary>
         /// コマンド管理
         /// </summary>
@@ -198,6 +224,7 @@ namespace HPlaneWGSimulator
 
             CadMode = CadModeType.None;
             SelectedMediaIndex = DefMediaIndex;
+            LocationRect = new Rectangle();
             
             // Memento初期化
             // 現在の状態をMementoに記憶させる
@@ -455,7 +482,49 @@ namespace HPlaneWGSimulator
                 StartPt = new Point(e.X, e.Y) - Ofs;
                 EndPt = StartPt;
 
-                hitTesting();
+                if (CadMode == CadModeType.AreaFH || CadMode == CadModeType.EraseFH)
+                {
+                    FHExecuted = false;
+
+                    bool workexecuted = false;
+                    if (!workexecuted)
+                    {
+                        workexecuted = doSelectWaveguidePort(EndPt, EndPt);
+                    }
+                    if (!workexecuted)
+                    {
+                        workexecuted = doSelectDisconArea(EndPt, EndPt);
+                    }
+                    if (workexecuted && !FHExecuted)
+                    {
+                        FHExecuted = true;
+                    }
+                    if (workexecuted)
+                    {
+                        // パネルの再描画
+                        CadPanel.Invalidate();
+                    }
+                }
+                else if (CadMode == CadModeType.Location && !LocationRect.IsEmpty)
+                {
+                    if (LocationRect.X <= EndPt.X && LocationRect.X + LocationRect.Width >= EndPt.X
+                        && LocationRect.Y <= EndPt.Y && LocationRect.Y + LocationRect.Height >= EndPt.Y)
+                    {
+                        // 領域移動開始
+                        hitTesting();
+                    }
+                    else
+                    {
+                        // 移動領域をクリア
+                        LocationRect = new Rectangle();
+                        hitTesting();
+                    }
+                }
+                else
+                {
+                    hitTesting();
+                }
+
             }
         }
 
@@ -468,8 +537,42 @@ namespace HPlaneWGSimulator
             if (e.Button == MouseButtons.Left)
             {
                 EndPt = new Point(e.X, e.Y) - Ofs;
-
-                hitTesting();
+                if (DragFlg
+                    && (CadMode == CadModeType.AreaFH || CadMode == CadModeType.EraseFH))
+                {
+                    IList<Point> tagtPts = getPointsInLineArea(StartPt, EndPt);
+                    StartPt = EndPt;
+                    bool executed = false;
+                    foreach (Point tagtPt in tagtPts)
+                    {
+                        bool workexecuted = false;
+                        if (!workexecuted)
+                        {
+                            workexecuted = doSelectWaveguidePort(tagtPt, tagtPt);
+                        }
+                        if (!workexecuted)
+                        {
+                            workexecuted = doSelectDisconArea(tagtPt, tagtPt);
+                        }
+                        if (workexecuted && !FHExecuted)
+                        {
+                            FHExecuted = true;
+                        }
+                        if (workexecuted)
+                        {
+                            executed = true;
+                        }
+                    }
+                    if (executed)
+                    {
+                        // パネルの再描画
+                        CadPanel.Invalidate();
+                    }
+                }
+                else if (DragFlg)
+                {
+                    hitTesting();
+                }
             }
         }
 
@@ -493,10 +596,6 @@ namespace HPlaneWGSimulator
         {
             EndPt = new Point(e.X, e.Y) - Ofs;
             DragFlg = false;
-
-            // ヒットテスト終了なので、ヒットテストで描画したものをクリア
-            // パネルの再描画
-            CadPanel.Invalidate();
 
             bool executed = false;
             Point minPt = new Point();
@@ -522,26 +621,542 @@ namespace HPlaneWGSimulator
                 maxPt.Y = StartPt.Y;
             }
 
-            executed = doSelectIncidentPort(EndPt);
-            if (!executed)
+            if (!executed && CadMode == CadModeType.Location)
             {
-                executed = doNumberingPort(EndPt);
+                bool workexecuted = false;
+                // 領域移動処理
+                // Note: 渡すポイントはmin, maxでなく実際の開始、終了ポイント
+                bool IsSettingLocationRect = LocationRect.IsEmpty;
+                workexecuted = doLocation(StartPt, EndPt);
+                // 開始、終了位置をクリア
+                StartPt = new Point();
+                EndPt = new Point();
+                if (IsSettingLocationRect)
+                {
+                    if (LocationRect.IsEmpty)
+                    {
+                        // パネルの再描画
+                        CadPanel.Invalidate();
+                    }
+                    else
+                    {
+                        // ラバーバンドを描画
+                        hitTesting();
+                    }
+
+                    // 再描画を抑制
+                    executed = false;
+                }
+                else
+                {
+                    if (workexecuted && !FHExecuted)
+                    {
+                        FHExecuted = true;
+                    }
+                    if (FHExecuted)
+                    {
+                        executed = true;
+                    }
+                }
             }
-            if (!executed)
+            else
             {
-                executed = doSelectWaveguidePort(minPt, maxPt);
-            }
-            if (!executed)
-            {
-                executed = doSelectDisconArea(minPt, maxPt);
+                // ヒットテスト終了なので、ヒットテストで描画したものをクリア
+                // パネルの再描画
+                CadPanel.Invalidate();
+
+                if (!executed && (CadMode == CadModeType.AreaFH || CadMode == CadModeType.AreaLine || CadMode == CadModeType.AreaEllipse
+                    || CadMode == CadModeType.EraseFH || CadMode == CadModeType.EraseLine))
+                {
+                    if (CadMode == CadModeType.EraseLine)
+                    {
+                        // ポートの消去だけは、デフォルトの処理（長方形消去で実装した方法)で実行する
+                        bool workexecuted = false;
+                        workexecuted = doSelectWaveguidePort(minPt, maxPt);
+                        if (workexecuted)
+                        {
+                            executed = true;
+                        }
+                    }
+                    if (!executed)
+                    {
+                        IList<Point> tagtPts = new List<Point>();
+                        if (CadMode == CadModeType.AreaEllipse)
+                        {
+                            // 楕円
+                            tagtPts = getPointsInEllipseArea(StartPt, EndPt);
+                        }
+                        else
+                        {
+                            // フリーハンド、直線の場合
+                            tagtPts = getPointsInLineArea(StartPt, EndPt);
+                        }
+                        StartPt = EndPt;
+                        foreach (Point tagtPt in tagtPts)
+                        {
+                            bool workexecuted = false;
+                            if (!workexecuted && CadMode != CadModeType.EraseLine)
+                            {
+                                workexecuted = doSelectWaveguidePort(tagtPt, tagtPt);
+                            }
+                            if (!workexecuted)
+                            {
+                                workexecuted = doSelectDisconArea(tagtPt, tagtPt);
+                            }
+                            if (workexecuted && !FHExecuted)
+                            {
+                                FHExecuted = true;
+                            }
+                        }
+                        if (FHExecuted)
+                        {
+                            executed = true;
+                        }
+                    }
+                }
+                if (!executed)
+                {
+                    executed = doSelectIncidentPort(EndPt);
+                }
+                if (!executed)
+                {
+                    executed = doNumberingPort(EndPt);
+                }
+                if (!executed)
+                {
+                    executed = doSelectWaveguidePort(minPt, maxPt);
+                }
+                if (!executed)
+                {
+                    executed = doSelectDisconArea(minPt, maxPt);
+                }
             }
 
             if (executed)
             {
                 invokeCadOperationCmd();
+                if (Change != null)
+                {
+                    Change(this, CadMode);
+                }
                 // パネルの再描画
                 CadPanel.Invalidate();
             }
+        }
+
+        /// <summary>
+        /// 2点を結ぶ線分上にあるエリアの点のリストを取得する
+        /// </summary>
+        /// <param name="startPt"></param>
+        /// <param name="endPt"></param>
+        /// <returns></returns>
+        private IList<Point> getPointsInLineArea(Point in_startPt, Point in_endPt)
+        {
+            Point startPt;
+            Point endPt;
+            startPt = new Point(((int)(in_startPt.X / Delta.Width)) * Delta.Width, ((int)(in_startPt.Y / Delta.Height)) * Delta.Height);
+            endPt = new Point(((int)(in_endPt.X / Delta.Width)) * Delta.Width, ((int)(in_endPt.Y / Delta.Height)) * Delta.Height);
+
+            IList<Point> points = new List<Point>();
+            if (startPt.X == endPt.X)
+            {
+                // Y軸に平行な直線
+                int x0 = startPt.X;
+                int leny = endPt.Y - startPt.Y;
+                int minY = leny >= 0? startPt.Y : endPt.Y;
+                int maxY = leny >= 0? endPt.Y : startPt.Y;
+                for (int y = minY; y <= maxY; y++)
+                {
+                    // 直線状の点
+                    points.Add(new Point(x0, y));
+                }
+            }
+            else if (startPt.Y == endPt.Y)
+            {
+                // X軸に平行な直線
+                int y0 = startPt.Y;
+                int lenx = endPt.X - startPt.X;
+                int minX = lenx >= 0? startPt.X : endPt.X;
+                int maxX = lenx >= 0? endPt.X : startPt.X;
+                for (int x = minX; x <= maxX; x++)
+                {
+                    // 直線状の点
+                    points.Add(new Point(x, y0));
+                }
+            }
+            else
+            {
+                int x0 = startPt.X;
+                int y0 = startPt.Y;
+                int x1 = endPt.X;
+                int y1 = endPt.Y;
+                double grad = (y1 - y0) / (double)(x1 - x0);
+                int minX = (x0 <= x1)? x0 : x1;
+                int maxX = (x0 <= x1)? x1 : x0;
+                int prevY =(x0 <= x1)? y0 : y1;
+                for (int x = minX; x <= maxX; x++)
+                {
+                    double curYDouble = (double)grad * (x - x0) + y0;
+                    int curY = (int)((curYDouble - y0) / Delta.Height) * Delta.Height + y0;
+                    // grad > 1.0のときの補間
+                    if (x > minX)
+                    {
+                        for (int y = prevY; y < curY; y++)
+                        {
+                            points.Add(new Point(x - 1, y));
+                        }
+                    }
+                    // 直線状の点
+                    points.Add(new Point(x, curY));
+                    prevY = curY;
+                }
+            }
+            return points;
+        }
+
+        /// <summary>
+        /// 楕円エリア内の点のリストを取得する
+        /// </summary>
+        /// <param name="in_startPt"></param>
+        /// <param name="in_endPt"></param>
+        /// <returns></returns>
+        private IList<Point> getPointsInEllipseArea(Point in_startPt, Point in_endPt)
+        {
+            Point startPt;
+            Point endPt;
+            // マス目としてヒットするように始点、終点をマス目の中央にする
+            startPt = new Point((int)((int)(in_startPt.X / Delta.Width) * Delta.Width + 0.5 * Delta.Width), (int)((int)(in_startPt.Y / Delta.Height) * Delta.Height + 0.5 * Delta.Height));
+            endPt = new Point((int)((int)(in_endPt.X / Delta.Width) * Delta.Width + 0.5 * Delta.Width), (int)((int)(in_endPt.Y / Delta.Height) * Delta.Height + 0.5 * Delta.Height));
+            Point zeroPt;
+            zeroPt = new Point((startPt.X + endPt.X) / 2, (startPt.Y + endPt.Y) / 2);
+            int a = Math.Abs(endPt.X - startPt.X) / 2;
+            int b = Math.Abs(endPt.Y - startPt.Y) / 2;
+
+            IList<Point> points = new List<Point>();
+            if (a == 0)
+            {
+                int x0 = startPt.X;
+                int leny = endPt.Y - startPt.Y;
+                int minY = leny >= 0? startPt.Y : endPt.Y;
+                int maxY = leny >= 0? endPt.Y : startPt.Y;
+                for (int y = minY; y <= maxY; y++)
+                {
+                    points.Add(new Point(x0, y));
+                }
+            }
+            else if (b == 0)
+            {
+                int y0 = startPt.Y;
+                int lenx = endPt.X - startPt.X;
+                int minX = lenx >= 0 ? startPt.X : endPt.X;
+                int maxX = lenx >= 0 ? endPt.X : startPt.X;
+                for (int x = minX; x <= maxX; x++)
+                {
+                    points.Add(new Point(x, y0));
+                }
+            }
+            else
+            {
+                int lenx = endPt.X - startPt.X;
+                int minX = lenx >= 0 ? startPt.X : endPt.X;
+                int maxX = lenx >= 0 ? endPt.X : startPt.X;
+                for (int x = minX; x <= maxX; x++)
+                {
+                    int maxY = (int)((double)b * Math.Sqrt(1.0 - (x - zeroPt.X) * (x - zeroPt.X) / ((double)a * a)) + zeroPt.Y);
+                    int minY = -(maxY - zeroPt.Y) + zeroPt.Y;
+                    minY = (int)(((int)(minY / Delta.Height)) * Delta.Height + 0.5 * Delta.Height);
+                    maxY = (int)(((int)(maxY / Delta.Height)) * Delta.Height + 0.5 * Delta.Height);
+                    for (int y = minY; y <= maxY; y++)
+                    {
+                        points.Add(new Point(x, y));
+                    }
+                }
+            }
+            return points;
+        }
+
+        /// <summary>
+        /// 領域移動処理
+        /// </summary>
+        /// <param name="startPt"></param>
+        /// <param name="endPt"></param>
+        /// <returns></returns>
+        private bool doLocation(Point startPt, Point endPt)
+        {
+            if (CadMode != CadModeType.Location)
+            {
+                return false;
+            }
+            bool executed = false;
+
+            if (LocationRect.IsEmpty)
+            {
+                if (startPt.X != endPt.X || startPt.Y != endPt.Y)
+                {
+                    // 移動領域を設定する
+                    Point minPt = new Point();
+                    Point maxPt = new Point();
+                    if (startPt.X <= endPt.X)
+                    {
+                        minPt.X = startPt.X;
+                        maxPt.X = endPt.X;
+                    }
+                    else
+                    {
+                        minPt.X = endPt.X;
+                        maxPt.X = startPt.X;
+                    }
+                    if (startPt.Y <= endPt.Y)
+                    {
+                        minPt.Y = startPt.Y;
+                        maxPt.Y = endPt.Y;
+                    }
+                    else
+                    {
+                        minPt.Y = endPt.Y;
+                        maxPt.Y = startPt.Y;
+                    }
+                    if (minPt.X < 0)
+                    {
+                        minPt.X = 0;
+                    }
+                    if (minPt.Y < 0)
+                    {
+                        minPt.Y = 0;
+                    }
+                    if (maxPt.X > MaxDiv.Width * Delta.Width)
+                    {
+                        maxPt.X = MaxDiv.Width * Delta.Width;
+                    }
+                    if (maxPt.Y > MaxDiv.Height * Delta.Height)
+                    {
+                        maxPt.Y = MaxDiv.Height * Delta.Height;
+                    }
+                    minPt.X = ((int)Math.Floor((double)minPt.X / Delta.Width)) * Delta.Width;
+                    minPt.Y = ((int)Math.Floor((double)minPt.Y / Delta.Height)) * Delta.Height;
+                    maxPt.X = ((int)Math.Floor((double)maxPt.X / Delta.Width)) * Delta.Width + Delta.Width;
+                    maxPt.Y = ((int)Math.Floor((double)maxPt.Y / Delta.Height)) * Delta.Height + Delta.Height;
+                    int width = maxPt.X - minPt.X;
+                    int height = maxPt.Y - minPt.Y;
+                    if (width > 0 && height > 0)
+                    {
+                        LocationRect = new Rectangle(minPt, new Size(width, height));
+                        executed = true;
+                    }
+                }
+                return executed;
+            }
+
+            // 領域を退避
+            Rectangle saveLocationRect = LocationRect;
+            // 新しい領域を設定
+            LocationRect.X += (endPt.X - startPt.X);
+            LocationRect.Y += (endPt.Y - startPt.Y);
+            if (LocationRect.Left < 0)
+            {
+                LocationRect.X = 0;
+            }
+            if (LocationRect.Right > MaxDiv.Width * Delta.Width - 1)
+            {
+                LocationRect.X = MaxDiv.Width * Delta.Width - 1 - LocationRect.Width;
+            }
+            if (LocationRect.Top < 0)
+            {
+                LocationRect.Y = 0;
+            }
+            if (LocationRect.Bottom > MaxDiv.Height * Delta.Height - 1)
+            {
+                LocationRect.Y = MaxDiv.Height * Delta.Height - 1 - LocationRect.Height;
+            }
+            
+            if (LocationRect.X != saveLocationRect.X || LocationRect.Y != saveLocationRect.Y)
+            {
+                int saveWidth = (saveLocationRect.Right / Delta.Width) - saveLocationRect.Left / Delta.Width;
+                int saveHeight = (saveLocationRect.Bottom / Delta.Height) - saveLocationRect.Top / Delta.Height;
+                // 領域、辺の退避
+                bool[,] saveAreaSelection = new bool[saveHeight, saveWidth];
+                int[,] saveAreaToMediaIndex = new int[saveHeight, saveWidth];
+                IList<Edge> saveEdgeList = new List<Edge>();
+                for (int y = 0; y < saveHeight; y++)
+                {
+                    int saveY = y + saveLocationRect.Top / Delta.Height;
+                    for (int x = 0; x < saveWidth; x++)
+                    {
+                        int saveX = x + saveLocationRect.Left / Delta.Width;
+                        // マス目選択情報を退避
+                        saveAreaSelection[y, x] = AreaSelection[saveY, saveX];
+                        saveAreaToMediaIndex[y, x] = AreaToMediaIndex[saveY, saveX];
+
+                        // ヒットする辺を退避
+                        int hitIndex;
+                        Edge hitEdge;
+                        // Y方向境界
+                        //YBoundarySelection[y, x]
+                        hitEdge = hitTestEdge(new Point(saveX * Delta.Width, (int)((double)(saveY + 0.5) * Delta.Height)), out hitIndex);
+                        if (hitEdge != null && !saveEdgeList.Contains(hitEdge))
+                        {
+                            saveEdgeList.Add(hitEdge);
+                        }
+                        // YBoundarySelection[y, x + 1]
+                        hitEdge = hitTestEdge(new Point((saveX + 1)* Delta.Width, (int)((double)(saveY + 0.5) * Delta.Height)), out hitIndex);
+                        if (hitEdge != null && !saveEdgeList.Contains(hitEdge))
+                        {
+                            saveEdgeList.Add(hitEdge);
+                        }
+                        // X方向境界
+                        // XBoundarySelection[y, x]
+                        hitEdge = hitTestEdge(new Point((int)((double)(saveX + 0.5) * Delta.Width), saveY * Delta.Height), out hitIndex);
+                        if (hitEdge != null && !saveEdgeList.Contains(hitEdge))
+                        {
+                            saveEdgeList.Add(hitEdge);
+                        }
+                        // XBoundarySelection[y + 1, x]
+                        hitEdge = hitTestEdge(new Point((int)((double)(saveX + 0.5) * Delta.Width), (saveY + 1) * Delta.Height), out hitIndex);
+                        if (hitEdge != null && !saveEdgeList.Contains(hitEdge))
+                        {
+                            saveEdgeList.Add(hitEdge);
+                        }
+                    }
+                }
+
+                // 領域の移動処理
+                //   元の領域を消去
+                for (int y = 0; y < saveHeight; y++)
+                {
+                    int saveY = y + saveLocationRect.Top / Delta.Height;
+                    for (int x = 0; x < saveWidth; x++)
+                    {
+                        int saveX = x + saveLocationRect.Left / Delta.Width;
+                        AreaSelection[saveY, saveX] = false;
+                        AreaToMediaIndex[saveY, saveX] = DefMediaIndex;
+                    }
+                }
+                //   新たな領域に追加
+                for (int y = 0; y < saveHeight; y++)
+                {
+                    int newY = y + LocationRect.Top / Delta.Height;
+                    for (int x = 0; x < saveWidth; x++)
+                    {
+                        int newX = x + LocationRect.Left / Delta.Width;
+                        AreaSelection[newY, newX] = saveAreaSelection[y, x];
+                        AreaToMediaIndex[newY, newX] = saveAreaToMediaIndex[y, x];
+                    }
+                }
+
+                // 辺の移動処理
+                //   ヒットした辺は領域外にはみ出していれば削除する(分割するのは面倒なのでごめんなさい)
+                foreach (Edge saveEdge in saveEdgeList)
+                {
+                    if (saveEdge.Delta.Equals(new Size(1, 0)))
+                    {
+                        int y0 = saveEdge.Points[0].Y;
+                        if (saveEdge.Points[0].X < saveLocationRect.Left / Delta.Width)
+                        {
+                            for (int x = saveEdge.Points[0].X; x <= saveLocationRect.Left / Delta.Width - 1; x++)
+                            {
+                                XBoundarySelection[y0, x] = false;
+                            }
+                            saveEdge.Points[0].X = saveLocationRect.Left / Delta.Width;
+                        }
+                        if (saveEdge.Points[1].X > (saveLocationRect.Right / Delta.Width))
+                        {
+                            for (int x = (saveLocationRect.Right / Delta.Width); x <= saveEdge.Points[1].X - 1; x++)
+                            {
+                                XBoundarySelection[y0, x] = false;
+                            }
+                            saveEdge.Points[1].X = (saveLocationRect.Right / Delta.Width);
+                        }
+                    }
+                    else if (saveEdge.Delta.Equals(new Size(0, 1)))
+                    {
+                        int x0 = saveEdge.Points[0].X;
+                        if (saveEdge.Points[0].Y < saveLocationRect.Top / Delta.Height)
+                        {
+                            for (int y = saveEdge.Points[0].Y; y <= saveLocationRect.Top / Delta.Height - 1; y++)
+                            {
+                                YBoundarySelection[y, x0] = false;
+                            }
+                            saveEdge.Points[0].Y = saveLocationRect.Top / Delta.Height;
+                        }
+                        if (saveEdge.Points[1].Y > (saveLocationRect.Bottom / Delta.Height))
+                        {
+                            for (int y = (saveLocationRect.Bottom / Delta.Height) + 1; y <= saveEdge.Points[1].Y - 1; y++)
+                            {
+                                YBoundarySelection[y, x0] = false;
+                            }
+                            saveEdge.Points[1].Y = (saveLocationRect.Bottom / Delta.Height);
+                        }
+                    }
+                    else
+                    {
+                        // logic error
+                        System.Diagnostics.Debug.Assert(false);
+                    }
+                }
+                // 辺を移動
+                int ofsX = LocationRect.Left / Delta.Width -saveLocationRect.Left / Delta.Width;
+                int ofsY = LocationRect.Top / Delta.Height - saveLocationRect.Top / Delta.Height;
+                foreach (Edge saveEdge in saveEdgeList)
+                {
+                    // 以前の境界選択を消去
+                    if (saveEdge.Delta.Equals(new Size(1, 0)))
+                    {
+                        int y0 = saveEdge.Points[0].Y;
+                        for (int x = saveEdge.Points[0].X; x <= saveEdge.Points[1].X - 1; x++)
+                        {
+                            XBoundarySelection[y0, x] = false;
+                        }
+                    }
+                    else if (saveEdge.Delta.Equals(new Size(0, 1)))
+                    {
+                        int x0 = saveEdge.Points[0].X;
+                        for (int y = saveEdge.Points[0].Y; y <= saveEdge.Points[1].Y - 1; y++)
+                        {
+                            YBoundarySelection[y, x0] = false;
+                        }
+                    }
+                    else
+                    {
+                        // logic error
+                        System.Diagnostics.Debug.Assert(false);
+                    }
+                    // エッジ情報を更新
+                    for (int i = 0; i < saveEdge.Points.Length; i++)
+                    {
+                        saveEdge.Points[i].X += ofsX;
+                        saveEdge.Points[i].Y += ofsY;
+                    }
+                    // 新しい境界選択を追加
+                    // 以前の境界選択を消去
+                    if (saveEdge.Delta.Equals(new Size(1, 0)))
+                    {
+                        int y0 = saveEdge.Points[0].Y;
+                        for (int x = saveEdge.Points[0].X; x <= saveEdge.Points[1].X - 1; x++)
+                        {
+                            XBoundarySelection[y0, x] = true;
+                        }
+                    }
+                    else if (saveEdge.Delta.Equals(new Size(0, 1)))
+                    {
+                        int x0 = saveEdge.Points[0].X;
+                        for (int y = saveEdge.Points[0].Y; y <= saveEdge.Points[1].Y - 1; y++)
+                        {
+                            YBoundarySelection[y, x0] = true;
+                        }
+                    }
+                    else
+                    {
+                        // logic error
+                        System.Diagnostics.Debug.Assert(false);
+                    }
+                }
+                executed = true;
+            }
+            if (executed && !isDirty)
+            {
+                isDirty = true;
+            }
+            return executed;
         }
 
         /// <summary>
@@ -573,22 +1188,36 @@ namespace HPlaneWGSimulator
                 minPt.Y = EndPt.Y;
                 maxPt.Y = StartPt.Y;
             }
+            if (CadMode == CadModeType.Location && !LocationRect.IsEmpty)
+            {
+                // Note: maxPtは、セルの左上のポイントを指すので、LocationRectから見ると、Delta分だけ小さくなる
+                minPt.X = LocationRect.Left + (EndPt.X - StartPt.X);
+                minPt.Y = LocationRect.Top + (EndPt.Y - StartPt.Y);
+                maxPt.X = LocationRect.Right + (EndPt.X - StartPt.X) - Delta.Width;
+                maxPt.Y = LocationRect.Bottom + (EndPt.Y - StartPt.Y) - Delta.Height;
+            }
 
             // 方眼紙、辺の描画
             using (Graphics screen_g = CadPanel.CreateGraphics())
             using(Bitmap bitmap = new Bitmap(CadPanel.ClientSize.Width, CadPanel.ClientSize.Height, screen_g))
             using (Graphics g = Graphics.FromImage(bitmap))
             {
-                if (CadMode == CadModeType.IncidentPort || CadMode == CadModeType.PortNumbering)
+                if (CadMode == CadModeType.IncidentPort || CadMode == CadModeType.PortNumbering
+                    || CadMode == CadModeType.Erase || CadMode == CadModeType.EraseFH || CadMode == CadModeType.EraseLine)
                 {
                     // ヒットするポート境界線分の描画
                     hit = hitTestingPort(EndPt, g);
                 }
-                if (DragFlg &&
-                    (CadMode == CadModeType.Area || CadMode == CadModeType.Port || CadMode == CadModeType.Erase))
+                if (CadMode == CadModeType.Location
+                       || CadMode == CadModeType.Area || CadMode == CadModeType.AreaFH || CadMode == CadModeType.AreaLine || CadMode == CadModeType.AreaEllipse
+                       || CadMode == CadModeType.Port
+                       || CadMode == CadModeType.Erase || CadMode == CadModeType.EraseFH || CadMode == CadModeType.EraseLine)
                 {
-                    // ヒットする線があるか
-                    hit = hitTestingLines(minPt, maxPt, false, g);
+                    if (DragFlg)
+                    {
+                        // ヒットする線があるか
+                        hit = hitTestingLines(minPt, maxPt, false, g);
+                    }
 
                     // 背景クリア
                     using (Brush brush = new SolidBrush(CadPanel.BackColor))
@@ -600,13 +1229,42 @@ namespace HPlaneWGSimulator
                     if (!hit)
                     {
                         // ヒットするエリアの描画
-                        hit = hittingTestDisconArea(minPt, maxPt, g);
+                        if (CadMode == CadModeType.AreaLine || CadMode == CadModeType.EraseLine)
+                        {
+                            // 直線を描画
+                            IList<Point> tagtPts = getPointsInLineArea(StartPt, EndPt);
+                            foreach (Point tagtPt in tagtPts)
+                            {
+                                hit = hittingTestDisconArea(tagtPt, tagtPt, g, true);
+                            }
+                        }
+                        else if (CadMode == CadModeType.AreaEllipse)
+                        {
+                            // 楕円を描画
+                            IList<Point> tagtPts = getPointsInEllipseArea(StartPt, EndPt);
+                            foreach (Point tagtPt in tagtPts)
+                            {
+                                hit = hittingTestDisconArea(tagtPt, tagtPt, g, true);
+                            }
+                        }
+                        else
+                        {
+                            bool fillFlg = true;
+                            if (CadMode == CadModeType.Location)
+                            {
+                                fillFlg = false;
+                            }
+                            hit = hittingTestDisconArea(minPt, maxPt, g, fillFlg);
+                        }
                     }
                     DrawGrid(g);
                     DrawEdges(g);
-                    // ヒットする線を描画
-                    bool workhit;
-                    workhit = hitTestingLines(minPt, maxPt, true, g);
+                    if (DragFlg)
+                    {
+                        // ヒットする線を描画
+                        bool workhit;
+                        workhit = hitTestingLines(minPt, maxPt, true, g);
+                    }
                 }
                 screen_g.DrawImage(bitmap, new Point(0, 0));
             }
@@ -1195,12 +1853,13 @@ namespace HPlaneWGSimulator
         /// <returns></returns>
         private bool doSelectWaveguidePort(Point startPt, Point endPt)
         {
-            if (CadMode != CadModeType.Port && CadMode != CadModeType.Erase)
+            if (CadMode != CadModeType.Port
+                && CadMode != CadModeType.Erase && CadMode != CadModeType.EraseFH &&  CadMode != CadModeType.EraseLine)
             {
                 return false;
             }
             bool executed = false;
-            bool valueToSet = (CadMode == CadModeType.Erase) ? false : true;
+            bool valueToSet = ((CadMode == CadModeType.Erase) || (CadMode == CadModeType.EraseFH) || (CadMode == CadModeType.EraseLine)) ? false : true;
 
             // 複数の線分のヒットテスト
             int stx;
@@ -1463,11 +2122,15 @@ namespace HPlaneWGSimulator
         /// <returns></returns>
         private bool hitTestingLines(Point startPt, Point endPt, bool drawFlg, Graphics g)
         {
+            /*
             if (!DragFlg)
             {
                 return false;
             }
-            if (CadMode != CadModeType.Port && CadMode != CadModeType.Erase)
+             */
+            if (CadMode != CadModeType.Port 
+                && CadMode != CadModeType.Location
+                && CadMode != CadModeType.Erase && CadMode != CadModeType.EraseFH && CadMode != CadModeType.EraseLine)
             {
                 return false;
             }
@@ -1524,7 +2187,8 @@ namespace HPlaneWGSimulator
         /// <returns></returns>
         private bool doSelectDisconArea(Point startPt, Point endPt)
         {
-            if (CadMode != CadModeType.Area && CadMode != CadModeType.Erase)
+            if (CadMode != CadModeType.Area && CadMode != CadModeType.AreaFH && CadMode != CadModeType.AreaLine && CadMode != CadModeType.AreaEllipse
+                && CadMode != CadModeType.Erase && CadMode != CadModeType.EraseFH && CadMode != CadModeType.EraseLine)
             {
                 return false;
             }
@@ -1538,8 +2202,8 @@ namespace HPlaneWGSimulator
             double edyy = (double)endPt.Y / (double)Delta.Height;
             int edy = (int)edyy;
 
-            bool valueToSet = (CadMode == CadModeType.Erase) ? false : true;
-            int mediaIndexToSet = (CadMode == CadModeType.Erase) ? DefMediaIndex : this.SelectedMediaIndex;
+            bool valueToSet = ((CadMode == CadModeType.Erase) || (CadMode == CadModeType.EraseFH) || (CadMode == CadModeType.EraseLine)) ? false : true;
+            int mediaIndexToSet = ((CadMode == CadModeType.Erase) || (CadMode == CadModeType.EraseFH) || (CadMode == CadModeType.EraseLine)) ? DefMediaIndex : this.SelectedMediaIndex;
             for (int y = sty; y < edy + 1; y++)
             {
                 if (y < 0 || y >= MaxDiv.Height) continue;
@@ -1586,13 +2250,17 @@ namespace HPlaneWGSimulator
         /// <param name="startPt"></param>
         /// <param name="endPt"></param>
         /// <returns></returns>
-        private bool hittingTestDisconArea(Point startPt, Point endPt, Graphics g)
+        private bool hittingTestDisconArea(Point startPt, Point endPt, Graphics g, bool fillFlg = true)
         {
+            /*
             if (!DragFlg)
             {
                 return false;
             }
-            if (CadMode != CadModeType.Area && CadMode != CadModeType.Erase)
+             */
+            if (CadMode != CadModeType.Area && CadMode != CadModeType.AreaFH && CadMode != CadModeType.AreaLine && CadMode != CadModeType.AreaEllipse
+                && CadMode != CadModeType.Location
+                && CadMode != CadModeType.Erase && CadMode != CadModeType.EraseFH && CadMode != CadModeType.EraseLine)
             {
                 return false;
             }
@@ -1606,17 +2274,64 @@ namespace HPlaneWGSimulator
             double edyy = (double)endPt.Y / (double)Delta.Height;
             int edy = (int)edyy;
 
-            using (Brush brush = new SolidBrush(EditingColor))
+            Point minPt = new Point(MaxDiv.Width * Delta.Width, MaxDiv.Height * Delta.Height);
+            Point maxPt = new Point(0, 0);
+            for (int y = sty; y < edy + 1; y++)
             {
-                for (int y = sty; y < edy + 1; y++)
+                if (y < 0 || y >= MaxDiv.Height) continue;
+                for (int x = stx; x < edx + 1; x++)
                 {
-                    if (y < 0 || y >= MaxDiv.Height) continue;
-                    for (int x = stx; x < edx + 1; x++)
+                    if (x < 0 || x >= MaxDiv.Width) continue;
+                    hit = true;
+                    int xx = x * Delta.Width;
+                    int yy = y * Delta.Height;
+                    if (minPt.X > xx)
                     {
-                        if (x < 0 || x >= MaxDiv.Width) continue;
-                        drawArea(g, x, y, brush);
-                        hit = true;
+                        minPt.X = xx;
                     }
+                    if (minPt.Y > yy)
+                    {
+                        minPt.Y = yy;
+                    }
+                    if (maxPt.X < xx)
+                    {
+                        maxPt.X = xx;
+                    }
+                    if (maxPt.Y < yy)
+                    {
+                        maxPt.Y = yy;
+                    }
+                }
+            }
+            Rectangle hitRect = new Rectangle(minPt + Ofs, new Size(maxPt.X - minPt.X, maxPt.Y - minPt.Y) + Delta);
+            if (fillFlg)
+            {
+                using (Brush brush = new SolidBrush(EditingColor))
+                {
+                    g.FillRectangle(brush, hitRect);
+                }
+                /*
+                using (Brush brush = new SolidBrush(EditingColor))
+                {
+                    for (int y = sty; y < edy + 1; y++)
+                    {
+                        if (y < 0 || y >= MaxDiv.Height) continue;
+                        for (int x = stx; x < edx + 1; x++)
+                        {
+                            if (x < 0 || x >= MaxDiv.Width) continue;
+                            drawArea(g, x, y, brush);
+                            hit = true;
+                        }
+                    }
+                }
+                 */
+            }
+            else
+            {
+                using (Pen pen = new Pen(EditingColor, 5))
+                {
+                    pen.DashStyle = System.Drawing.Drawing2D.DashStyle.Dot;
+                    g.DrawRectangle(pen, hitRect);
                 }
             }
 
@@ -1750,6 +2465,7 @@ namespace HPlaneWGSimulator
             double dummyFirstWaveLength = 0.0;
             double dummyLastWaveLength = 0.0;
             int dummyCalcCnt = 0;
+            FemSolver.LinearSystemEqnSoverDV dummyLsEqnSolverDv = FemSolver.LinearSystemEqnSoverDV.Zgbsv;
             FemInputDatFile.SaveToFileFromCad(
                 filename,
                 nodeCnt, doubleCoords,
@@ -1760,7 +2476,8 @@ namespace HPlaneWGSimulator
                 Medias,
                 dummyFirstWaveLength,
                 dummyLastWaveLength,
-                dummyCalcCnt);
+                dummyCalcCnt,
+                dummyLsEqnSolverDv);
                 
         }
 
@@ -1832,14 +2549,21 @@ namespace HPlaneWGSimulator
         /// </summary>
         public void Undo()
         {
+            CadModeType prevCadMode = CadMode;
+
             // CadLogicBaseのUndoを実行
             CmdManager.Undo();
             // BUGFIX 
             // 現在の状態をMementoに記憶させる
             setMemento();
 
-            CadPanel.Invalidate();
             isDirty = true;
+
+            if (Change != null)
+            {
+                Change(this, prevCadMode);
+            }
+            CadPanel.Invalidate();
         }
 
         /// <summary>
@@ -1847,14 +2571,21 @@ namespace HPlaneWGSimulator
         /// </summary>
         public void Redo()
         {
+            CadModeType prevCadMode = CadMode;
+
             // CadLogicBaseのRedoを実行
             CmdManager.Redo();
             // BUGFIX 
             // 現在の状態をMementoに記憶させる
             setMemento();
 
-            CadPanel.Invalidate();
             isDirty = true;
+
+            if (Change != null)
+            {
+                Change(this, prevCadMode);
+            }
+            CadPanel.Invalidate();
         }
 
         /// <summary>

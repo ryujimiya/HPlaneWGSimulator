@@ -24,8 +24,8 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>10</ApplicationRevision>
-    <ApplicationVersion>1.2.0.%2a</ApplicationVersion>
+    <ApplicationRevision>1</ApplicationRevision>
+    <ApplicationVersion>1.5.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <CreateDesktopShortcut>true</CreateDesktopShortcut>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -128,6 +128,12 @@
     <Compile Include="Form1.Designer.cs">
       <DependentUpon>Form1.cs</DependentUpon>
     </Compile>
+    <Compile Include="ImageCombobox.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="ImageCombobox.Designer.cs">
+      <DependentUpon>ImageCombobox.cs</DependentUpon>
+    </Compile>
     <Compile Include="MeshViewFrm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -146,6 +152,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="FemSolver.cs" />
+    <Compile Include="MyComplexBandMatrix.cs" />
     <EmbeddedResource Include="CalcSettingFrm.resx">
       <DependentUpon>CalcSettingFrm.cs</DependentUpon>
     </EmbeddedResource>
@@ -186,15 +193,6 @@
     <None Include="Resources\上書き保存.png" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\境界選択.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\消しゴム.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\入射ポート選択.png" />
-  </ItemGroup>
-  <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.0,Profile=Client">
       <Visible>False</Visible>
       <ProductName>Microsoft .NET Framework 4 Client Profile %28x86 および x64%29</ProductName>
@@ -219,11 +217,18 @@
   <ItemGroup>
     <Content Include="HPlaneWGSimulator.ico" />
     <Content Include="ReleaseNotes.txt" />
+    <None Include="Resources\自動計算.png" />
+    <None Include="Resources\領域移動25x25.png" />
+    <None Include="Resources\消しゴム長方形25x25.png" />
+    <None Include="Resources\消しゴムフリーハンド25x25.png" />
+    <None Include="Resources\消しゴム25x25.png" />
+    <None Include="Resources\入射ポート番号振り25x25.png" />
+    <None Include="Resources\入射ポート選択25x25.png" />
+    <None Include="Resources\境界選択25x25.png" />
+    <None Include="Resources\モードクリア25x25.png" />
+    <None Include="Resources\エリア選択25x25.png" />
     <None Include="Resources\やり直し.png" />
     <None Include="Resources\元に戻す.png" />
-    <None Include="Resources\入射ポート番号振り.png" />
-    <None Include="Resources\モードクリア.png" />
-    <None Include="Resources\エリア選択.png" />
     <None Include="Resources\名前を付けて保存.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

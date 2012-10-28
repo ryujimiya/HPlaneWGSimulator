@@ -89,6 +89,7 @@ namespace HPlaneWGSimulator
         /// <param name="coords">座標リスト</param>
         /// <param name="toSorted">節点番号→ソート済み節点インデックスマップ</param>
         /// <param name="Medias">媒質情報リスト</param>
+        /// <param name="WaveModeDv">計算する波のモード区分</param>
         /// <param name="txx_1d">txx行列</param>
         /// <param name="ryy_1d">ryy行列</param>
         /// <param name="uzz_1d">uzz行列</param>
@@ -97,6 +98,7 @@ namespace HPlaneWGSimulator
             IList<double> coords,
             Dictionary<int, int> toSorted,
             MediaInfo[] Medias,
+            FemSolver.WaveModeDV WaveModeDv,
             ref MyDoubleMatrix txx_1d, ref MyDoubleMatrix ryy_1d, ref MyDoubleMatrix uzz_1d)
         {
             // ２次線要素
@@ -118,9 +120,24 @@ namespace HPlaneWGSimulator
             int mediaIndex = element.MediaIndex;
             // 媒質
             MediaInfo media = Medias[mediaIndex];
-            double[,] media_P = media.P;
+            double[,] media_P = null;
+            double[,] media_Q = null;
+            if (WaveModeDv == FemSolver.WaveModeDV.TE)
+            {
+                media_P = media.P;
+                media_Q = media.Q;
+            }
+            else if (WaveModeDv == FemSolver.WaveModeDV.TM)
+            {
+                media_P = media.Q;
+                media_Q = media.P;
+            }
+            else
+            {
+                System.Diagnostics.Debug.Assert(false);
+            }
             media_P = MyMatrixUtil.matrix_Inverse(media_P);
-            double[,] media_Q = media.Q;
+
             double[,] integralN = new double[nno, nno]
                 {
                     {  4.0 / 30.0 * elen, -1.0 / 30.0 * elen,  2.0 / 30.0 * elen },

@@ -60,16 +60,16 @@ namespace HPlaneWGSimulator.Properties {
             }
         }
         
-        internal static System.Drawing.Bitmap エリア選択 {
+        internal static System.Drawing.Bitmap エリア選択25x25 {
             get {
-                object obj = ResourceManager.GetObject("エリア選択", resourceCulture);
+                object obj = ResourceManager.GetObject("エリア選択25x25", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
         
-        internal static System.Drawing.Bitmap モードクリア {
+        internal static System.Drawing.Bitmap モードクリア25x25 {
             get {
-                object obj = ResourceManager.GetObject("モードクリア", resourceCulture);
+                object obj = ResourceManager.GetObject("モードクリア25x25", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -95,16 +95,16 @@ namespace HPlaneWGSimulator.Properties {
             }
         }
         
-        internal static System.Drawing.Bitmap 入射ポート番号振り {
+        internal static System.Drawing.Bitmap 入射ポート番号振り25x25 {
             get {
-                object obj = ResourceManager.GetObject("入射ポート番号振り", resourceCulture);
+                object obj = ResourceManager.GetObject("入射ポート番号振り25x25", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
         
-        internal static System.Drawing.Bitmap 入射ポート選択 {
+        internal static System.Drawing.Bitmap 入射ポート選択25x25 {
             get {
-                object obj = ResourceManager.GetObject("入射ポート選択", resourceCulture);
+                object obj = ResourceManager.GetObject("入射ポート選択25x25", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -116,9 +116,9 @@ namespace HPlaneWGSimulator.Properties {
             }
         }
         
-        internal static System.Drawing.Bitmap 境界選択 {
+        internal static System.Drawing.Bitmap 境界選択25x25 {
             get {
-                object obj = ResourceManager.GetObject("境界選択", resourceCulture);
+                object obj = ResourceManager.GetObject("境界選択25x25", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -130,9 +130,30 @@ namespace HPlaneWGSimulator.Properties {
             }
         }
         
-        internal static System.Drawing.Bitmap 消しゴム {
+        internal static System.Drawing.Bitmap 消しゴム25x25 {
             get {
-                object obj = ResourceManager.GetObject("消しゴム", resourceCulture);
+                object obj = ResourceManager.GetObject("消しゴム25x25", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        internal static System.Drawing.Bitmap 消しゴムフリーハンド25x25 {
+            get {
+                object obj = ResourceManager.GetObject("消しゴムフリーハンド25x25", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        internal static System.Drawing.Bitmap 消しゴム長方形25x25 {
+            get {
+                object obj = ResourceManager.GetObject("消しゴム長方形25x25", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        internal static System.Drawing.Bitmap 自動計算 {
+            get {
+                object obj = ResourceManager.GetObject("自動計算", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -140,6 +161,13 @@ namespace HPlaneWGSimulator.Properties {
         internal static System.Drawing.Bitmap 開く {
             get {
                 object obj = ResourceManager.GetObject("開く", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        internal static System.Drawing.Bitmap 領域移動25x25 {
+            get {
+                object obj = ResourceManager.GetObject("領域移動25x25", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

@@ -29,13 +29,13 @@ namespace HPlaneWGSimulator
         /// <param name="eigenVecsList"></param>
         /// <param name="nodesRegion"></param>
         /// <param name="valuesAll"></param>
-        /// <param name="scatterVec"></param>
+        /// <param name="scatterVecList"></param>
         public static void AppendToFile(
             string filename, int freqNo, double waveLength, int maxMode,
             int portCnt, int incidentPortNo,
             IList<int[]> nodesBoundaryList, IList<Complex[]> eigenValuesList, IList<Complex[,]> eigenVecsList,
             int[] nodesRegion, Complex[] valuesAll,
-            Complex[] scatterVec)
+            IList<Complex[]> scatterVecList)
         {
             System.Diagnostics.Debug.Assert(portCnt == nodesBoundaryList.Count);
             System.Diagnostics.Debug.Assert(portCnt == eigenValuesList.Count);
@@ -116,13 +116,35 @@ namespace HPlaneWGSimulator
                         line = string.Format("{0}+{1}i", fieldValue.Real, fieldValue.Imaginary);
                         sw.WriteLine(line);
                     }
+                    // 互換性の為に基本モードのみの散乱行列出力を残す
                     // 散乱行列(Sij j = IncidentPortNoのみ)
                     line = string.Format("Si{0}", incidentPortNo);
                     sw.WriteLine(line);
-                    foreach (Complex si1 in scatterVec)
+                    foreach (Complex[] portScatterVec in scatterVecList)
                     {
+                        // ポートの基本モードの散乱パラメータ―
+                        Complex si1 = portScatterVec[0];
                         line = string.Format("{0}+{1}i", si1.Real, si1.Imaginary);
                         sw.WriteLine(line);
+                    }
+                    // 拡張散乱行列 Simjn
+                    //   出力ポートi モードmの散乱係数
+                    //   入射ポートj = IncindentPortNo n = 0(基本モード)のみ対応
+                    const int incidentModeIndex = 0;
+                    line = string.Format("scatterVecList,{0},{1}", incidentPortNo, incidentModeIndex);
+                    sw.WriteLine(line);
+                    for (int portIndex = 0; portIndex < scatterVecList.Count; portIndex++)
+                    {
+                        Complex[] portScatterVec = scatterVecList[portIndex];
+                        int modeCnt = portScatterVec.Length;
+                        line = string.Format("portScatterVec,{0},{1}", portIndex, modeCnt);
+                        sw.WriteLine(line);
+                        for (int iMode = 0; iMode < modeCnt; iMode++)
+                        {
+                            Complex simjn = portScatterVec[iMode];
+                            line = string.Format("{0}+{1}i", simjn.Real, simjn.Imaginary);
+                            sw.WriteLine(line);
+                        }
                     }
 
                     // 終了シーケンスの書き込み
@@ -250,14 +272,14 @@ namespace HPlaneWGSimulator
         /// <param name="eigenVecsList"></param>
         /// <param name="nodesRegion"></param>
         /// <param name="valuesAll"></param>
-        /// <param name="scatterVec"></param>
+        /// <param name="scatterVecList"></param>
         /// <returns></returns>
         public static bool LoadFromFile(
             string filename, int freqNo,
             out double waveLength, out int maxMode, out int incidentPortNo,
             out IList<int[]> nodesBoundaryList, out IList<Complex[]> eigenValuesList, out IList<Complex[,]> eigenVecsList,
             out int[] nodesRegion, out Complex[] valuesAll,
-            out Complex[] scatterVec)
+            out IList<Complex[]> scatterVecList)
         {
             const char delimiter = ',';
 
@@ -269,7 +291,7 @@ namespace HPlaneWGSimulator
             eigenVecsList = new List<Complex[,]>();
             nodesRegion = null;
             valuesAll = null;
-            scatterVec = null;
+            scatterVecList = new List<Complex[]>();
 
             if (!File.Exists(filename))
             {
@@ -481,6 +503,7 @@ namespace HPlaneWGSimulator
                             valuesAll[ino] = MyUtilLib.MyUtil.ComplexParse(line);
                         }
 
+                        // 基本モードの散乱行列(読み捨てる)
                         // Si1
                         line = sr.ReadLine();
                         if (line.IndexOf("Si") != 0)  // Sij j=入射ポート
@@ -489,17 +512,67 @@ namespace HPlaneWGSimulator
                             return false;
                         }
                         string incidentPortNoStr = line.Substring(2);  // "Si"を削除
-                        incidentPortNo = int.Parse(incidentPortNoStr);
-
-                        scatterVec = new Complex[portCnt];
+                        int dummyIncidentPortNo = int.Parse(incidentPortNoStr);
+                        Complex[] dummyScatterVec = new Complex[portCnt];
                         for (int iportno = 0; iportno < portCnt; iportno++)
                         {
                             line = sr.ReadLine();
-                            scatterVec[iportno] = MyUtilLib.MyUtil.ComplexParse(line);
+                            dummyScatterVec[iportno] = MyUtilLib.MyUtil.ComplexParse(line);
                         }
 
+                        // 拡張散乱行列
+                        // scatterVecList
                         line = sr.ReadLine();
-                        System.Diagnostics.Debug.Assert(line == "E");
+                        if (line != null && line != "E")
+                        {
+                            tokens = line.Split(delimiter);
+                            if (tokens.Length != 3 || tokens[0] != "scatterVecList")
+                            {
+                                MessageBox.Show("拡張散乱行列がありません", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                return false;
+                            }
+                            incidentPortNo = int.Parse(tokens[1]);
+                            int incidentModeIndex = int.Parse(tokens[2]);
+                            for (int portIndex = 0; portIndex < portCnt; portIndex++)
+                            {
+                                line = sr.ReadLine();
+                                tokens = line.Split(delimiter);
+                                if (tokens.Length != 3 || tokens[0] != "portScatterVec")
+                                {
+                                    MessageBox.Show("拡張散乱行列（ポート）がありません", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                    return false;
+                                }
+                                int workPortIndex = int.Parse(tokens[1]);
+                                int modeCnt = int.Parse(tokens[2]);
+                                if (modeCnt <= 0)
+                                {
+                                    MessageBox.Show("拡張散乱行列（ポート）が不正です", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                    return false;
+                                }
+                                Complex[] portScatterVec = new Complex[modeCnt];
+                                scatterVecList.Add(portScatterVec);
+                                for (int iMode = 0; iMode < modeCnt; iMode++)
+                                {
+                                    line = sr.ReadLine();
+                                    Complex simjn = MyUtilLib.MyUtil.ComplexParse(line);
+                                    portScatterVec[iMode] = simjn;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            // 拡張散乱行列がない場合は、旧型式のデータを採用する
+                            incidentPortNo = dummyIncidentPortNo;
+                            foreach (Complex si1 in dummyScatterVec)
+                            {
+                                Complex[] portScatterVec = new Complex[1];
+                                portScatterVec[0] = si1;
+                                scatterVecList.Add(portScatterVec);
+                            }
+                        }
+
+                        //line = sr.ReadLine();
+                        //System.Diagnostics.Debug.Assert(line == "E");
 
                         break; //!!!!!!!ダミーループを抜ける処理、絶対必要!!!!!!!!!!!
                     }

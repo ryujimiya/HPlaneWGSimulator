@@ -22,10 +22,82 @@ namespace HPlaneWGSimulator
         /// </summary>
         delegate void InvokeDelegate();
         delegate void ParameterizedInvokeDelegate(params Object[] parameter);
+
+        /// <summary>
+        /// 描画モード構造体
+        ///   (ComboboxのItemsに割り当てるオブジェクトとして使用)
+        /// </summary>
+        struct CadModeTypeStruct
+        {
+            /// <summary>
+            /// 描画モード
+            /// </summary>
+            public CadLogic.CadModeType CadMode;
+            /// <summary>
+            /// 表示用テキスト
+            /// </summary>
+            public string Text;
+
+            /// <summary>
+            /// コンストラクタ
+            /// </summary>
+            /// <param name="text"></param>
+            /// <param name="cadMode"></param>
+            public CadModeTypeStruct(string text, CadLogic.CadModeType cadMode)
+            {
+                Text = text;
+                CadMode = cadMode;
+            }
+
+            /// <summary>
+            /// 文字列変換
+            /// </summary>
+            /// <returns></returns>
+            public override string ToString()
+            {
+                //return base.ToString();
+                return Text;
+            }
+        }
         ////////////////////////////////////////////////////////////////////////
         // 定数
         ////////////////////////////////////////////////////////////////////////
         
+        /// <summary>
+        /// 等高線図パネルのフィールド区分-値区分リスト
+        /// </summary>
+        private readonly KeyValuePair<FemElement.FieldDV, FemElement.ValueDV>[] FValuePanelFieldDV_ValueDVPairList = 
+            {
+                // Ez (絶対値)
+                new KeyValuePair<FemElement.FieldDV, FemElement.ValueDV>(FemElement.FieldDV.Field, FemElement.ValueDV.Abs),
+                // Ez (実数部)
+                new KeyValuePair<FemElement.FieldDV, FemElement.ValueDV>(FemElement.FieldDV.Field, FemElement.ValueDV.Real),
+                // (Hx, Hy)ベクトル表示(実数部)
+                new KeyValuePair<FemElement.FieldDV, FemElement.ValueDV>(FemElement.FieldDV.RotXY, FemElement.ValueDV.Real),
+                // 複素ポインティングベクトル表示(実数部)
+                new KeyValuePair<FemElement.FieldDV, FemElement.ValueDV>(FemElement.FieldDV.PoyntingXY, FemElement.ValueDV.Real),
+            };
+        /// <summary>
+        /// 等高線図パネルのコンテンツ表示名(TEモード)
+        /// </summary>
+        private readonly string[] FValuePanelContentNameForTE = 
+            {
+                "|Ez|等高線図",
+                "Ezの実数部の等高線図",
+                "(Hx, Hy)ベクトルの実数部のベクトル表示",
+                "複素ポインティングベクトルのベクトル表示",
+            };
+        /// <summary>
+        /// 等高線図パネルのコンテンツ表示名(TEモード)
+        /// </summary>
+        private readonly string[] FValuePanelContentNameForTM = 
+            {
+                "|Hz|等高線図",
+                "Hzの実数部の等高線図",
+                "(Ex, Ey)ベクトルの実数部のベクトル表示",
+                "複素ポインティングベクトルのベクトル表示",
+            };
+
         ////////////////////////////////////////////////////////////////////////
         // フィールド
         ////////////////////////////////////////////////////////////////////////
@@ -137,6 +209,24 @@ namespace HPlaneWGSimulator
         private bool IsLoadCancelled = false;
 
         /// <summary>
+        /// 等高線図パネルのインデックス
+        /// (表示内容の切り替え:FValuePanelFieldDV_ValueDVPairListに対応するインデックス、ただし、FValuePanelFieldDV_ValueDVPairList.Lengthの場合は4画面)
+        /// </summary>
+        private int FValuePanelIndex = 0;
+        /// <summary>
+        /// 等高線図パネルのマウスエンターイベントのイベントハンドラ処理を実行しない?
+        /// </summary>
+        private bool IsDisabledMouseEnterOfFValuePanel = false;
+        /// <summary>
+        /// 等高線図パネルのマウス移動位置
+        /// </summary>
+        private Point FValuePanelMovPt;
+        /// <summary>
+        /// 自動計算？
+        /// </summary>
+        private bool IsAutoCalc = false;
+
+        /// <summary>
         /// ウィンドウコンストラクタ
         /// </summary>
         public Form1()
@@ -153,6 +243,7 @@ namespace HPlaneWGSimulator
             CadModeRadioButtons = new RadioButton[]
             {
                 radioBtnNone,
+                radioBtnLocation,
                 radioBtnArea,
                 radioBtnPort,
                 radioBtnErase,
@@ -163,6 +254,7 @@ namespace HPlaneWGSimulator
             CadLogic.CadModeType[] cadModeTypeForRadioButtons = new CadLogic.CadModeType[]
             {
                 CadLogic.CadModeType.None,
+                CadLogic.CadModeType.Location,
                 CadLogic.CadModeType.Area,
                 CadLogic.CadModeType.Port,
                 CadLogic.CadModeType.Erase,
@@ -174,6 +266,61 @@ namespace HPlaneWGSimulator
             {
                 CadModeRadioButtons[i].Tag = cadModeTypeForRadioButtons[i];
             }
+            // エリア選択描画モードタイプコンボボックスのItemにCadモードを紐づける
+            CadModeTypeStruct[] cadModeTypeStructsForImgCBoxCadModeArea = new CadModeTypeStruct[]
+            {
+                new CadModeTypeStruct("自由描画", CadLogic.CadModeType.AreaFH),
+                new CadModeTypeStruct("長方形描画", CadLogic.CadModeType.Area),
+                new CadModeTypeStruct("直線描画", CadLogic.CadModeType.AreaLine),
+                new CadModeTypeStruct("楕円描画", CadLogic.CadModeType.AreaEllipse)
+            };
+            // コンボボックスのアイテムをクリア
+            imgcbxCadModeArea.Items.Clear();
+            foreach (CadModeTypeStruct cadModeTypeStruct in cadModeTypeStructsForImgCBoxCadModeArea)
+            {
+                // コンボボックスにアイテムを追加
+                imgcbxCadModeArea.Items.Add(cadModeTypeStruct);
+                foreach (CadLogic.CadModeType defCadMode in cadModeTypeForRadioButtons)
+                {
+                    if (defCadMode == cadModeTypeStruct.CadMode)
+                    {
+                        //この時点ではCadLogicがないのでイベントハンドラの実行を抑制する
+                        imgcbxCadModeArea.SelectedIndexChanged -= imgcbxCadModeArea_SelectedIndexChanged;
+                        // 選択する
+                        imgcbxCadModeArea.SelectedItem = cadModeTypeStruct;
+                        // イベントハンドラを再設定
+                        imgcbxCadModeArea.SelectedIndexChanged += imgcbxCadModeArea_SelectedIndexChanged;
+                    }
+                }
+            }
+            imgcbxCadModeArea.Visible = false;
+            // 消しゴム描画モードタイプコンボボックスのItemにCadモードを紐づける
+            CadModeTypeStruct[] cadModeTypeStructsForImgCBoxCadModeErase = new CadModeTypeStruct[]
+            {
+                new CadModeTypeStruct("自由消去", CadLogic.CadModeType.EraseFH),
+                new CadModeTypeStruct("長方形消去", CadLogic.CadModeType.Erase),
+                new CadModeTypeStruct("直線消去", CadLogic.CadModeType.EraseLine)
+            };
+            // コンボボックスのアイテムをクリア
+            imgcbxCadModeErase.Items.Clear();
+            foreach (CadModeTypeStruct cadModeTypeStruct in cadModeTypeStructsForImgCBoxCadModeErase)
+            {
+                // コンボボックスにアイテムを追加
+                imgcbxCadModeErase.Items.Add(cadModeTypeStruct);
+                foreach (CadLogic.CadModeType defCadMode in cadModeTypeForRadioButtons)
+                {
+                    if (defCadMode == cadModeTypeStruct.CadMode)
+                    {
+                        //この時点ではCadLogicがないのでイベントハンドラの実行を抑制する
+                        imgcbxCadModeErase.SelectedIndexChanged -= imgcbxCadModeErase_SelectedIndexChanged;
+                        // 選択する
+                        imgcbxCadModeErase.SelectedItem = cadModeTypeStruct;
+                        // イベントハンドラを再設定
+                        imgcbxCadModeErase.SelectedIndexChanged += imgcbxCadModeErase_SelectedIndexChanged;
+                    }
+                }
+            }
+            imgcbxCadModeErase.Visible = false;
             MediaRadioButtons = new RadioButton[]
             {
                 radioBtnMedia0, // 真空
@@ -192,14 +339,19 @@ namespace HPlaneWGSimulator
             btnLoadCancel.Visible = false;
 
             CadLgc = new CadLogic(CadPanel);
+            CadLgc.Change += new CadLogic.ChangeDeleagte(CadLgc_Change);
             Solver = new FemSolver();
             PostPro = new FemPostProLogic();
+            //TEST 4画面表示
+            FValuePanelIndex = FValuePanelFieldDV_ValueDVPairList.Length; //0;
+            // 等高線図パネルインデックス変更時の処理
+            changeFValuePanelIndexProc(false);
 
             // アプリケーションの終了イベントハンドラを設定する
             AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
             {
                 Console.WriteLine("Process exiting");
-                System.Diagnostics.Debug.WriteLine("Process exiting");
+                //System.Diagnostics.Debug.WriteLine("Process exiting");
                 // フォームの破棄処理を呼び出す
                 this.Dispose();
             };
@@ -213,7 +365,6 @@ namespace HPlaneWGSimulator
             p = typeof(System.Windows.Forms.Control).GetProperty(
                          "DoubleBuffered",
                           System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-
             // ダブルバッファを有効にする
             p.SetValue(CadPanel, true, null);
             p.SetValue(FValuePanel, true, null);
@@ -234,6 +385,12 @@ namespace HPlaneWGSimulator
         /// <param name="cadMode"></param>
         private void setupCadModeRadioButtons(CadLogic.CadModeType cadMode)
         {
+            // Cadモード(エリア、消しゴム)詳細イメージコンボボックスの選択設定を行う
+            setupDetailCadModeToImgCboxes(cadMode);
+            // ラジオボタンのCadモード(エリア、消しゴム)詳細を更新する
+            setupDetailCadModeToRadioButtons(cadMode);
+
+            // ラジオボタンのチェック状態を設定する
             foreach (RadioButton rb in CadModeRadioButtons)
             {
                 if ((CadLogic.CadModeType)rb.Tag == cadMode)
@@ -246,6 +403,105 @@ namespace HPlaneWGSimulator
                 }
             }
         }
+
+        /// <summary>
+        /// Cadモード詳細(エリア選択と消しゴムのみ)をイメージコンボボックスに反映する
+        /// </summary>
+        /// <param name="cadMode"></param>
+        private void setupDetailCadModeToImgCboxes(CadLogic.CadModeType cadMode)
+        {
+            // 描画モードがエリア選択の場合は、選択方法コンボボックスのアイテムを選択する
+            if (cadMode == CadLogic.CadModeType.Area || cadMode == CadLogic.CadModeType.AreaFH || cadMode == CadLogic.CadModeType.AreaLine || cadMode == CadLogic.CadModeType.AreaEllipse)
+            {
+                foreach (CadModeTypeStruct cadModeTypeStruct in imgcbxCadModeArea.Items)
+                {
+                    if (cadModeTypeStruct.CadMode == cadMode)
+                    {
+                        imgcbxCadModeArea.SelectedItem = cadModeTypeStruct;
+                        break;
+                    }
+                }
+                imgcbxCadModeArea.Visible = true;
+            }
+            else
+            {
+                imgcbxCadModeArea.Visible = false;
+            }
+            // 描画モードが消しゴムの場合は、選択方法コンボボックスのアイテムを選択する
+            if (cadMode == CadLogic.CadModeType.Erase || cadMode == CadLogic.CadModeType.EraseFH || cadMode == CadLogic.CadModeType.EraseLine)
+            {
+                foreach (CadModeTypeStruct cadModeTypeStruct in imgcbxCadModeErase.Items)
+                {
+                    if (cadModeTypeStruct.CadMode == cadMode)
+                    {
+                        imgcbxCadModeErase.SelectedItem = cadModeTypeStruct;
+                        break;
+                    }
+                }
+                imgcbxCadModeErase.Visible = true;
+            }
+            else
+            {
+                imgcbxCadModeErase.Visible = false;
+            }
+        }
+        /// <summary>
+        /// Cadモード詳細(エリア選択と消しゴムのみ)をイメージコンボボックスに反映する
+        /// </summary>
+        /// <param name="cadMode"></param>
+        private void setupDetailCadModeToRadioButtons(CadLogic.CadModeType cadMode)
+        {
+            // 描画モードがエリア選択の場合は、選択方法コンボボックスのアイテムを選択する
+            if (cadMode == CadLogic.CadModeType.Area || cadMode == CadLogic.CadModeType.AreaFH || cadMode == CadLogic.CadModeType.AreaLine || cadMode == CadLogic.CadModeType.AreaEllipse)
+            {
+                foreach (RadioButton rb in CadModeRadioButtons)
+                {
+                    CadLogic.CadModeType workCadMode = (CadLogic.CadModeType)rb.Tag;
+                    if (workCadMode == CadLogic.CadModeType.Area || workCadMode == CadLogic.CadModeType.AreaFH || workCadMode == CadLogic.CadModeType.AreaLine || workCadMode == CadLogic.CadModeType.AreaEllipse)
+                    {
+                        // ラジオボタンのタグを更新する
+                        rb.Tag = cadMode;
+
+                        // イメージコンボボックスのイメージをラジオボタンに反映する
+                        foreach (CadModeTypeStruct cadModeTypeStruct in imgcbxCadModeArea.Items)
+                        {
+                            if (cadModeTypeStruct.CadMode == cadMode)
+                            {
+                                int index = imgcbxCadModeArea.Items.IndexOf(cadModeTypeStruct);
+                                rb.Image = imgcbxCadModeArea.ImageList.Images[index];
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+            // 描画モードが消しゴムの場合は、選択方法コンボボックスのアイテムを選択する
+            if (cadMode == CadLogic.CadModeType.Erase || cadMode == CadLogic.CadModeType.EraseFH || cadMode == CadLogic.CadModeType.EraseLine)
+            {
+                foreach (RadioButton rb in CadModeRadioButtons)
+                {
+                    CadLogic.CadModeType workCadMode = (CadLogic.CadModeType)rb.Tag;
+                    if (workCadMode == CadLogic.CadModeType.Erase || workCadMode == CadLogic.CadModeType.EraseFH || workCadMode == CadLogic.CadModeType.EraseLine)
+                    {
+                        // ラジオボタンのタグを更新する
+                        rb.Tag = cadMode;
+
+                        // イメージコンボボックスのイメージをラジオボタンに反映する
+                        foreach (CadModeTypeStruct cadModeTypeStruct in imgcbxCadModeErase.Items)
+                        {
+                            if (cadModeTypeStruct.CadMode == cadMode)
+                            {
+                                int index = imgcbxCadModeErase.Items.IndexOf(cadModeTypeStruct);
+                                rb.Image = imgcbxCadModeErase.ImageList.Images[index];
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
 
         /// <summary>
         /// 自動スクロールを設定する
@@ -325,6 +581,10 @@ namespace HPlaneWGSimulator
             Control[] ctrlList = { SMatChart, BetaChart, EigenVecChart };
             Point[] ctrlBaseLocationList = { SMatChartBaseLocation, BetaChartBaseLocation, EigenVecChartBaseLocation };
             Size[] ctrlBaseSizeList = { SMatChartBaseSize, BetaChartBaseSize, EigenVecChartBaseSize };
+
+            // [前のパネル]ボタン、[次のパネル]ボタン
+            btnPrevFValuePanel.Visible = false;
+            btnNextFValuePanel.Visible = false;
 
             // 個別パネルの最大化処理
             if (MaximizedControl == CadPanel)
@@ -666,6 +926,10 @@ namespace HPlaneWGSimulator
         /// <param name="e"></param>
         private void CadPanel_MouseClick(object sender, MouseEventArgs e)
         {
+            if (IsCalculating)
+            {
+                return;
+            }
             CadLgc.CadPanelMouseClick(e);
             // 元に戻す、やり直しボタンの操作可能フラグをセットアップ
             setupUndoRedoEnable();
@@ -679,6 +943,10 @@ namespace HPlaneWGSimulator
         /// <param name="e"></param>
         private void CadPanel_MouseDown(object sender, MouseEventArgs e)
         {
+            if (IsCalculating)
+            {
+                return;
+            }
             CadLgc.CadPanelMouseDown(e);
         }
 
@@ -689,6 +957,10 @@ namespace HPlaneWGSimulator
         /// <param name="e"></param>
         private void CadPanel_MouseMove(object sender, MouseEventArgs e)
         {
+            if (IsCalculating)
+            {
+                return;
+            }
             CadLgc.CadPanelMouseMove(e);
         }
 
@@ -699,9 +971,63 @@ namespace HPlaneWGSimulator
         /// <param name="e"></param>
         private void CadPanel_MouseUp(object sender, MouseEventArgs e)
         {
+            if (IsCalculating)
+            {
+                return;
+            }
             CadLgc.CadPanelMouseUp(e);
             // 元に戻す、やり直しボタンの操作可能フラグをセットアップ
             setupUndoRedoEnable();
+        }
+
+        /// <summary>
+        /// Cadロジックの変更通知イベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        private void CadLgc_Change(object sender, CadLogic.CadModeType prevCadMode)
+        {
+            // 自動計算モードの場合、対象周波数の計算を実行する
+            //   prevCadModeを参照しているのはUndo/Redoの場合、以前の状態が描画モードであるかどうかで判定する必要があるため
+            if (IsAutoCalc && prevCadMode != CadLogic.CadModeType.None)
+            {
+                runAtOneFreq();
+            }
+        }
+        
+        /// <summary>
+        /// 周波数１箇所だけ計算する
+        /// </summary>
+        private void runAtOneFreq()
+        {
+            if (IsCalculating)
+            {
+                return;
+            }
+            if (IsLoading)
+            {
+                return;
+            }
+            if (FreqNo == -1)
+            {
+                FreqNo = (Solver.CalcFreqCnt + 1) / 2 + 1;
+            }
+
+            // 保存時に対象周波数がクリアされるので退避する
+            int saveFreqNo = FreqNo;
+
+            // Cadデータ保存＆Fem入力データ作成保存
+            doSave(true);
+            if (FemInputDatFilePath == "")
+            {
+                return;
+            }
+
+            // 対象周波数を再設定
+            FreqNo = saveFreqNo;
+
+            // 対象周波数１点について計算する
+            doCalc(false, false); // allFlg: false appendFileFlg: false (ファイルを削除する)
+
         }
 
         /// <summary>
@@ -711,26 +1037,84 @@ namespace HPlaneWGSimulator
         /// <param name="e"></param>
         private void FValuePanel_Paint(object sender, PaintEventArgs e)
         {
+            //Console.WriteLine("FValiePanel_Paint");
             try
             {
                 Graphics g = e.Graphics;
 
                 if (PostPro != null)
                 {
-                    PostPro.DrawField(g, FValuePanel);
+                    DrawField(g);
                     if (PostPro != null && IsCalculating)
                     {
                         //見づらいので削除
                         // 計算実行中はメッシュ表示
                         //PostPro.DrawMesh(g, FValuePanel, true);
                     }
-                    // 媒質の境界を表示
-                    PostPro.DrawMediaB(g, FValuePanel, true);
                 }
             }
             catch (Exception exception)
             {
                 Console.WriteLine(exception.Message + " " + exception.StackTrace);
+            }
+        }
+
+        /// <summary>
+        /// フィールド描画
+        ///   等高線図 or ベクトル表示
+        /// </summary>
+        /// <param name="g"></param>
+        private void DrawField(Graphics g)
+        {
+            if (!PostPro.IsDataReady())
+            {
+                return;
+            }
+            //PostPro.DrawRotFieldEx(g, FValuePanel, FemElement.FieldDV.PoyntingXY);
+            //PostPro.DrawRotFieldEx(g, FValuePanel, FemElement.FieldDV.RotXY);
+            //PostPro.DrawFieldEx(g, FValuePanel, FemElement.FieldDV.Field, FemElement.ValueDV.Abs);
+            //PostPro.DrawFieldEx(g, FValuePanel, FemElement.FieldDV.Field, FemElement.ValueDv.Real);
+            if (FValuePanelIndex < FValuePanelFieldDV_ValueDVPairList.Length)
+            {
+                PostPro.IsCoarseFieldMesh = false;
+                if (PostPro.ShowFieldDv == FemElement.FieldDV.RotXY || PostPro.ShowFieldDv == FemElement.FieldDV.PoyntingXY)
+                {
+                    // メッシュ表示
+                    PostPro.DrawMesh(g, FValuePanel, true, true); // fitFlg: true transparent: true
+                    // 回転系のベクトル表示
+                    //PostPro.ShowValueDv = FemElement.ValueDV.Real;
+                    PostPro.DrawRotField(g, FValuePanel);
+                }
+                else
+                {
+                    // 等高線図表示
+                    PostPro.DrawField(g, FValuePanel);
+                }
+                // 媒質の境界を表示
+                PostPro.DrawMediaB(g, FValuePanel, true);
+            }
+            else
+            {
+                // 描画を軽くするために粗いメッシュで描画
+                PostPro.IsCoarseFieldMesh = true;
+                Rectangle r;
+                r = new Rectangle(0, 0, FValuePanel.Width / 2, FValuePanel.Height / 2);
+                PostPro.DrawFieldEx(g, FValuePanel, r, FemElement.FieldDV.Field, FemElement.ValueDV.Abs);
+                PostPro.DrawMediaB(g, FValuePanel, r, true);
+
+                r = new Rectangle(FValuePanel.Width / 2, 0, FValuePanel.Width / 2, FValuePanel.Height / 2);
+                PostPro.DrawFieldEx(g, FValuePanel, r, FemElement.FieldDV.Field, FemElement.ValueDV.Real);
+                PostPro.DrawMediaB(g, FValuePanel, r, true);
+
+                r = new Rectangle(0, FValuePanel.Height / 2, FValuePanel.Width / 2, FValuePanel.Height / 2);
+                PostPro.DrawMesh(g, FValuePanel, r, true, true); // メッシュ表示
+                PostPro.DrawRotFieldEx(g, FValuePanel, r, FemElement.FieldDV.RotXY);
+                PostPro.DrawMediaB(g, FValuePanel, r, true);
+
+                r = new Rectangle(FValuePanel.Width / 2, FValuePanel.Height / 2, FValuePanel.Width / 2, FValuePanel.Height / 2);
+                PostPro.DrawMesh(g, FValuePanel, r, true, true); // メッシュ表示
+                PostPro.DrawRotFieldEx(g, FValuePanel, r, FemElement.FieldDV.PoyntingXY);
+                PostPro.DrawMediaB(g, FValuePanel, r, true);
             }
         }
 
@@ -762,10 +1146,17 @@ namespace HPlaneWGSimulator
                 return;
             }
 
+            // 自動計算モードを解除する
+            chkboxAutoCalc.CheckedChanged -= chkboxAutoCalc_CheckedChanged;
+            chkboxAutoCalc.Checked = false;
+            IsAutoCalc = false;
+            PostPro.IsAutoCalc = IsAutoCalc;
+            chkboxAutoCalc.CheckedChanged += chkboxAutoCalc_CheckedChanged;
+
             // 計算範囲ダイアログを表示する
             CalcSettingFrm calcSettingFrm = new CalcSettingFrm(
                 Solver.FirstNormalizedFreq, Solver.LastNormalizedFreq, Solver.CalcFreqCnt,
-                Solver.ElemShapeDvToBeSet, Solver.ElemOrderToBeSet);
+                Solver.ElemShapeDvToBeSet, Solver.ElemOrderToBeSet, Solver.LsEqnSolverDv);
             DialogResult result = calcSettingFrm.ShowDialog();
             if (result != DialogResult.OK)
             {
@@ -786,8 +1177,19 @@ namespace HPlaneWGSimulator
             Solver.Load(FemInputDatFilePath);
             // 解析機の情報が確定したので、計算範囲画面で設定した計算範囲をファイルへ書き込み
             Solver.UpdateAndSaveToInputFile(FemInputDatFilePath,
-                calcSettingFrm.NormalizedFreq1, calcSettingFrm.NormalizedFreq2, calcSettingFrm.CalcFreqCnt);
+                calcSettingFrm.NormalizedFreq1, calcSettingFrm.NormalizedFreq2, calcSettingFrm.CalcFreqCnt,
+                calcSettingFrm.LsEqnSolverDv);
 
+            // 計算処理
+            doCalc();
+        }
+
+        /// <summary>
+        /// 計算処理
+        /// </summary>
+        /// <param name="allFlg">全周波数計算する?</param>
+        private void doCalc(bool allFlg = true, bool appendFileFlg = false)
+        {
             // ポストプロセッサの初期化
             PostPro.InitData(
                 Solver,
@@ -797,7 +1199,7 @@ namespace HPlaneWGSimulator
                 SMatChart,
                 BetaChart,
                 EigenVecChart);
-            
+
             // 解析機のデータチェック
             bool chkResult = Solver.ChkInputData();
             if (!chkResult)
@@ -805,9 +1207,12 @@ namespace HPlaneWGSimulator
                 return;
             }
 
-            // Cadモードを操作なしにする
-            setupCadModeRadioButtons(CadLogic.CadModeType.None);
-            CadLgc.CadMode = CadLogic.CadModeType.None;
+            if (allFlg)
+            {
+                // Cadモードを操作なしにする
+                setupCadModeRadioButtons(CadLogic.CadModeType.None);
+                CadLgc.CadMode = CadLogic.CadModeType.None;
+            }
 
             // [計算開始]ボタンの無効化
             setCtrlEnable(false);
@@ -817,70 +1222,94 @@ namespace HPlaneWGSimulator
             // 選択中媒質を真空にする
             radioBtnMedia0.Checked = true;
             CadLgc.SelectedMediaIndex = CadLogic.VacumnMediaIndex;
-            */
             // 媒質選択グループボックスへ読み込み値を反映
             setupGroupBoxMedia();
             // 媒質選択ボタンの背景色とテキストを設定
             btnMediaSelect_SetColorAndText();
+             */
 
-            // 周波数インデックス初期化
-            FreqNo = -1;
+            if (allFlg)
+            {
+                // 周波数インデックス初期化
+                FreqNo = -1;
+            }
 
-            SolverThread = new Thread(new ThreadStart(delegate()
-                {
-                    // 各波長の結果出力時に呼ばれるコールバックの定義
-                    ParameterizedInvokeDelegate eachDoneCallback = new ParameterizedInvokeDelegate(delegate(Object[] args)
-                        {
-                            // ポストプロセッサへ結果読み込み(freqNo: -1は最後の結果を読み込み)
-                            PostPro.LoadOutput(FemOutputDatFilePath, -1);
-
-                            // 結果をグラフィック表示
-                            this.Invoke(new InvokeDelegate(delegate()
-                                {
-                                    PostPro.SetOutputToGui(
-                                        FemOutputDatFilePath,
-                                        CadPanel,
-                                        FValuePanel,
-                                        FValueLegendPanel, labelFreqValue,
-                                        SMatChart,
-                                        BetaChart,
-                                        EigenVecChart,
-                                        true);
-                                }));
-                            // 描画イベントを処理させる
-                            Application.DoEvents();
-
-                        });
-                    // 解析実行
-                    Solver.Run(FemOutputDatFilePath, this, eachDoneCallback);
-
-                    // 解析終了したので[計算開始]ボタンを有効化
-                    this.Invoke(new InvokeDelegate(delegate()
-                        {
-                            //[計算開始]ボタンを有効化
-                            setCtrlEnable(true);
-                            btnCalc.Text = "計算開始";
-
-                            // 周波数インデックスを最後にセット
-                            //BUGFIX
-                            //周波数番号は1起点なので、件数 = 最後の番号となる
-                            //計算失敗の場合、上記は成り立たない
-                            int firstFreqNo;
-                            int lastFreqNo;
-                            int cnt = PostPro.GetCalculatedFreqCnt(FemOutputDatFilePath, out firstFreqNo, out lastFreqNo);
-                            FreqNo = lastFreqNo;
-                            // 周波数ボタンの有効・無効化
-                            setupBtnFreqEnable();
-
-                            // Cadパネル再描画（メッシュを消す）
-                            //CadPanel.Invalidate();
-
-                            // 等高線図再描画（メッシュを消す）
-                            //FValuePanel.Invalidate();
-                        }));
-                }));
+            SolverThread = new Thread(new ParameterizedThreadStart(solverThreadProc));
             SolverThread.Name = "solverThread";
-            SolverThread.Start();
+            SolverThread.Start(new object[]{allFlg, appendFileFlg});
+        }
+
+        /// <summary>
+        /// 計算スレッド関数
+        /// </summary>
+        /// <param name="param1"></param>
+        private void solverThreadProc(object param1)
+        {
+            object[] paramList = (object[])param1;
+            bool allFlg = (bool)paramList[0];
+            bool appendFileFlg = (bool)paramList[1];
+
+            // 各波長の結果出力時に呼ばれるコールバックの定義
+            ParameterizedInvokeDelegate eachDoneCallback = new ParameterizedInvokeDelegate(delegate(Object[] args)
+            {
+                // ポストプロセッサへ結果読み込み(freqNo: -1は最後の結果を読み込み)
+                PostPro.LoadOutput(FemOutputDatFilePath, -1);
+
+                // 結果をグラフィック表示
+                this.Invoke(new InvokeDelegate(delegate()
+                    {
+                        PostPro.SetOutputToGui(
+                            FemOutputDatFilePath,
+                            CadPanel,
+                            FValuePanel,
+                            FValueLegendPanel, labelFreqValue,
+                            SMatChart,
+                            BetaChart,
+                            EigenVecChart,
+                            true);
+                        }));
+                // 描画イベントを処理させる
+                Application.DoEvents();
+
+            });
+            if (!allFlg)
+            {
+                // 対象周波数１点だけ計算する
+                // 解析実行
+                Solver.RunAtOneFreq(FemOutputDatFilePath, FreqNo, this, eachDoneCallback, appendFileFlg);
+            }
+            else
+            {
+                // 解析実行
+                Solver.Run(FemOutputDatFilePath, this, eachDoneCallback);
+            }
+            // 解析終了したので[計算開始]ボタンを有効化
+            this.Invoke(new InvokeDelegate(delegate()
+                {
+                    //[計算開始]ボタンを有効化
+                    setCtrlEnable(true);
+                    btnCalc.Text = "計算開始";
+
+                    if (allFlg)
+                    {
+                        // 周波数インデックスを最後にセット
+                        //BUGFIX
+                        //周波数番号は1起点なので、件数 = 最後の番号となる
+                        //計算失敗の場合、上記は成り立たない
+                        int firstFreqNo;
+                        int lastFreqNo;
+                        int cnt = PostPro.GetCalculatedFreqCnt(FemOutputDatFilePath, out firstFreqNo, out lastFreqNo);
+                        FreqNo = lastFreqNo;
+                        // 周波数ボタンの有効・無効化
+                        setupBtnFreqEnable();
+                    }
+
+                    // Cadパネル再描画（メッシュを消す）
+                    //CadPanel.Invalidate();
+
+                    // 等高線図再描画（メッシュを消す）
+                    //FValuePanel.Invalidate();
+                }));
         }
 
         /// <summary>
@@ -921,6 +1350,7 @@ namespace HPlaneWGSimulator
                 panelMedia.Visible = false;
             }
             btnMediaSelect.Enabled = enabled;
+            chkboxAutoCalc.Enabled = enabled;
         }
 
         /// <summary>
@@ -954,7 +1384,10 @@ namespace HPlaneWGSimulator
                 // OFFのイベントは無視する(必ず対でONのイベントがあるので)
                 return;
             }
+            // 選択されたモードを取得
             CadLogic.CadModeType nextCadMode = getCadModeFromCadModeRadioButtons();
+            // 描画モード詳細イメージコンボボックスへ反映
+            setupDetailCadModeToImgCboxes(nextCadMode);
             // 変更されたCadモードをセットする
             CadLgc.CadMode = nextCadMode;
         }
@@ -964,6 +1397,15 @@ namespace HPlaneWGSimulator
         /// <param name="sender"></param>
         /// <param name="e"></param>
         private void radioBtnNone_CheckedChanged(object sender, EventArgs e)
+        {
+            CadModeRadionBtn_CheckedChangedProc(sender, e);
+        }
+        /// <summary>
+        /// [位置移動]ラジオボタンチェック状態変更イベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void radioBtnLocation_CheckedChanged(object sender, EventArgs e)
         {
             CadModeRadionBtn_CheckedChangedProc(sender, e);
         }
@@ -986,15 +1428,6 @@ namespace HPlaneWGSimulator
             CadModeRadionBtn_CheckedChangedProc(sender, e);
         }
         /// <summary>
-        /// 「消しゴム」ラジオボタンチェック状態変更イベントハンドラ
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void radioBtnErase_CheckedChanged(object sender, EventArgs e)
-        {
-            CadModeRadionBtn_CheckedChangedProc(sender, e);
-        }
-        /// <summary>
         /// 「入射ポート選択」ラジオボタンチェック状態変更イベントハンドラ
         /// </summary>
         /// <param name="sender"></param>
@@ -1012,6 +1445,44 @@ namespace HPlaneWGSimulator
         {
             CadModeRadionBtn_CheckedChangedProc(sender, e);
         }
+        /// <summary>
+        /// 「消しゴム」ラジオボタンチェック状態変更イベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void radioBtnErase_CheckedChanged(object sender, EventArgs e)
+        {
+            CadModeRadionBtn_CheckedChangedProc(sender, e);
+        }
+
+        /// <summary>
+        /// エリア描画モードイメージコンボボックスの選択アイテムインデックス変更イベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void imgcbxCadModeArea_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            CadModeTypeStruct selCadModeTypeStruct = (CadModeTypeStruct)imgcbxCadModeArea.SelectedItem;
+            CadLogic.CadModeType selCadMode = selCadModeTypeStruct.CadMode;
+
+            setupCadModeRadioButtons(selCadMode);
+            CadLgc.CadMode = selCadMode;
+        }
+
+        /// <summary>
+        /// 消しゴム描画モードイメージコンボボックスの選択アイテムインデックス変更イベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void imgcbxCadModeErase_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            CadModeTypeStruct selCadModeTypeStruct = (CadModeTypeStruct)imgcbxCadModeErase.SelectedItem;
+            CadLogic.CadModeType selCadMode = selCadModeTypeStruct.CadMode;
+
+            setupCadModeRadioButtons(selCadMode);
+            CadLgc.CadMode = selCadMode;
+
+        }
 
         /// <summary>
         /// [前の周波数]ボタン押下イベントハンドラ
@@ -1024,27 +1495,70 @@ namespace HPlaneWGSimulator
             {
                 return;
             }
-            if (FreqNo <= 1)
+            int firstFreqNo = -1;
+            int lastFreqNo = -1;
+            int cnt = PostPro.GetCalculatedFreqCnt(FemOutputDatFilePath, out firstFreqNo, out lastFreqNo);
+            if (IsAutoCalc)
             {
-                return;
+                // 自動計算モード対応：計算結果がなくても指定周波数を変更できるようにする
+                firstFreqNo = 1;
+                lastFreqNo = Solver.CalcFreqCnt + 1;
+            }
+            if (FreqNo <= firstFreqNo)
+            {
+                //return;
+                // 繰り返し
+                FreqNo = lastFreqNo + 1; // 後の処理でマイナス1される
             }
             // 前の周波数
             FreqNo--;
-            // 周波数ボタンの有効・無効化
-            setupBtnFreqEnable();
+            if (!IsAutoCalc)
+            {
+                // 周波数ボタンの有効・無効化
+                setupBtnFreqEnable();
+            }
 
             // ポストプロセッサへ結果読み込み
             bool ret = PostPro.LoadOutput(FemOutputDatFilePath, FreqNo);
-            // 結果をグラフィック表示 (周波数特性のデータは追加しない. 等高線図と固有ベクトル分布図のみ更新)
-            PostPro.SetOutputToGui(
-                FemOutputDatFilePath,
-                CadPanel,
-                FValuePanel,
-                FValueLegendPanel, labelFreqValue,
-                SMatChart,
-                BetaChart,
-                EigenVecChart,
-                false);
+            if (ret)
+            {
+                // 結果をグラフィック表示 (周波数特性のデータは追加しない. 等高線図と固有ベクトル分布図のみ更新)
+                bool addFlg = false;
+                if (IsAutoCalc)
+                {
+                    addFlg = true;
+                }
+                PostPro.SetOutputToGui(
+                    FemOutputDatFilePath,
+                    CadPanel,
+                    FValuePanel,
+                    FValueLegendPanel, labelFreqValue,
+                    SMatChart,
+                    BetaChart,
+                    EigenVecChart,
+                    addFlg);
+            }
+            else
+            {
+                // 自動計算モード対応
+                // PostProの出力データだけ初期化する
+                PostPro.InitOutputData(
+                    CadPanel,
+                    FValuePanel,
+                    FValueLegendPanel, labelFreqValue,
+                    SMatChart,
+                    BetaChart,
+                    EigenVecChart);
+                // PostProの周波数を変更する
+                PostPro.SetNormalizedFrequency(Solver.GetNormalizedFreqFromFreqNo(FreqNo));
+                // 等高線図の凡例を更新する
+                PostPro.UpdateFValueLegend(FValueLegendPanel, labelFreqValue);
+                if (IsAutoCalc)
+                {
+                    // 周波数１点だけ計算する
+                    doCalc(false, true); // allFlg: false appendFileFlg: true (形状変化なしなので追記で)
+                }
+            }
         }
 
         /// <summary>
@@ -1061,27 +1575,67 @@ namespace HPlaneWGSimulator
             int firstFreqNo;
             int lastFreqNo;
             int cnt = PostPro.GetCalculatedFreqCnt(FemOutputDatFilePath, out firstFreqNo, out lastFreqNo);
+            if (IsAutoCalc)
+            {
+                // 自動計算モード対応：計算結果がなくても指定周波数を変更できるようにする
+                firstFreqNo = 1;
+                lastFreqNo = Solver.CalcFreqCnt + 1;
+            }
             if (FreqNo >= lastFreqNo)
             {
-                return;
+                //return;
+                // 繰り返し
+                FreqNo = firstFreqNo - 1; // 後の処理でプラス１される
             }
             // 次の周波数
             FreqNo++;
-            // 周波数ボタンの有効・無効化
-            setupBtnFreqEnable();
+            if (!IsAutoCalc)
+            {
+                // 周波数ボタンの有効・無効化
+                setupBtnFreqEnable();
+            }
 
             // ポストプロセッサへ結果読み込み
             bool ret = PostPro.LoadOutput(FemOutputDatFilePath, FreqNo);
-            // 結果をグラフィック表示 (周波数特性のデータは追加しない. 等高線図と固有ベクトル分布図のみ更新)
-            PostPro.SetOutputToGui(
-                FemOutputDatFilePath,
-                CadPanel,
-                FValuePanel,
-                FValueLegendPanel, labelFreqValue,
-                SMatChart,
-                BetaChart,
-                EigenVecChart,
-                false);
+            if (ret)
+            {
+                // 結果をグラフィック表示 (周波数特性のデータは追加しない. 等高線図と固有ベクトル分布図のみ更新)
+                bool addFlg = false;
+                if (IsAutoCalc)
+                {
+                    addFlg = true;
+                }
+                PostPro.SetOutputToGui(
+                    FemOutputDatFilePath,
+                    CadPanel,
+                    FValuePanel,
+                    FValueLegendPanel, labelFreqValue,
+                    SMatChart,
+                    BetaChart,
+                    EigenVecChart,
+                    addFlg);
+            }
+            else
+            {
+                // 自動計算対応
+                // PostProの出力データだけ初期化する
+                PostPro.InitOutputData(
+                    CadPanel,
+                    FValuePanel,
+                    FValueLegendPanel, labelFreqValue,
+                    SMatChart,
+                    BetaChart,
+                    EigenVecChart);
+                // PostProの周波数を変更する
+                PostPro.SetNormalizedFrequency(Solver.GetNormalizedFreqFromFreqNo(FreqNo));
+                // 等高線図の凡例を更新する
+                PostPro.UpdateFValueLegend(FValueLegendPanel, labelFreqValue);
+                if (IsAutoCalc)
+                {
+                    // 周波数１点だけ計算する
+                    doCalc(false, true); // allFlg: false appendFileFlg: true (形状変化なしなので追記で)
+                }
+            }
         }
 
         /// <summary>
@@ -1092,8 +1646,11 @@ namespace HPlaneWGSimulator
             int firstFreqNo;
             int lastFreqNo;
             int cnt = PostPro.GetCalculatedFreqCnt(FemOutputDatFilePath, out firstFreqNo, out lastFreqNo);
-            btnPrevFreq.Enabled = (FreqNo > firstFreqNo && FreqNo <= lastFreqNo);
-            btnNextFreq.Enabled = (FreqNo >= firstFreqNo && FreqNo <lastFreqNo);
+            //btnPrevFreq.Enabled = (FreqNo > firstFreqNo && FreqNo <= lastFreqNo);
+            //btnNextFreq.Enabled = (FreqNo >= firstFreqNo && FreqNo <lastFreqNo);
+            // 繰り返しの場合、始点終点もOK
+            btnPrevFreq.Enabled = (FreqNo >= firstFreqNo && FreqNo <= lastFreqNo);
+            btnNextFreq.Enabled = (FreqNo >= firstFreqNo && FreqNo <= lastFreqNo);
         }
 
         /// <summary>
@@ -1321,7 +1878,8 @@ namespace HPlaneWGSimulator
         /// </summary>
         private void loadFromFile()
         {
-            resetGUI();
+            // ロード中は前のパネル、次のパネルのボタンを非表示にする
+            hidePrevNextFValuePanelBtn();
             // ロード中は操作させない
             IsLoading = true;
             //this.Enabled = false;
@@ -1329,6 +1887,15 @@ namespace HPlaneWGSimulator
             btnCalc.Enabled = false;
             IsLoadCancelled = false;
             btnLoadCancel.Visible = true;
+
+            // 自動計算モードを解除する
+            chkboxAutoCalc.CheckedChanged -= chkboxAutoCalc_CheckedChanged;
+            chkboxAutoCalc.Checked = false;
+            IsAutoCalc = false;
+            PostPro.IsAutoCalc = IsAutoCalc;
+            chkboxAutoCalc.CheckedChanged += chkboxAutoCalc_CheckedChanged;
+
+            resetGUI();
 
             // Cadデータの読み込み
             CadLgc.DeserializeCadData(CadDatFilePath);
@@ -1358,6 +1925,8 @@ namespace HPlaneWGSimulator
 
             if (File.Exists(FemOutputDatFilePath))
             {
+                bool ret;
+
                 // 周波数インデックス初期化
                 FreqNo = -1;
                 // 周波数ボタンの有効・無効化
@@ -1382,7 +1951,7 @@ namespace HPlaneWGSimulator
                 {
                     int freqNo = freqIndex + 1;
                     // ポストプロセッサへ結果読み込み
-                    bool ret = PostPro.LoadOutput(FemOutputDatFilePath, freqNo);
+                    ret = PostPro.LoadOutput(FemOutputDatFilePath, freqNo);
                     if (!ret)
                     {
                         continue;  // 計算失敗を考慮
@@ -1421,22 +1990,47 @@ namespace HPlaneWGSimulator
 
                 // 周波数
                 //FreqNo = 1;
-                FreqNo = firstFreqNo;
-                // 周波数ボタンの有効・無効化
-                setupBtnFreqEnable();
-
+                if (IsAutoCalc)
+                {
+                    FreqNo = (Solver.CalcFreqCnt + 1) / 2 + 1;
+                }
+                else
+                {
+                    FreqNo = firstFreqNo;
+                    // 周波数ボタンの有効・無効化
+                    setupBtnFreqEnable();
+                }
                 // ポストプロセッサへ結果読み込み
-                PostPro.LoadOutput(FemOutputDatFilePath, FreqNo);
-                // グラフィック表示(等高線図と固有ベクトル表示のみ更新)
-                PostPro.SetOutputToGui(
-                    FemOutputDatFilePath,
-                    CadPanel,
-                    FValuePanel,
-                    FValueLegendPanel, labelFreqValue,
-                    SMatChart,
-                    BetaChart,
-                    EigenVecChart,
-                    false);
+                ret = PostPro.LoadOutput(FemOutputDatFilePath, FreqNo);
+                if (ret)
+                {
+                    // グラフィック表示(等高線図と固有ベクトル表示のみ更新)
+                    PostPro.SetOutputToGui(
+                        FemOutputDatFilePath,
+                        CadPanel,
+                        FValuePanel,
+                        FValueLegendPanel, labelFreqValue,
+                        SMatChart,
+                        BetaChart,
+                        EigenVecChart,
+                        false);
+                }
+                else
+                {
+                    // 自動計算対応
+                    // PostProの出力データだけ初期化する
+                    PostPro.InitOutputData(
+                        CadPanel,
+                        FValuePanel,
+                        FValueLegendPanel, labelFreqValue,
+                        SMatChart,
+                        BetaChart,
+                        EigenVecChart);
+                    // PostProの周波数を変更する
+                    PostPro.SetNormalizedFrequency(Solver.GetNormalizedFreqFromFreqNo(FreqNo));
+                    // 等高線図の凡例を更新する
+                    PostPro.UpdateFValueLegend(FValueLegendPanel, labelFreqValue);
+                }
             }
 
             // ロードが完了したので操作可にする
@@ -1528,6 +2122,8 @@ namespace HPlaneWGSimulator
             // 要素形状、補間次数の退避
             Constants.FemElementShapeDV elemShapeDv = Solver.ElemShapeDvToBeSet;
             int elemOrder = Solver.ElemOrderToBeSet;
+            // 線形方程式解法区分の退避
+            FemSolver.LinearSystemEqnSoverDV lsEqnSolverDv = Solver.LsEqnSolverDv;
             if (calcFreqCnt == 0)
             {
                 firstNormalizedFreq = Constants.DefNormalizedFreqRange[0];
@@ -1535,6 +2131,7 @@ namespace HPlaneWGSimulator
                 calcFreqCnt = Constants.DefCalcFreqencyPointCount;
                 elemShapeDv = Constants.DefElemShapeDv;
                 elemOrder = Constants.DefElementOrder;
+                lsEqnSolverDv = Constants.DefLsEqnSolverDv;
             }
 
             // Fem入出力データの削除
@@ -1569,7 +2166,8 @@ namespace HPlaneWGSimulator
             Solver.Load(FemInputDatFilePath);
             // 解析機の情報が確定したので、計算範囲画面で設定した計算範囲をファイルへ書き込み
             Solver.UpdateAndSaveToInputFile(FemInputDatFilePath,
-                firstNormalizedFreq, lastNormalizedFreq, calcFreqCnt);
+                firstNormalizedFreq, lastNormalizedFreq, calcFreqCnt,
+                lsEqnSolverDv);
             // ポストプロセッサの入力データ初期化
             PostPro.InitData(
                 Solver,
@@ -2154,5 +2752,375 @@ namespace HPlaneWGSimulator
                 IsLoadCancelled = true;
             }
         }
+
+        /// <summary>
+        /// 等高線図パネルのマウスエンターイベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void FValuePanel_MouseEnter(object sender, EventArgs e)
+        {
+            if (IsLoading)
+            {
+                return;
+            }
+            if (IsDisabledMouseEnterOfFValuePanel)
+            {
+                return;
+            }
+            //Console.WriteLine("FValuePanel_MouseEnter");
+            FValuePanelMovPt = new Point();
+            // MouseMoveで表示させるように変更
+            //showPrevNextFValuePanelBtn();
+        }
+
+        /// <summary>
+        /// [前のパネル][次のパネル]ボタンを表示する
+        /// </summary>
+        private void showPrevNextFValuePanelBtn()
+        {
+            if (!btnPrevFValuePanel.Visible)
+            {
+                //Console.WriteLine("showPrevNextFValuePanelBtn");
+                int ofsX = 20;
+                int ofsY = 5;
+                // Note:[前のパネル][次のパネル]の親は等高線図パネル
+                btnPrevFValuePanel.Location = new Point(FValuePanel.Width / 2 - btnPrevFValuePanel.Width - ofsX, ofsY);
+                btnNextFValuePanel.Location = new Point(FValuePanel.Width / 2 + ofsX, ofsY);
+                btnPrevFValuePanel.Visible = true;
+                btnNextFValuePanel.Visible = true;
+            }
+        }
+
+        /// <summary>
+        /// [前のパネル][次のパネル]ボタンを非表示にする
+        ///   等高線図パネルのマウスエンターイベントを抑止して実行
+        /// </summary>
+        private void hidePrevNextFValuePanelBtn()
+        {
+            if (btnPrevFValuePanel.Visible)
+            {
+                //Console.WriteLine("hidePrevNextFValuePanelBtn");
+                // 等高線図パネルのマウスエンターイベントのイベントハンドラ処理を実行しない
+                IsDisabledMouseEnterOfFValuePanel = true;
+                FValuePanel.MouseEnter -= FValuePanel_MouseEnter;
+                // ボタン非表示
+                btnPrevFValuePanel.Visible = false;
+                btnNextFValuePanel.Visible = false;
+                new Thread(new ThreadStart(delegate()
+                {
+                    Thread.Sleep(100);
+                    IsDisabledMouseEnterOfFValuePanel = false;
+                    FValuePanel.MouseEnter += FValuePanel_MouseEnter;
+                })).Start();
+            }
+        }
+
+        /// <summary>
+        /// 等高線図パネルのマウスリーブイベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void FValuePanel_MouseLeave(object sender, EventArgs e)
+        {
+            if (IsLoading)
+            {
+                return;
+            }
+            //Console.WriteLine("FValuePanel_MouseLeave");
+            FValuePanelMovPt = new Point();
+            // 等高線図パネルのツールチップを非表示にする
+            //toolTip1.Hide(FValuePanel);
+            //toolTip1.Active = false;
+
+            if (btnPrevFValuePanel.Visible)
+            {
+                // ボタンにフォーカスが当たる前にこちらのマウスリーブイベントが来るのでクリックできない
+                // したかないので、スレッドで遅延実行する
+                new Thread(new ThreadStart(delegate()
+                    {
+                        //[前のパネル][次のパネル]ボタンにフォーカスがあたるまで遅延させる
+                        Thread.Sleep(100);
+                        if (this.Disposing || this.IsDisposed)
+                        {
+                            return;
+                        }
+                        this.Invoke(new InvokeDelegate(delegate()
+                            {
+                                // ボタンにフォーカスが当たっていなければ、本当にパネル外に移動したと判定する
+                                if (!btnPrevFValuePanel.Focused && !btnNextFValuePanel.Focused)
+                                {
+                                    btnPrevFValuePanel.Visible = false;
+                                    btnNextFValuePanel.Visible = false;
+                                }
+                            }));
+
+                    })).Start();
+            }
+        }
+
+        /// <summary>
+        /// 等高線図パネルマウスムーブイベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void FValuePanel_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (IsLoading)
+            {
+                return;
+            }
+            //Console.WriteLine("FValuePanel_MouseMove");
+            if (FValuePanelMovPt.IsEmpty)
+            {
+                FValuePanelMovPt = e.Location;
+            }
+            else
+            {
+                Size movSize = new Size(Math.Abs(e.Location.X - FValuePanelMovPt.X), Math.Abs(e.Location.Y - FValuePanelMovPt.Y));
+                if (movSize.Width >= 10 || movSize.Height >= 10)
+                {
+                    showPrevNextFValuePanelBtn();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 等高線図パネルのマウスホバーイベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void FValuePanel_MouseHover(object sender, EventArgs e)
+        {
+            //Console.WriteLine("FValuePanel_Hover");
+        }
+
+        /// <summary>
+        /// [前のパネル]ボタンクリックイベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btnPrevFValuePanel_Click(object sender, EventArgs e)
+        {
+            // 画面の切り替え(前の画面)
+            FValuePanelIndex--;
+            if (FValuePanelIndex < 0)
+            {
+                //FValuePanelIndex = FValuePanelFieldDV_ValueDVPairList.Length - 1;
+                FValuePanelIndex = FValuePanelFieldDV_ValueDVPairList.Length;  //TEST 4画面
+            }
+            // 等高線図パネルインデックス変更時の処理
+            changeFValuePanelIndexProc(true);
+
+            //// ボタン非表示
+            //hidePrevNextFValuePanelBtn();
+        }
+        /// <summary>
+        /// [次のパネル]ボタンクリックイベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btnNextFValuePanel_Click(object sender, EventArgs e)
+        {
+            // 画面の切り替え(次の画面)
+            FValuePanelIndex++;
+            //if (FValuePanelIndex >= FValuePanelFieldDV_ValueDVPairList.Length)
+            if (FValuePanelIndex > FValuePanelFieldDV_ValueDVPairList.Length)
+            {
+                FValuePanelIndex = 0;
+            }
+            // 等高線図パネルインデックス変更時の処理
+            changeFValuePanelIndexProc(true);
+
+            //// ボタン非表示
+            //hidePrevNextFValuePanelBtn();
+        }
+
+        /// <summary>
+        /// 等高線図パネルインデックス変更時の処理
+        /// </summary>
+        private void changeFValuePanelIndexProc(bool refreshFlg)
+        {
+            if (FValuePanelIndex < FValuePanelFieldDV_ValueDVPairList.Length)
+            {
+                PostPro.ShowFieldDv = FValuePanelFieldDV_ValueDVPairList[FValuePanelIndex].Key;
+                PostPro.ShowValueDv = FValuePanelFieldDV_ValueDVPairList[FValuePanelIndex].Value;
+            }
+            else
+            {
+                // TEST 4画面、凡例は絶対値の場合と同じにする
+                PostPro.ShowFieldDv = FValuePanelFieldDV_ValueDVPairList[0].Key;
+                PostPro.ShowValueDv = FValuePanelFieldDV_ValueDVPairList[0].Value;
+            }
+            // 等高線図パネルのツールチップテキストを設定
+            setFValuePanelToolTip();
+            
+            if (refreshFlg)
+            {
+                // 凡例を更新
+                FValueLegendPanel.Refresh();
+                // 等高線図パネルを更新
+                FValuePanel.Refresh();
+            }
+        }
+
+        /// <summary>
+        /// 等高線図パネルのツールチップを設定する
+        /// </summary>
+        private void setFValuePanelToolTip()
+        {
+            // 等高線図パネルのツールチップを設定する
+            string text = "";
+            if (PostPro.WaveModeDv == FemSolver.WaveModeDV.TM)
+            {
+                if (FValuePanelIndex >= FValuePanelFieldDV_ValueDVPairList.Length)
+                {
+                    foreach (string tmp in FValuePanelContentNameForTM)
+                    {
+                        text += tmp + " " + System.Environment.NewLine;
+                    }
+                }
+                else
+                {
+                    text = FValuePanelContentNameForTM[FValuePanelIndex];
+                }
+            }
+            else
+            {
+                if (FValuePanelIndex >= FValuePanelFieldDV_ValueDVPairList.Length)
+                {
+                    foreach (string tmp in FValuePanelContentNameForTE)
+                    {
+                        text += tmp + " " + System.Environment.NewLine;
+                    }
+                }
+                else
+                {
+                    text = FValuePanelContentNameForTE[FValuePanelIndex];
+                }
+            }
+            toolTip1.SetToolTip(FValuePanel, text);
+        }
+
+        /// <summary>
+        /// [前のパネル]ボタンのマウスエンターイベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btnPrevFValuePanel_MouseEnter(object sender, EventArgs e)
+        {
+            //Console.WriteLine("btnPrevFValuePanel_MouseEnter");
+            // [前のパネル]ボタン上にマウスポインタを持ってくると、親のFValuePanelがMouseEnter→MouseLeaveを繰り返す現象を抑制
+            btnPrevFValuePanel.Focus();
+        }
+
+        /// <summary>
+        /// [前のパネル]ボタンのマウスリーブイベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btnPrevFValuePanel_MouseLeave(object sender, EventArgs e)
+        {
+            //Console.WriteLine("btnPrevFValuePanel_MouseLeave");
+            hidePrevNextFValuePanelBtn();
+        }
+
+        /// <summary>
+        /// [次のパネル]ボタンのマウスエンターイベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btnNextFValuePanel_MouseEnter(object sender, EventArgs e)
+        {
+            //Console.WriteLine("btnNextFValuePanel_MouseEnter");
+            // [次のパネル]ボタン上にマウスポインタを持ってくると、親のFValuePanelがMouseEnter→MouseLeaveを繰り返す現象を抑制
+            btnNextFValuePanel.Focus();
+        }
+
+        /// <summary>
+        /// [次のパネル]ボタンのマウスリーブイベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btnNextFValuePanel_MouseLeave(object sender, EventArgs e)
+        {
+            //Console.WriteLine("btnNextFValuePanel_MouseLeave");
+            // ボタン非表示
+            hidePrevNextFValuePanelBtn();
+        }
+
+        /// <summary>
+        /// 自動計算チェックボックスのチェック状態変更イベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void chkboxAutoCalc_CheckedChanged(object sender, EventArgs e)
+        {
+            IsAutoCalc = chkboxAutoCalc.Checked;
+            PostPro.IsAutoCalc = IsAutoCalc;
+
+            if (CadLgc.IsDirty)
+            {
+                doSave(true);
+            }
+            if (IsAutoCalc)
+            {
+                if (Solver.CalcFreqCnt == 0)
+                {
+                    FreqNo = (Constants.DefCalcFreqencyPointCount + 1) / 2 + 1;
+                }
+                else
+                {
+                    FreqNo = (Solver.CalcFreqCnt + 1) / 2 + 1;
+                }
+            }
+
+            if (FemInputDatFilePath != "")
+            {
+                if (IsAutoCalc)
+                {
+                    // ポストプロセッサへ結果読み込み
+                    bool ret = PostPro.LoadOutput(FemOutputDatFilePath, FreqNo);
+                    if (ret)
+                    {
+                        bool addFlg = true;
+                        // 結果をグラフィック表示 (周波数特性のデータは追加しない. 等高線図と固有ベクトル分布図のみ更新)
+                        PostPro.SetOutputToGui(
+                            FemOutputDatFilePath,
+                            CadPanel,
+                            FValuePanel,
+                            FValueLegendPanel, labelFreqValue,
+                            SMatChart,
+                            BetaChart,
+                            EigenVecChart,
+                            addFlg);
+                    }
+                    else
+                    {
+                        // 周波数１点だけ計算する
+                        doCalc(false, true); // allFlg: false appendFileFlg: true (形状変化なしなので追記で)
+                    }
+                }
+                else
+                {
+                    int dataCnt = 0;
+                    {
+                        int firstFreqNo = -1;
+                        int lastFreqNo = -1;
+                        dataCnt = PostPro.GetCalculatedFreqCnt(FemOutputDatFilePath, out firstFreqNo, out lastFreqNo);
+                    }
+                    if ((dataCnt != Solver.CalcFreqCnt + 1)
+                        && (DialogResult.Yes == MessageBox.Show("全周波数で再計算しますか", "再計算", MessageBoxButtons.YesNo, MessageBoxIcon.Question)))
+                    {
+                        btnCalc.PerformClick();
+                    }
+                    else
+                    {
+                        loadFromFile();
+                    }
+                }
+            }
+        }
+
     }
 }

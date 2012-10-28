@@ -19,11 +19,19 @@ namespace HPlaneWGSimulator
         /// <summary>
         /// Cadモード
         ///   None 操作なし
+        ///   Locatiton 矩形領域位置移動
         ///   Area マス目選択
+        ///   AreaFH マス目選択(フリーハンド)
+        ///   AreaLine マス目選択(直線)
+        ///   AreaEllipse マス目選択(楕円)
         ///   Port ポート境界選択
         ///   Erase 消しゴム
+        ///   EraseFH 消しゴム(フリーハンド)
+        ///   EraseLine 消しゴム(直線)
+        ///   IncidentPort 入力ポート選択
+        ///   PortNumbering 入出力ポート番号振り
         /// </summary>
-        public enum CadModeType { None, Area, Port, Erase, IncidentPort, PortNumbering };
+        public enum CadModeType { None, Location, Area, AreaFH, AreaLine, AreaEllipse, Port, Erase, EraseFH, EraseLine, IncidentPort, PortNumbering };
 
         ////////////////////////////////////////////////////////////////////////
         // 定数
