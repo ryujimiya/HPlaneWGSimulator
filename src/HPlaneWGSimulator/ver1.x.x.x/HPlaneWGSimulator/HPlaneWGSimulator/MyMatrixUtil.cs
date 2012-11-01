@@ -163,6 +163,37 @@ namespace MyUtilLib.Matrix
             return mat;
         }
 
+        public static double[] matrix_ToBuffer(MyDoubleSymmetricBandMatrix mat, bool copyFlg = true)
+        {
+            double[] mat_ = null;
+            if (copyFlg)
+            {
+                int size = mat._rsize * mat._csize;
+                mat_ = new double[size];
+                mat._body.CopyTo(mat_, 0);
+            }
+            else
+            {
+                mat_ = mat._body;
+            }
+            return mat_;
+        }
+
+        public static MyDoubleSymmetricBandMatrix matrix_FromBuffer(double[] mat_, int nRowCol, int nSubdia, int nSuperdia, bool copyFlg = true)
+        {
+            MyDoubleSymmetricBandMatrix mat = null;
+            if (copyFlg)
+            {
+                mat = new MyDoubleSymmetricBandMatrix(mat_, nRowCol, nSubdia, nSuperdia);
+            }
+            else
+            {
+                mat = new MyDoubleSymmetricBandMatrix(nRowCol, nSubdia, nSuperdia);
+                mat._body = mat_;
+            }
+            return mat;
+        }
+
         public static MyDoubleMatrix matrix_Inverse(MyDoubleMatrix matA)
         {
             System.Diagnostics.Debug.Assert(matA.RowSize == matA.ColumnSize);
@@ -361,6 +392,7 @@ namespace MyUtilLib.Matrix
             return matX;
         }
 
+        /*
         // バンドマトリクスにならない可能性があるので、一般行列で返却
         public static MyComplexMatrix product(MyComplexBandMatrix matA, MyDoubleMatrix matB)
         {
@@ -424,6 +456,7 @@ namespace MyUtilLib.Matrix
             }
             return matX;
         }
+        */
 
         // [X] = [A] + [B]
         public static MyDoubleMatrix plus(MyDoubleMatrix matA, MyDoubleMatrix matB)
@@ -434,6 +467,26 @@ namespace MyUtilLib.Matrix
             for (int i = 0; i < matA.RowSize; i++)
             {
                 for (int j = 0; j < matA.ColumnSize; j++)
+                {
+                    matX[i, j] = matA[i, j] + matB[i, j];
+                }
+            }
+            return matX;
+        }
+
+        // [X] = [A] + [B]
+        public static MyDoubleSymmetricBandMatrix plus(MyDoubleSymmetricBandMatrix matA, MyDoubleSymmetricBandMatrix matB)
+        {
+            System.Diagnostics.Debug.Assert(matA.RowSize == matB.RowSize);
+            System.Diagnostics.Debug.Assert(matA.ColumnSize == matB.ColumnSize);
+            int rowcolSize = matA.RowSize;
+            int subdiaSize = matA.SubdiaSize >= matB.SubdiaSize ? matA.SubdiaSize : matB.SubdiaSize;
+            int superdiaSize = matA.SuperdiaSize >= matB.SuperdiaSize ? matA.SuperdiaSize : matB.SuperdiaSize;
+            MyDoubleSymmetricBandMatrix matX = new MyDoubleSymmetricBandMatrix(rowcolSize, subdiaSize, superdiaSize);
+            for (int i = 0; i < matA.RowSize; i++)
+            {
+                //for (int j = 0; j < matA.ColumnSize; j++)
+                for (int j = i; j < matA.ColumnSize; j++)
                 {
                     matX[i, j] = matA[i, j] + matB[i, j];
                 }
@@ -457,6 +510,26 @@ namespace MyUtilLib.Matrix
             return matX;
         }
 
+        // [X] = [A] - [B]
+        public static MyDoubleSymmetricBandMatrix minus(MyDoubleSymmetricBandMatrix matA, MyDoubleSymmetricBandMatrix matB)
+        {
+            System.Diagnostics.Debug.Assert(matA.RowSize == matB.RowSize);
+            System.Diagnostics.Debug.Assert(matA.ColumnSize == matB.ColumnSize);
+            int rowcolSize = matA.RowSize;
+            int subdiaSize = matA.SubdiaSize >= matB.SubdiaSize ? matA.SubdiaSize : matB.SubdiaSize;
+            int superdiaSize = matA.SuperdiaSize >= matB.SuperdiaSize ? matA.SuperdiaSize : matB.SuperdiaSize;
+            MyDoubleSymmetricBandMatrix matX = new MyDoubleSymmetricBandMatrix(rowcolSize, subdiaSize, superdiaSize);
+            for (int i = 0; i < matA.RowSize; i++)
+            {
+                //for (int j = 0; j < matA.ColumnSize; j++)
+                for (int j = i; j < matA.ColumnSize; j++)
+                {
+                    matX[i, j] = matA[i, j] - matB[i, j];
+                }
+            }
+            return matX;
+        }
+
         // [X] = alpha * [A]
         public static MyDoubleMatrix product(double alpha, MyDoubleMatrix matA)
         {
@@ -464,6 +537,21 @@ namespace MyUtilLib.Matrix
             for (int i = 0; i < matA.RowSize; i++)
             {
                 for (int j = 0; j < matA.ColumnSize; j++)
+                {
+                    matX[i, j] = alpha * matA[i, j];
+                }
+            }
+            return matX;
+        }
+
+        // [X] = alpha * [A]
+        public static MyDoubleSymmetricBandMatrix product(double alpha, MyDoubleSymmetricBandMatrix matA)
+        {
+            MyDoubleSymmetricBandMatrix matX = new MyDoubleSymmetricBandMatrix(matA.RowSize, matA.SubdiaSize, matA.SuperdiaSize);
+            for (int i = 0; i < matA.RowSize; i++)
+            {
+                //for (int j = 0; j < matA.ColumnSize; j++)
+                for (int j = i; j < matA.ColumnSize; j++)
                 {
                     matX[i, j] = alpha * matA[i, j];
                 }

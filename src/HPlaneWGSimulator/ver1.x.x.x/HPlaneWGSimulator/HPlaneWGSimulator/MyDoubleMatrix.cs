@@ -31,7 +31,7 @@ namespace MyUtilLib.Matrix
         /// <param name="row"></param>
         /// <param name="col"></param>
         /// <returns></returns>
-        internal int GetBufferIndex(int row, int col)
+        internal virtual int GetBufferIndex(int row, int col)
         {
             return (row + col * _rsize);
         }
@@ -102,7 +102,7 @@ namespace MyUtilLib.Matrix
         /// <param name="row">行index（範囲：[0, <see cref="RowSize"/>) ）</param>
         /// <param name="col">列index（範囲：[0, <see cref="ColumnSize"/>) ）</param>
         /// <returns>要素の値</returns>
-        public double this[int row, int col]
+        public virtual double this[int row, int col]
         {
             get
             {
@@ -125,7 +125,7 @@ namespace MyUtilLib.Matrix
         /// <summary>
         /// このオブジェクトの行数を取得する．
         /// </summary>
-        public int RowSize
+        public virtual int RowSize
         {
             get { return this._rsize; }
         }
@@ -133,7 +133,7 @@ namespace MyUtilLib.Matrix
         /// <summary>
         /// このオブジェクトの列数を取得する．
         /// </summary>
-        public int ColumnSize
+        public virtual int ColumnSize
         {
             get { return this._csize; }
         }
@@ -141,7 +141,7 @@ namespace MyUtilLib.Matrix
         /// <summary>
         /// このオブジェクトをクリアする（<c>RowSize == 0 and ColumnSize == 0</c> になる）．
         /// </summary>
-        public void Clear()
+        public virtual void Clear()
         {
             this._body = new double[0];
             this._rsize = 0;
@@ -154,7 +154,7 @@ namespace MyUtilLib.Matrix
         /// <param name="rowSize">新しい行数</param>
         /// <param name="columnSize">新しい列数</param>
         /// <returns>リサイズ後の自身への参照</returns>
-        public MyDoubleMatrix Resize(int rowSize, int columnSize)
+        public virtual MyDoubleMatrix Resize(int rowSize, int columnSize)
         {
             this._body = new double[rowSize * columnSize];
             this._rsize = rowSize;
@@ -186,7 +186,7 @@ namespace MyUtilLib.Matrix
         /// </summary>
         /// <param name="m">コピーされる行列</param>
         /// <returns>コピー後の自身への参照</returns>
-        public MyDoubleMatrix CopyFrom(MyDoubleMatrix m)
+        public virtual MyDoubleMatrix CopyFrom(MyDoubleMatrix m)
         {
             return CopyFrom(m._body, m._rsize, m._csize);
         }
@@ -199,7 +199,7 @@ namespace MyUtilLib.Matrix
         /// <param name="rowSize">行数</param>
         /// <param name="columnSize">列数</param>
         /// <returns>コピー後の自身への参照</returns>
-        internal MyDoubleMatrix CopyFrom(Double[] body, int rowSize, int columnSize)
+        internal virtual MyDoubleMatrix CopyFrom(Double[] body, int rowSize, int columnSize)
         {
             // 入力の検証
             System.Diagnostics.Debug.Assert(body.Length == rowSize * columnSize);
@@ -294,7 +294,7 @@ namespace MyUtilLib.Matrix
         /// 転置する．
         /// </summary>
         /// <returns>転置後の自身への参照</returns>
-        public MyDoubleMatrix Transpose()
+        public virtual MyDoubleMatrix Transpose()
         {
             MyDoubleMatrix t = new MyDoubleMatrix(this._csize, this._rsize);
 

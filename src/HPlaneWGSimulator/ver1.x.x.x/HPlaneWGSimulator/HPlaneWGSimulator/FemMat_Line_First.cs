@@ -159,13 +159,21 @@ namespace HPlaneWGSimulator
                     int jnoSorted;
                     if (!toSorted.ContainsKey(jnoBoundary)) continue;
                     jnoSorted = toSorted[jnoBoundary];
+                    // 対称バンド行列対応
+                    if (ryy_1d is MyDoubleSymmetricBandMatrix && jnoSorted < inoSorted)
+                    {
+                        continue;
+                    }
 
                     double e_txx_1d_inojno = media_P[0, 0] * integralDNDY[ino, jno];
                     double e_ryy_1d_inojno = media_P[1, 1] * integralN[ino, jno];
                     double e_uzz_1d_inojno = media_Q[2, 2] * integralN[ino, jno];
-                    txx_1d[inoSorted, jnoSorted] += e_txx_1d_inojno;
-                    ryy_1d[inoSorted, jnoSorted] += e_ryy_1d_inojno;
-                    uzz_1d[inoSorted, jnoSorted] += e_uzz_1d_inojno;
+                    //txx_1d[inoSorted, jnoSorted] += e_txx_1d_inojno;
+                    //ryy_1d[inoSorted, jnoSorted] += e_ryy_1d_inojno;
+                    //uzz_1d[inoSorted, jnoSorted] += e_uzz_1d_inojno;
+                    txx_1d._body[txx_1d.GetBufferIndex(inoSorted, jnoSorted)] += e_txx_1d_inojno;
+                    ryy_1d._body[ryy_1d.GetBufferIndex(inoSorted, jnoSorted)] += e_ryy_1d_inojno;
+                    uzz_1d._body[uzz_1d.GetBufferIndex(inoSorted, jnoSorted)] += e_uzz_1d_inojno;
                 }
             }
         }

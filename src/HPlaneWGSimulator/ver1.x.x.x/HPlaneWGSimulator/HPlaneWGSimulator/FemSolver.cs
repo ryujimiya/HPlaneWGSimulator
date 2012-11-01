@@ -1112,7 +1112,7 @@ namespace HPlaneWGSimulator
                 {
                     // バンド幅を縮小する
                     // 非０要素のパターンを取得
-                    getMatNonzeroPattern(Nodes, Elements, Ports, ForceBCNodes, toSorted, out matPattern);
+                    getMatNonzeroPattern(Elements, Ports, toSorted, out matPattern);
                     // subdiagonal、superdiagonalのサイズを取得する
                     int subdiaSizeInitial = 0;
                     int superdiaSizeInitial = 0;
@@ -1177,7 +1177,7 @@ namespace HPlaneWGSimulator
                     bool improved = false;
                     bool[,] optMatPattern = null;
                     // 非０パターンを取得
-                    getMatNonzeroPattern(Nodes, Elements, Ports, ForceBCNodes, toOptNodes, out optMatPattern);
+                    getMatNonzeroPattern(Elements, Ports, toOptNodes, out optMatPattern);
                     // check
                     {
                         Console.WriteLine("/////opt BandMat info///////");
@@ -1286,21 +1286,16 @@ namespace HPlaneWGSimulator
             return true;
         }
 
-
         /// <summary>
         /// FEM行列の非０パターンを取得する
         /// </summary>
-        /// <param name="Nodes"></param>
         /// <param name="Elements"></param>
         /// <param name="Ports"></param>
-        /// <param name="ForceBCNodes"></param>
         /// <param name="toSorted">ソート済み節点番号→ソート済み節点リストのインデックスマップ</param>
         /// <param name="matPattern">非０パターンの配列(非０の要素はtrue、０要素はfalse)</param>
         private static void getMatNonzeroPattern(
-            IList<FemNode> Nodes,
             IList<FemElement> Elements,
             IList<IList<int>> Ports,
-            IList<int> ForceBCNodes,
             Dictionary<int, int> toSorted,
             out bool[,] matPattern
             )
@@ -1309,8 +1304,7 @@ namespace HPlaneWGSimulator
 
             // 総節点数
             int nodeCnt = toSorted.Count;
-
-            int matLen = Nodes.Count - ForceBCNodes.Count;
+            int matLen = nodeCnt;
 
             // 行列の非０パターンを取得する
             matPattern = new bool[matLen, matLen];
@@ -1328,16 +1322,10 @@ namespace HPlaneWGSimulator
 
                 foreach (int iNodeNumber in nodeNumbers)
                 {
-                    //if (ForceBCNodes.Contains(iNodeNumber)) continue;
-                    //int ino_global = sortedNodes.IndexOf(iNodeNumber);
-                    //if (ino_global == -1) continue;
                     if (!toSorted.ContainsKey(iNodeNumber)) continue;
                     int ino_global = toSorted[iNodeNumber];
                     foreach (int jNodeNumber in nodeNumbers)
                     {
-                        //if (ForceBCNodes.Contains(jNodeNumber)) continue;
-                        //int jno_global = sortedNodes.IndexOf(jNodeNumber);
-                        //if (jno_global == -1) continue;
                         if (!toSorted.ContainsKey(jNodeNumber)) continue;
                         int jno_global = toSorted[jNodeNumber];
                         matPattern[ino_global, jno_global] = true;
@@ -1349,15 +1337,10 @@ namespace HPlaneWGSimulator
             {
                 foreach (int iNodeNumber in portNodes)
                 {
-                    //if (ForceBCNodes.Contains(iNodeNumber)) continue;
-                    //int ino_global = sortedNodes.IndexOf(iNodeNumber);
-                    //if (ino_global == -1) continue;
                     if (!toSorted.ContainsKey(iNodeNumber)) continue;
                     int ino_global = toSorted[iNodeNumber];
                     foreach (int jNodeNumber in portNodes)
                     {
-                        //if (ForceBCNodes.Contains(jNodeNumber)) continue;
-                        //int jno_global = sortedNodes.IndexOf(jNodeNumber);
                         if (!toSorted.ContainsKey(jNodeNumber)) continue;
                         int jno_global = toSorted[jNodeNumber];
                         if (!matPattern[ino_global, jno_global])
@@ -1788,21 +1771,22 @@ namespace HPlaneWGSimulator
                 int nodeNumber = to1dNodes[nodeNumber2d];
                 if (ForceNodeNumberH.ContainsKey(nodeNumber2d))
                 {
-                    Console.WriteLine("{0}:    {1}    {2}", nodeNumber, Nodes[nodeNumber2d - 1].Coord[0], Nodes[nodeNumber2d - 1].Coord[1]); 
+                    Console.WriteLine("{0}:    {1}    {2}", nodeNumber, Nodes[nodeNumber2d - 1].Coord[0], Nodes[nodeNumber2d - 1].Coord[1]);
                 }
                 else
                 {
                     sortedNodes.Add(nodeNumber);
+                    toSorted.Add(nodeNumber, sortedNodes.Count - 1);
                 }
             }
-            // 1D節点番号→ソート済みリストインデックス変換マップ作成
-            for (int i = 0; i < sortedNodes.Count; i++)
+            // 対称バンド行列のパラメータを取得する
+            int rowcolSize = 0;
+            int subdiaSize = 0;
+            int superdiaSize = 0;
             {
-                int nodeNumber = sortedNodes[i];
-                if (!toSorted.ContainsKey(nodeNumber))
-                {
-                    toSorted.Add(nodeNumber, i);
-                }
+                bool[,] matPattern = null;
+                getMatNonzeroPatternForEigen(elements, toSorted, out matPattern);
+                getBandMatrixSubDiaSizeAndSuperDiaSizeForEigen(matPattern, out rowcolSize, out subdiaSize, out superdiaSize);
             }
             // ソート済み1D節点インデックス→2D節点番号マップ
             nodesBoundary = new int[sortedNodes.Count];
@@ -1825,10 +1809,13 @@ namespace HPlaneWGSimulator
             eigenValues = new Complex[maxMode];
             eigenVecs = new Complex[maxMode, nodeCnt];
             // 固有モード解析でのみ使用するuzz_1d, txx_1d
-            MyDoubleMatrix txx_1d = new MyDoubleMatrix(nodeCnt, nodeCnt);
-            MyDoubleMatrix uzz_1d = new MyDoubleMatrix(nodeCnt, nodeCnt);
+            //MyDoubleMatrix txx_1d = new MyDoubleMatrix(nodeCnt, nodeCnt);
+            MyDoubleMatrix txx_1d = new MyDoubleSymmetricBandMatrix(nodeCnt, subdiaSize, superdiaSize);
+            //MyDoubleMatrix uzz_1d = new MyDoubleMatrix(nodeCnt, nodeCnt);
+            MyDoubleMatrix uzz_1d = new MyDoubleSymmetricBandMatrix(nodeCnt, subdiaSize, superdiaSize);
             // ryy_1dマトリクス (線要素)
-            ryy_1d = new MyDoubleMatrix(nodeCnt, nodeCnt);
+            //ryy_1d = new MyDoubleMatrix(nodeCnt, nodeCnt);
+            ryy_1d = new MyDoubleSymmetricBandMatrix(nodeCnt, subdiaSize, superdiaSize);
 
             /*
             for (int i = 0; i < nodeCnt; i++)
@@ -1872,31 +1859,38 @@ namespace HPlaneWGSimulator
             }
 
             // [A] = [Txx] - k0 * k0 *[Uzz]
-            //MyDoubleMatrix matA = minus(txx_1d, product((k0 * k0), uzz_1d));
             //メモリ節約
-            MyDoubleMatrix matA = new MyDoubleMatrix(nodeCnt, nodeCnt);
+            //MyDoubleMatrix matA = new MyDoubleMatrix(nodeCnt, nodeCnt);
+            MyDoubleSymmetricBandMatrix matA = new MyDoubleSymmetricBandMatrix(nodeCnt, subdiaSize, superdiaSize);
             for (int ino = 0; ino < nodeCnt; ino++)
             {
                 for (int jno = 0; jno < nodeCnt; jno++)
                 {
+                    // 対称バンド行列対応
+                    if (matA is MyDoubleSymmetricBandMatrix && ino > jno)
+                    {
+                        continue;
+                    }
                     // 剛性行列
-                    matA[ino, jno] = txx_1d[ino, jno] - (k0 * k0) * uzz_1d[ino, jno];
+                    //matA[ino, jno] = txx_1d[ino, jno] - (k0 * k0) * uzz_1d[ino, jno];
+                    //  質量行列matBが正定値行列となるように剛性行列matAの方の符号を反転する
+                    matA[ino, jno] = - (txx_1d[ino, jno] - (k0 * k0) * uzz_1d[ino, jno]);
                 }
             }
-            // 定式化のBUGFIX
-            //matA = MyMatrixUtil.product(MyMatrixUtil.matrix_Inverse(ryy_1d), matA);
+
             // ( [txx] - k0^2[uzz] + β^2[ryy]){Ez} = {0}より
             // [A]{x} = λ[B]{x}としたとき、λ = β^2 とすると[B] = -[ryy]
-            MyDoubleMatrix matB = MyMatrixUtil.product(-1.0, ryy_1d);
-            // ([B])-1[A]
-            matA = MyMatrixUtil.product(MyMatrixUtil.matrix_Inverse(matB), matA);
-
+            //MyDoubleMatrix matB = MyMatrixUtil.product(-1.0, ryy_1d);
+            // 質量行列が正定値となるようにするため、上記符号反転を剛性行列の方に反映し、質量行列はryy_1dをそのまま使用する
+            //MyDoubleMatrix matB = new MyDoubleMatrix(ryy_1d);
+            MyDoubleSymmetricBandMatrix matB = new MyDoubleSymmetricBandMatrix((MyDoubleSymmetricBandMatrix)ryy_1d);
             Complex[] evals = null;
             Complex[,] evecs = null;
+            // 一般化固有値問題を解く
             try
             {
                 // 固有値、固有ベクトルを求める
-                solveEigen(matA, out evals, out evecs);
+                solveEigen(matA, matB, out evals, out evecs);
                 // 固有値のソート
                 sort1DEigenMode(k0, evals, evecs);
             }
@@ -1905,7 +1899,6 @@ namespace HPlaneWGSimulator
                 Console.WriteLine(exception.Message + " " + exception.StackTrace);
                 System.Diagnostics.Debug.Assert(false);
             }
-
             int tagtModeIdx = evals.Length - 1;
             for (int imode = 0; imode < maxMode; imode++)
             {
@@ -1965,7 +1958,110 @@ namespace HPlaneWGSimulator
                 tagtModeIdx--;
             }
         }
-       
+
+
+        /// <summary>
+        /// 固有値解析FEM行列の非０パターンを取得する
+        ///   対称行列を前提条件とする
+        /// </summary>
+        /// <param name="elements"></param>
+        /// <param name="toSorted">ソート済み節点番号→ソート済み節点リストのインデックスマップ</param>
+        /// <param name="matPattern">非０パターンの配列(非０の要素はtrue、０要素はfalse)</param>
+        private static void getMatNonzeroPatternForEigen(
+            IList<FemLineElement> elements,
+            Dictionary<int, int> toSorted,
+            out bool[,] matPattern
+            )
+        {
+            matPattern = null;
+
+            // 総節点数
+            int nodeCnt = toSorted.Count;
+
+            int matLen = nodeCnt;
+
+            // 行列の非０パターンを取得する
+            matPattern = new bool[matLen, matLen];
+            for (int ino_global = 0; ino_global < matLen; ino_global++)
+            {
+                for (int jno_global = 0; jno_global < matLen; jno_global++)
+                {
+                    matPattern[ino_global, jno_global] = false;
+                }
+            }
+            // 領域の節点の行列要素パターン
+            foreach (FemLineElement element in elements)
+            {
+                int[] nodeNumbers = element.NodeNumbers;
+
+                foreach (int iNodeNumber in nodeNumbers)
+                {
+                    //if (ForceBCNodes.Contains(iNodeNumber)) continue;
+                    //int ino_global = sortedNodes.IndexOf(iNodeNumber);
+                    //if (ino_global == -1) continue;
+                    if (!toSorted.ContainsKey(iNodeNumber)) continue;
+                    int ino_global = toSorted[iNodeNumber];
+                    foreach (int jNodeNumber in nodeNumbers)
+                    {
+                        //if (ForceBCNodes.Contains(jNodeNumber)) continue;
+                        //int jno_global = sortedNodes.IndexOf(jNodeNumber);
+                        //if (jno_global == -1) continue;
+                        if (!toSorted.ContainsKey(jNodeNumber)) continue;
+                        int jno_global = toSorted[jNodeNumber];
+                        matPattern[ino_global, jno_global] = true;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 固有値解析FEM行列のバンドマトリクス情報を取得する
+        ///   対称行列を前提条件とする
+        /// </summary>
+        /// <param name="matPattern">非０パターンの配列</param>
+        /// <param name="rowcolSize">行数=列数</param>
+        /// <param name="subdiaSize">subdiagonalのサイズ</param>
+        /// <param name="superdiaSize">superdiagonalのサイズ</param>
+        private static void getBandMatrixSubDiaSizeAndSuperDiaSizeForEigen(
+            bool[,] matPattern,
+            out int rowcolSize,
+            out int subdiaSize,
+            out int superdiaSize)
+        {
+            rowcolSize = matPattern.GetLength(0);
+
+            // subdiaサイズ、superdiaサイズを取得する
+            subdiaSize = 0;
+            superdiaSize = 0;
+            // Note: c == 0は除く
+            for (int c = rowcolSize - 1; c >= 1; c--)
+            {
+                if (superdiaSize >= c)
+                {
+                    break;
+                }
+                int cnt = 0;
+                for (int r = 0; r <= c - 1; r++)
+                {
+                    // 非０要素が見つかったら抜ける
+                    if (matPattern[r, c])
+                    {
+                        cnt = c - r;
+                        break;
+                    }
+                }
+                if (cnt > superdiaSize)
+                {
+                    superdiaSize = cnt;
+                }
+            }
+            // 対称行列なので、subdiaSize == superdiaSize
+            subdiaSize = superdiaSize;
+
+            Console.WriteLine("(EigenValueProblem) rowcolSize: {0} subdiaSize: {1} superdiaSize: {2}", rowcolSize, subdiaSize, superdiaSize);
+        }
+
+        /*
         /// <summary>
         /// Lisys(Lapack)による固有値解析(複素数版)
         /// </summary>
@@ -1977,14 +2073,12 @@ namespace HPlaneWGSimulator
             Complex[][] c_evecs = null;
             KrdLab.clapack.FunctionExt.zgeev(X, srcMat.RowSize, srcMat.ColumnSize, ref c_evals, ref c_evecs);
 
-            /*
-            evals = new Complex[c_evals.Length];
-            for (int i = 0; i < evals.Length; i++)
-            {
-                evals[i] = c_evals[i];
-                //Console.WriteLine("( " + i + " ) = " + evals[i].Real + " + " + evals[i].Imaginary + " i ");
-            }
-             */
+            //evals = new Complex[c_evals.Length];
+            //for (int i = 0; i < evals.Length; i++)
+            //{
+            //    evals[i] = c_evals[i];
+            //    //Console.WriteLine("( " + i + " ) = " + evals[i].Real + " + " + evals[i].Imaginary + " i ");
+            //}
             evals = c_evals;
             evecs = new Complex[c_evecs.Length, c_evecs[0].Length];
             for (int i = 0; i < evecs.GetLength(0); i++)
@@ -1998,7 +2092,6 @@ namespace HPlaneWGSimulator
 
             return true;
         }
-
 
         /// <summary>
         /// Lisys(Lapack)による固有値解析
@@ -2029,6 +2122,118 @@ namespace HPlaneWGSimulator
                     //evecs[i, j] = new Complex(r_evecs[i][j], i_evecs[i][j]);
                     evecs[i, j].Real = r_evecs[i][j];
                     evecs[i, j].Imaginary = i_evecs[i][j];
+                    //Console.WriteLine("( " + i + ", " + j + " ) = " + evecs[i, j].Real + " + " + evecs[i, j].Imaginary + " i ");
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Lisys(Lapack)による固有値解析(一般化固有値問題)(複素数版)
+        /// </summary>
+        private static bool solveEigen(MyComplexMatrix stiffnessMat, MyComplexMatrix massMat, out Complex[] evals, out Complex[,] evecs)
+        {
+            // Lisys(Lapack)による固有値解析
+            Complex[] A = MyMatrixUtil.matrix_ToBuffer(stiffnessMat, false);
+            Complex[] B = MyMatrixUtil.matrix_ToBuffer(massMat, false);
+            Complex[] c_evals = null;
+            Complex[][] c_evecs = null;
+            KrdLab.clapack.FunctionExt.zggev(A, stiffnessMat.RowSize, stiffnessMat.ColumnSize, B, massMat.RowSize, massMat.ColumnSize, ref c_evals, ref c_evecs);
+
+            //evals = new Complex[c_evals.Length];
+            //for (int i = 0; i < evals.Length; i++)
+            //{
+            //    evals[i] = c_evals[i];
+            //    //Console.WriteLine("( " + i + " ) = " + evals[i].Real + " + " + evals[i].Imaginary + " i ");
+            //}
+            evals = c_evals;
+            evecs = new Complex[c_evecs.Length, c_evecs[0].Length];
+            for (int i = 0; i < evecs.GetLength(0); i++)
+            {
+                for (int j = 0; j < evecs.GetLength(1); j++)
+                {
+                    evecs[i, j] = c_evecs[i][j];
+                    //Console.WriteLine("( " + i + ", " + j + " ) = " + evecs[i, j].Real + " + " + evecs[i, j].Imaginary + " i ");
+                }
+            }
+
+            return true;
+        }
+        */
+
+        /// <summary>
+        /// Lisys(Lapack)による固有値解析(一般化固有値問題)
+        /// </summary>
+        private static bool solveEigen(MyDoubleMatrix stiffnessMat, MyDoubleMatrix massMat, out Complex[] evals, out Complex[,] evecs)
+        {
+            // Lisys(Lapack)による固有値解析
+            double[] A = MyMatrixUtil.matrix_ToBuffer(stiffnessMat, false);
+            double[] B = MyMatrixUtil.matrix_ToBuffer(massMat, false);
+            double[] r_evals = null;
+            double[] i_evals = null;
+            double[][] r_evecs = null;
+            double[][] i_evecs = null;
+            KrdLab.clapack.FunctionExt.dggev(A, stiffnessMat.RowSize, stiffnessMat.ColumnSize, B, massMat.RowSize, massMat.ColumnSize,
+                ref r_evals, ref i_evals, ref r_evecs, ref i_evecs);
+
+            evals = new Complex[r_evals.Length];
+            for (int i = 0; i < evals.Length; i++)
+            {
+                //evals[i] = new Complex(r_evals[i], i_evals[i]);
+                evals[i].Real = r_evals[i];
+                evals[i].Imaginary = i_evals[i];
+                //Console.WriteLine("( " + i + " ) = " + evals[i].Real + " + " + evals[i].Imaginary + " i ");
+            }
+            evecs = new Complex[r_evecs.Length, r_evecs[0].Length];
+            for (int i = 0; i < evecs.GetLength(0); i++)
+            {
+                for (int j = 0; j < evecs.GetLength(1); j++)
+                {
+                    //evecs[i, j] = new Complex(r_evecs[i][j], i_evecs[i][j]);
+                    evecs[i, j].Real = r_evecs[i][j];
+                    evecs[i, j].Imaginary = i_evecs[i][j];
+                    //Console.WriteLine("( " + i + ", " + j + " ) = " + evecs[i, j].Real + " + " + evecs[i, j].Imaginary + " i ");
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Lisys(Lapack)による固有値解析(一般化固有値問題)
+        /// </summary>
+        private static bool solveEigen(MyDoubleSymmetricBandMatrix stiffnessMat, MyDoubleSymmetricBandMatrix massMat, out Complex[] evals, out Complex[,] evecs)
+        {
+            // Lisys(Lapack)による固有値解析
+            double[] A = MyMatrixUtil.matrix_ToBuffer(stiffnessMat, false);
+            double[] B = MyMatrixUtil.matrix_ToBuffer(massMat, false);
+            double[] r_evals = null;
+            double[][] r_evecs = null;
+            int a_row = stiffnessMat.RowSize;
+            int a_col = stiffnessMat.ColumnSize;
+            int a_superdiaSize = stiffnessMat.SuperdiaSize;
+            int b_row = massMat.RowSize;
+            int b_col = massMat.ColumnSize;
+            int b_superdiaSize = massMat.SuperdiaSize;
+            KrdLab.clapack.FunctionExt.dsbgv(A, a_row, a_col, a_superdiaSize, B, b_row, b_col, b_superdiaSize, ref r_evals, ref r_evecs);
+
+            evals = new Complex[r_evals.Length];
+            for (int i = 0; i < evals.Length; i++)
+            {
+                //evals[i] = new Complex(r_evals[i], 0.0);
+                evals[i].Real = r_evals[i];
+                evals[i].Imaginary = 0.0;
+                //Console.WriteLine("( " + i + " ) = " + evals[i].Real + " + " + evals[i].Imaginary + " i ");
+            }
+            evecs = new Complex[r_evecs.Length, r_evecs[0].Length];
+            for (int i = 0; i < evecs.GetLength(0); i++)
+            {
+                for (int j = 0; j < evecs.GetLength(1); j++)
+                {
+                    //evecs[i, j] = new Complex(r_evecs[i][j], 0.0);
+                    evecs[i, j].Real = r_evecs[i][j];
+                    evecs[i, j].Imaginary = 0.0;
                     //Console.WriteLine("( " + i + ", " + j + " ) = " + evecs[i, j].Real + " + " + evecs[i, j].Imaginary + " i ");
                 }
             }

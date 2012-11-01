@@ -714,6 +714,561 @@ namespace KrdLab {
                 return ret;
             }
 
+            /// <summary>
+            /// <para>一般化固有値問題 Ax=λBxを解く</para>
+            /// <para>計算された固有ベクトルは，大きさ（ユークリッドノルム）が 1 に規格化されている．</para>
+            /// </summary>
+            /// <param name="A">固有値分解される行列A（計算の過程で上書きされる）</param>
+            /// <param name="a_row">行列 <paramref name="A"/> の行数</param>
+            /// <param name="a_col">行列 <paramref name="A"/> の列数</param>
+            /// <param name="B">固有値分解される行列B（計算の過程で上書きされる）</param>
+            /// <param name="b_row">行列 <paramref name="B"/> の行数</param>
+            /// <param name="b_col">行列 <paramref name="B"/> の列数</param>
+            /// <param name="r_evals">固有値の実数部</param>
+            /// <param name="i_evals">固有値の虚数部</param>
+            /// <param name="r_evecs">固有ベクトルの実数部</param>
+            /// <param name="i_evecs">固有ベクトルの虚数部</param>
+            /// <returns>常に 0 が返ってくる．</returns>
+            /// <remarks>
+            /// <para>対応するCLAPACK関数（CLAPACK/BLAS/SRC/dggev.c）</para>
+            /// <code>
+            /// int dggev_(char *jobvl, char *jobvr, integer *n,
+            ///            doublereal *a, integer *lda,
+            ///            doublereal *b, integer *ldb,
+            ///            doublereal *alphar, doublereal *alphai,
+            ///            doublereal *beta,
+            ///            doublereal *vl, integer *ldvl, doublereal *vr, integer *ldvr,
+            ///            doublereal *work, integer *lwork, integer *info);
+            /// </code>
+            /// </remarks>
+            static int dggev(array<doublereal>^ A, int a_row, int a_col,
+                             array<doublereal>^ B, int b_row, int b_col,
+                             array<doublereal>^% r_evals,
+                             array<doublereal>^% i_evals,
+                             array< array<doublereal>^ >^% r_evecs,
+                             array< array<doublereal>^ >^% i_evecs )
+            {
+                char jobvl = 'N';
+                // 左固有ベクトルを
+                //   if jobvl == 'V' then 計算する
+                //   if jobvl == 'N' then 計算しない
+
+                char jobvr = 'V';
+                // 右固有ベクトルを
+                //   if jobvr == 'V' then 計算する
+                //   if jobvr == 'N' then 計算しない
+
+                integer n = a_col;
+                // 行列 A, B の大きさ（N×Nなので，片方だけでよい）
+
+                integer lda = n;
+                // the leading dimension of the array A. lda >= max(1, N).
+
+                pin_ptr<doublereal> a = &A[0];
+                // [lda, n] N×N の行列 A
+                // 配列 a （行列 A）は，計算の過程で上書きされる．
+                
+                integer ldb = n;
+                // the leading dimension of B. ldb >= max(1,N).
+
+                pin_ptr<doublereal> b = &B[0];
+                // [ldb, n] N×N の行列 B
+                // 配列 b （行列 B）は，計算の過程で上書きされる．
+
+                doublereal* alphar = new doublereal[n];
+                // 計算された固有値の実部の分子部分が入る．
+
+                doublereal* alphai = new doublereal[n];
+                // 計算された固有値の虚部の分子部分が入る．
+                // 複素共役対の場合は，alphai[j]=(正値)，alphai[j+1]=(負値) の順に入る．
+
+                doublereal* beta = new doublereal[n];
+                // 計算された固有値の分母部分が入る
+                //  (alphar[j] + alphai[j] * i) / beta[j] (i:虚数単位)が一般化固有値となる
+
+                /*
+                 * ※左固有ベクトルは計算しない
+                 */
+
+
+                integer ldvl = 1;
+                // 必ず 1 <= ldvl を満たす必要がある．
+                // if jobvl == 'V' then N <= ldvl
+
+                doublereal* vl = nullptr;
+                // vl is not referenced, because jobvl == 'N'.
+
+                /*
+                 * ※右固有ベクトルは計算する
+                 */
+
+                integer ldvr = n;
+                // 必ず 1 <= ldvr を満たす必要がある．
+                // if jobvr == 'V' then N <= ldvr
+
+                doublereal* vr = new doublereal[ldvr * n];
+                // if jobvr == 'V' then 右固有ベクトルが vr の各列に，固有値と同じ順序で格納される．
+                // if jobvr == 'N' then vr is not referenced.
+
+                //
+                // その他
+
+                integer lwork = 8*n;
+                // max(1, 8*N) <= lwork
+                // if jobvl == 'V' or jobvr == 'V' then 8*N <= lwork
+                // 良いパフォーマンスを得るために，大抵の場合 lwork は大きくすべきだ．
+                doublereal* work = new doublereal[lwork];
+                // if info == 0 then work[0] returns the optimal lwork.
+
+                integer info = 0;
+                // if info == 0 then 正常終了
+                // if info <  0 then -info 番目の引数の値が間違っている．
+                // if info >  0 then QRアルゴリズムは，全ての固有値を計算できなかった．
+                //                   固有ベクトルは計算されていない．
+                //                   wr[info+1:N] と wl[info+1:N] には，収束した固有値が含まれている．
+
+
+                int ret;
+                try
+                {
+                    // CLAPACKルーチン
+                    ret = dggev_(&jobvl, &jobvr, &n, a, &lda, b, &ldb, alphar, alphai, beta, vl, &ldvl, vr, &ldvr, work, &lwork, &info);
+
+                    if(info == 0)
+                    {
+                        //
+                        // 固有値を格納
+                        r_evals = gcnew array<doublereal>(n);
+                        i_evals = gcnew array<doublereal>(n);
+
+                        for(int i=0; i<n; ++i)
+                        {
+                            if (Math::Abs(beta[i]) < CalculationLowerLimit)
+                            {
+                                r_evals[i] = ((Math::Abs(alphar[i]) < CalculationLowerLimit) ?
+                                    (Double::NaN)
+                                    : ((Math::Abs(alphar[i]) > 0) ? (Double::PositiveInfinity) : (Double::NegativeInfinity)));
+                                i_evals[i] = ((Math::Abs(alphai[i]) < CalculationLowerLimit) ?
+                                    (Double::NaN)
+                                    : ((Math::Abs(alphai[i]) > 0) ? (Double::PositiveInfinity) : (Double::NegativeInfinity)));
+                            }
+                            else
+                            {
+                                r_evals[i] = ((Math::Abs(alphar[i]) < CalculationLowerLimit) ? (0.0) : (alphar[i] / beta[i]));
+                                i_evals[i] = ((Math::Abs(alphai[i]) < CalculationLowerLimit) ? (0.0) : (alphai[i] / beta[i]));
+                            }
+                        }
+
+                        //
+                        // 固有ベクトルを格納
+                        r_evecs = gcnew array< array<doublereal>^ >(n);
+                        i_evecs = gcnew array< array<doublereal>^ >(n);
+
+                        for(int i=0; i<n; ++i)
+                        {
+                            if(Math::Abs(alphai[i]) < CalculationLowerLimit)
+                            {
+                                // 通常の格納処理
+                                r_evecs[i] = gcnew array<doublereal>(ldvr);
+                                i_evecs[i] = gcnew array<doublereal>(ldvr);
+
+                                for(int j=0; j<ldvr; ++j)
+                                {
+                                    r_evecs[i][j] = vr[i*ldvr + j];
+                                    i_evecs[i][j] = 0.0;
+                                }
+                            }
+                            else
+                            {
+                                // 虚数になったとき
+                                array<doublereal>^ realvec1 = gcnew array<doublereal>(ldvr);
+                                array<doublereal>^ realvec2 = gcnew array<doublereal>(ldvr);
+                                array<doublereal>^ imgyvec1 = gcnew array<doublereal>(ldvr);
+                                array<doublereal>^ imgyvec2 = gcnew array<doublereal>(ldvr);
+
+                                for(int j=0; j<ldvr; ++j)
+                                {
+                                    realvec1[j] =  vr[ i   *ldvr + j];
+                                    realvec2[j] =  vr[ i   *ldvr + j];
+                                    imgyvec1[j] =  vr[(i+1)*ldvr + j];
+                                    imgyvec2[j] = -vr[(i+1)*ldvr + j];
+                                }
+                                r_evecs[i  ] = realvec1;
+                                r_evecs[i+1] = realvec2;
+                                i_evecs[i  ] = imgyvec1;
+                                i_evecs[i+1] = imgyvec2;
+
+                                ++i;    // 2列ずつ参照するので，ここでカウントアップ
+                            }
+
+                        }// end for i
+                    }// end if info == 0
+                    else
+                    {
+                        if(info < 0)
+                        {
+                            throw gcnew IllegalClapackArgumentException(
+                                "Error occurred: " + -info
+                                    + "-th argument had an illegal value in the clapack.Function.dggev", -info);
+                        }
+                        else
+                        {
+                            throw gcnew IllegalClapackResultException("Error occurred: dggev_", info);
+                        }
+                    }
+                }
+                finally
+                {
+                    // unmanaged code の後始末
+                    delete[] alphar; alphar = nullptr;
+                    delete[] alphai; alphai = nullptr;
+                    delete[] beta; beta = nullptr;
+                    delete[] vr; vr = nullptr;
+                    delete[] work; work = nullptr;
+                }
+
+                return ret;
+            }
+
+            /// <summary>
+            /// <para>一般化固有値問題 Ax=λBxを解く</para>
+            /// <para>Aは対称帯行列. Bは対称帯行列かつ正定値行列である. 計算された固有ベクトルは，大きさ（ユークリッドノルム）が 1 に規格化されている．</para>
+            /// </summary>
+            /// <param name="A">固有値分解される帯行列A（計算の過程で上書きされる）</param>
+            /// <param name="a_row">行列 <paramref name="A"/> の行数</param>
+            /// <param name="a_col">行列 <paramref name="A"/> の列数</param>
+            /// <param name="ka">行列 <paramref name="A"/> のsuperdiagonalsのサイズ</param>
+            /// <param name="B">固有値分解される帯行列B（計算の過程で上書きされる）</param>
+            /// <param name="b_row">行列 <paramref name="B"/> の行数</param>
+            /// <param name="b_col">行列 <paramref name="B"/> の列数</param>
+            /// <param name="kb">行列 <paramref name="B"/> のsuperdiagonalsのサイズ</param>
+            /// <param name="evals">固有値</param>
+            /// <param name="evecs">固有ベクトル</param>
+            /// <returns>常に 0 が返ってくる．</returns>
+            /// <remarks>
+            /// <para>対応するCLAPACK関数（CLAPACK/BLAS/SRC/dsbgv.c）</para>
+            /// <code>
+            /// int dsbgv_(char *jobz, char *uplo, integer *n,
+            ///            integer *ka, integer *kb, 
+            ///            doublereal *ab, integer *ldab,
+            ///            doublereal *bb, integer *ldbb,
+            ///            doublereal *w,
+            ///            doublereal *z, integer *ldz,
+            ///            doublereal *work, integer *info);
+            /// </code>
+            /// </remarks>
+            static int dsbgv(array<doublereal>^ A, int a_row, int a_col, int ka, 
+                             array<doublereal>^ B, int b_row, int b_col, int kb,
+                             array<doublereal>^% evals,
+                             array< array<doublereal>^ >^% evecs )
+            {
+                char jobz = 'V';
+                // 固有ベクトルを
+                //   if jobvl == 'V' then 計算する
+                //   if jobvl == 'N' then 計算しない
+
+                char uplo = 'U';
+                // if uplo == 'U' then upper triangles of A and B are stored.
+                // if uplo == 'L' then lower triangles of A and B are stored.
+
+                integer n = a_col;
+                // 行列 A, B の大きさ（N×Nなので，片方だけでよい）
+
+                integer ka_ = ka;
+                // the number of superdiagonals of the matrix A if uplo == 'U'
+                // or the number of subdiagonals if uplo == 'L'. ka >= 0.
+                
+                integer kb_ = kb;
+                // the number of superdiagonals of the matrix B if uplo == 'U'
+                // or the number of subdiagonals if uplo == 'L'. kb >= 0.
+
+                integer ldab = ka_ + 1;
+                // the leading dimension of the array AB. ldab >= ka + 1.
+
+                pin_ptr<doublereal> ab = &A[0];
+                // [ldab, n] N×N の行列 Aの上三角行列（または下三角行列)を帯行列形式で格納
+                // if UPLO = 'U', AB(ka+1+i-j,j) = A(i,j) for max(1,j-ka)<=i<=j;
+                // if UPLO = 'L', AB(1+i-j,j)    = A(i,j) for j<=i<=min(n,j+ka)
+                // 配列 ab （行列 A）は，計算の過程で上書きされる．
+                
+                integer ldbb = kb_ + 1;
+                // the leading dimension of the array BB. ldbb >= kb + 1.
+
+                pin_ptr<doublereal> bb = &B[0];
+                // [ldbb, n] N×N の行列 Bの上三角行列（または下三角行列)を帯行列形式で格納
+                // if UPLO = 'U', BB(kb+1+i-j,j) = B(i,j) for max(1,j-kb)<=i<=j;
+                // if UPLO = 'L', BB(1+i-j,j)    = B(i,j) for j<=i<=min(n,j+kb).
+                // 配列 bb （行列 B）は，計算の過程で上書きされる．
+
+                doublereal* w = new doublereal[n];
+                // 計算された固有値が入る．
+
+                integer ldz = n;
+                // 必ず 1 <= ldz を満たす必要がある．
+                // if jobz == 'V' then N <= ldz
+
+                doublereal* z = new doublereal[ldz * n];
+                // if jobz == 'V' then 固有ベクトルが z の各列に，固有値と同じ順序で格納される．
+                // if jobz == 'N' then vr is not referenced.
+
+                //
+                // その他
+
+                doublereal* work = new doublereal[3*n];
+                // dimension (3*N)
+
+                integer info = 0;
+                // if info == 0 then 正常終了
+                // if info <  0 then -info 番目の引数の値が間違っている．
+                // if info >  0 then QRアルゴリズムは，全ての固有値を計算できなかった．
+                //                   固有ベクトルは計算されていない．
+                //                   wr[info+1:N] と wl[info+1:N] には，収束した固有値が含まれている．
+
+                int ret;
+                try
+                {
+                    // CLAPACKルーチン
+                    ret = dsbgv_(&jobz, &uplo, &n, &ka_, &kb_, ab, &ldab, bb, &ldbb, w, z, &ldz, work, &info);
+
+                    if(info == 0)
+                    {
+                        //
+                        // 固有値を格納
+                        evals = gcnew array<doublereal>(n);
+
+                        for(int i=0; i<n; ++i)
+                        {
+                            evals[i] = ((Math::Abs(w[i]) < CalculationLowerLimit) ? (0.0) : (w[i]));
+                        }
+
+                        //
+                        // 固有ベクトルを格納
+                        evecs = gcnew array< array<doublereal>^ >(n);
+
+                        for(int i=0; i<n; ++i)
+                        {
+                            // 通常の格納処理
+                            evecs[i] = gcnew array<doublereal>(ldz);
+
+                            for(int j=0; j<ldz; ++j)
+                            {
+                                evecs[i][j] = z[i*ldz + j];
+                            }
+                        }// end for i
+                    }// end if info == 0
+                    else
+                    {
+                        if(info < 0)
+                        {
+                            throw gcnew IllegalClapackArgumentException(
+                                "Error occurred: " + -info
+                                    + "-th argument had an illegal value in the clapack.Function.dsbgv", -info);
+                        }
+                        else if (info > n && info <= 2*n)
+                        {
+                            throw gcnew IllegalClapackResultException(
+                                "Error occurred: " +  "B(" + (info - n - 1) + ", " + (info - n - 1) + ") was was negative. B is not positive definite.", (info - n - 1));
+                        }
+                        else
+                        {
+                            throw gcnew IllegalClapackResultException("Error occurred: dsbgv_", info);
+                        }
+                    }
+                }
+                finally
+                {
+                    // unmanaged code の後始末
+                    delete[] w; w = nullptr;
+                    delete[] z; z = nullptr;
+                    delete[] work; work = nullptr;
+                }
+
+                return ret;
+            }
+
+            /// <summary>
+            /// <para>一般化固有値問題 Ax=λBxを解く</para>
+            /// <para>計算された固有ベクトルは，大きさ（ユークリッドノルム）が 1 に規格化されている．</para>
+            /// </summary>
+            /// <param name="A">固有値分解される行列A（計算の過程で上書きされる）</param>
+            /// <param name="a_row">行列 <paramref name="A"/> の行数</param>
+            /// <param name="a_col">行列 <paramref name="A"/> の列数</param>
+            /// <param name="B">固有値分解される行列B（計算の過程で上書きされる）</param>
+            /// <param name="b_row">行列 <paramref name="B"/> の行数</param>
+            /// <param name="b_col">行列 <paramref name="B"/> の列数</param>
+            /// <param name="evals">固有値</param>
+            /// <param name="evecs">固有ベクトル</param>
+            /// <returns>常に 0 が返ってくる．</returns>
+            /// <remarks>
+            /// <para>対応するCLAPACK関数（CLAPACK/BLAS/SRC/zggev.c）</para>
+            /// <code>
+            /// int zggev_(char *jobvl, char *jobvr, integer *n, 
+            ///            doublecomplex *a, integer *lda, doublecomplex *b, integter *ldb,
+            ///            doublecomplex *alpha, doublecomplex *beta,
+            ///            doublecomplex *vl, integer *ldvl, doublecomplex *vr, integer *ldvr,
+            ///            doublecomplex *work, integer *lwork, doublereal *rwork, integer *info)
+            /// </code>
+            /// </remarks>
+            static int zggev(array<Complex>^ A, int a_row, int a_col,
+                             array<Complex>^ B, int b_row, int b_col,
+                             array<Complex>^% evals,
+                             array< array<Complex>^ >^% evecs)
+            {
+                char jobvl = 'N';
+                // 左固有ベクトルを
+                //   if jobvl == 'V' then 計算する
+                //   if jobvl == 'N' then 計算しない
+
+                char jobvr = 'V';
+                // 右固有ベクトルを
+                //   if jobvr == 'V' then 計算する
+                //   if jobvr == 'N' then 計算しない
+
+                integer n = a_col;
+                // 行列 A, B の大きさ（N×Nなので，片方だけでよい）
+                
+                integer lda = n;
+                // the leading dimension of the array A. lda >= max(1, N).
+
+                pin_ptr<void> a_ptr = &A[0];
+                doublecomplex* a = (doublecomplex *)(void *)a_ptr;
+                // [lda, n] N×N の行列 A
+                // 配列 a （行列 A）は，計算の過程で上書きされる．
+
+                integer ldb = n;
+                // The leading dimension of B.  ldb >= max(1, N).
+
+                pin_ptr<void> b_ptr = &B[0];
+                doublecomplex* b = (doublecomplex *)(void *)b_ptr;
+                // [ldb, n] N×N の行列 B
+                // 配列 b （行列 B）は，計算の過程で上書きされる．
+                
+                doublecomplex* alpha = new doublecomplex[n];
+                // 計算された固有値の分子部分が入る．
+
+                doublecomplex* beta = new doublecomplex[n];
+                // 計算された固有値の分母部分が入る．
+                
+
+                /*
+                 * ※左固有ベクトルは計算しない
+                 */
+                
+
+                integer ldvl = 1;
+                // 必ず 1 <= ldvl を満たす必要がある．
+                // if jobvl == 'V' then N <= ldvl
+
+                doublecomplex* vl = nullptr;
+                // vl is not referenced, because jobvl == 'N'.
+                
+                /*
+                 * ※右固有ベクトルは計算する
+                 */
+
+                integer ldvr = n;
+                // 必ず 1 <= ldvr を満たす必要がある．
+                // if jobvr == 'V' then N <= ldvr
+
+                doublecomplex* vr = new doublecomplex[ldvr * n];
+                // if jobvr == 'V' then 右固有ベクトルが vr の各列に，固有値と同じ順序で格納される．
+                // if jobvr == 'N' then vr is not referenced.
+                
+                //
+                // その他
+
+                integer lwork = 2*n;
+                // max(1,2*N) <= lwork
+                // 良いパフォーマンスを得るために，大抵の場合 lwork は大きくすべきだ．
+                doublecomplex* work = new doublecomplex[lwork];
+                // if info == 0 then work[0] returns the optimal lwork.
+
+                doublereal* rwork = new doublereal[8 * n];
+                // workspace dimension (8*N)
+                
+                integer info = 0;
+                // if info == 0 then 正常終了
+                // if info <  0 then -info 番目の引数の値が間違っている．
+                // if info >  0 then QRアルゴリズムは，全ての固有値を計算できなかった．
+                //                   固有ベクトルは計算されていない．
+                //                   wr[info+1:N] と wl[info+1:N] には，収束した固有値が含まれている．
+                
+                
+                int ret;
+                try
+                {
+                    // CLAPACKルーチン
+                    ret = zggev_(&jobvl, &jobvr, &n, a, &lda, b, &ldb, alpha, beta, vl, &ldvl, vr, &ldvr, work, &lwork, rwork, &info);
+
+                    if(info == 0)
+                    {
+                        //
+                        // 固有値を格納
+                        evals = gcnew array<Complex>(n);
+                        for (int i = 0; i < n; i++)
+                        {
+                            if (Math::Abs(beta[i].r) + Math::Abs(beta[i].i) < CalculationLowerLimit)
+                            {
+                                double realValue = ((Math::Abs(alpha[i].r) < CalculationLowerLimit) ?
+                                    (Double::NaN)
+                                    : ((Math::Abs(alpha[i].r) > 0) ? (Double::PositiveInfinity) : (Double::NegativeInfinity)));
+                                double imagValue = ((Math::Abs(alpha[i].i) < CalculationLowerLimit) ?
+                                    (Double::NaN)
+                                    : ((Math::Abs(alpha[i].i) > 0) ? (Double::PositiveInfinity) : (Double::NegativeInfinity)));
+                                evals[i] = Complex(realValue, imagValue);
+                            }
+                            else
+                            {
+                                //evals[i] = Complex(alpha[i].r, alpha[i].i) / Complex(beta[i].r, beta[i].i);
+                                double betaSquareNorm = beta[i].r * beta[i].r + beta[i].i * beta[i].i;
+                                evals[i] = Complex(
+                                    (alpha[i].r * beta[i].r + alpha[i].i * beta[i].i) / betaSquareNorm,
+                                    (-alpha[i].r * beta[i].i + alpha[i].i * beta[i].r) / betaSquareNorm
+                                    );
+                            }
+                        }
+                        
+                        //
+                        // 固有ベクトルを格納
+                        evecs = gcnew array< array<Complex>^ >(n);
+                        for (int i = 0; i < n; i++)
+                        {
+                            // 通常の格納処理
+                            evecs[i] = gcnew array<Complex>(ldvr);
+                            for(int j=0; j<ldvr; ++j)
+                            {
+                                doublecomplex v = vr[i*ldvr + j];
+                                evecs[i][j] = Complex(v.r, v.i);
+                            }
+                        }// end for i
+                    }// end if info == 0
+                    else
+                    {
+                        if(info < 0)
+                        {
+                            throw gcnew IllegalClapackArgumentException(
+                                "Error occurred: " + -info
+                                    + "-th argument had an illegal value in the clapack.Function.zggev", -info);
+                        }
+                        else
+                        {
+                            throw gcnew IllegalClapackResultException("Error occurred: zggev_", info);
+                        }
+                    }
+                }
+                finally
+                {
+                    // unmanaged code の後始末
+                    delete[] alpha; alpha = nullptr;
+                    delete[] beta; beta = nullptr;
+                    delete[] vr; vr = nullptr;
+                    delete[] work; work = nullptr;
+                    delete[] rwork; rwork = nullptr;
+                }
+
+                return ret;
+            }
+
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////
         // System::Numerics::Complexを使用したI/F
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////

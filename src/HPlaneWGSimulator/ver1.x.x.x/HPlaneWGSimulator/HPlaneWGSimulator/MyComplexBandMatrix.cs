@@ -9,16 +9,12 @@ using KrdLab.clapack;  // KrdLab.clapack.Complex
 namespace MyUtilLib.Matrix
 {
     /// <summary>
-    /// 行列クラス(Complex)
+    /// バンド行列クラス(Complex)
     ///    KrdLab.Lisysをベースに変更
     ///    C#２次元配列とclapackの配列の変換オーバヘッドを無くすため + メモリ節約のために導入
     ///
     ///    LisysのMatrixのデータ構造と同じで1次元配列として行列データを保持します。
     ///    1次元配列は、clapackの配列数値格納順序と同じ（行データを先に格納する)
-    ///    既存のComplex[,]からの置き換えポイント
-    ///       Complex[,] --> MyBandComplexMatrix
-    ///       GetLength(0) --> RowSize
-    ///       GetLength(1) --> ColumnSize
     /// </summary>
     public class MyComplexBandMatrix : MyComplexMatrix
     {
@@ -34,7 +30,9 @@ namespace MyUtilLib.Matrix
         /// <returns></returns>
         internal override int GetBufferIndex(int row, int col)
         {
-            if (!(col >= row - this._superdiaSize && col <= row + this._subdiaSize))
+            //BUGFIX
+            //if (!(col >= row - this._superdiaSize && col <= row + this._subdiaSize))
+            if (!(row >= col - this._superdiaSize && row <= col + this._subdiaSize))
             {
                 System.Diagnostics.Debug.Assert(false);
                 return -1;
@@ -192,7 +190,9 @@ namespace MyUtilLib.Matrix
                 {
                     throw new IndexOutOfRangeException();
                 }
-                if (!(col >= row - this._superdiaSize && col <= row + this._subdiaSize))
+                //BUGFIX
+                //if (!(col >= row - this._superdiaSize && col <= row + this._subdiaSize))
+                if (!(row >= col - this._superdiaSize && row <= col + this._subdiaSize))
                 {
                     return new Complex();
                 }
@@ -204,7 +204,9 @@ namespace MyUtilLib.Matrix
                 {
                     throw new IndexOutOfRangeException();
                 }
-                if (!(col >= row - this._superdiaSize && col <= row + this._subdiaSize))
+                //BUGFIX
+                //if (!(col >= row - this._superdiaSize && col <= row + this._subdiaSize))
+                if (!(row >= col - this._superdiaSize && row <= col + this._subdiaSize))
                 {
                     return;
                 }
