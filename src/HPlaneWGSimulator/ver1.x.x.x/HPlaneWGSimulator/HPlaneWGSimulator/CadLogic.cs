@@ -924,13 +924,15 @@ namespace HPlaneWGSimulator
                     {
                         minPt.Y = 0;
                     }
-                    if (maxPt.X > MaxDiv.Width * Delta.Width)
+                    // BUGFIX : 後でDelta.Widthを足すのでマス目の最大値はMaxから１マス分引いた値
+                    if (maxPt.X > (MaxDiv.Width - 1) * Delta.Width)
                     {
-                        maxPt.X = MaxDiv.Width * Delta.Width;
+                        maxPt.X = (MaxDiv.Width - 1) * Delta.Width;
                     }
-                    if (maxPt.Y > MaxDiv.Height * Delta.Height)
+                    // BUGFIX : 後でDelta.Heightを足すのでマス目の最大値はMaxから１マス分引いた値
+                    if (maxPt.Y > (MaxDiv.Height - 1) * Delta.Height)
                     {
-                        maxPt.Y = MaxDiv.Height * Delta.Height;
+                        maxPt.Y = (MaxDiv.Height - 1) * Delta.Height;
                     }
                     minPt.X = ((int)Math.Floor((double)minPt.X / Delta.Width)) * Delta.Width;
                     minPt.Y = ((int)Math.Floor((double)minPt.Y / Delta.Height)) * Delta.Height;
@@ -952,27 +954,29 @@ namespace HPlaneWGSimulator
             // 新しい領域を設定
             LocationRect.X += (endPt.X - startPt.X);
             LocationRect.Y += (endPt.Y - startPt.Y);
-            if (LocationRect.Left < 0)
+            if (LocationRect.X < 0)
             {
                 LocationRect.X = 0;
             }
-            if (LocationRect.Right > MaxDiv.Width * Delta.Width - 1)
-            {
-                LocationRect.X = MaxDiv.Width * Delta.Width - 1 - LocationRect.Width;
-            }
-            if (LocationRect.Top < 0)
+            if (LocationRect.Y < 0)
             {
                 LocationRect.Y = 0;
             }
-            if (LocationRect.Bottom > MaxDiv.Height * Delta.Height - 1)
+            // BUGFIX
+            if (LocationRect.Right > MaxDiv.Width * Delta.Width)
             {
-                LocationRect.Y = MaxDiv.Height * Delta.Height - 1 - LocationRect.Height;
+                LocationRect.X -= (LocationRect.Right - MaxDiv.Width * Delta.Width);
+            }
+            // BUGFIX
+            if (LocationRect.Bottom > MaxDiv.Height * Delta.Height)
+            {
+                LocationRect.Y -= (LocationRect.Bottom - MaxDiv.Height * Delta.Height);
             }
             
             if (LocationRect.X != saveLocationRect.X || LocationRect.Y != saveLocationRect.Y)
             {
-                int saveWidth = (saveLocationRect.Right / Delta.Width) - saveLocationRect.Left / Delta.Width;
-                int saveHeight = (saveLocationRect.Bottom / Delta.Height) - saveLocationRect.Top / Delta.Height;
+                int saveWidth = saveLocationRect.Width / Delta.Width;
+                int saveHeight = saveLocationRect.Height / Delta.Height;
                 // 領域、辺の退避
                 bool[,] saveAreaSelection = new bool[saveHeight, saveWidth];
                 int[,] saveAreaToMediaIndex = new int[saveHeight, saveWidth];
