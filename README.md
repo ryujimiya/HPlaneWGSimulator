@@ -2,6 +2,14 @@
   
 **News**
 
+***2012-11-22 version1.6.0.0 Release***  
+●平行平板導波路(TE,TM)、E面導波管(TE)の解析機能を追加しました。  
+　E面導波管伝達問題の計算例   
+　　[E面コーナーベンド](http://ryujimiya.hatenablog.com/entry/2012/11/22/002733)  
+　　[E面T分岐](http://ryujimiya.hatenablog.com/entry/2012/11/22/010458)   
+　　[E面スタブ](http://ryujimiya.hatenablog.com/entry/2012/11/22/015323)   
+●散乱係数周波数特性グラフを対数で表示できるようにしました。(右クリックでメニューが表示されます。)  
+
 ***2012-10-28 version1.5.0.0 Release***  
 ●界分布図の種類を増やしました。下記４つを表示できます。  
 　|Ez|分布図 (従来のもの)  
