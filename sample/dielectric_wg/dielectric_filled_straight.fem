@@ -1454,4 +1454,8 @@ Medias,3
 0,1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1
 1,1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1
 2,1,0,0,0,1,0,0,0,1,2.5,0,0,0,2.5,0,0,0,2.5
-WaveLengthRange,30.7692307692308,16.1290322580645,12
+WaveLengthRange,30.7692307692308,16.1290322580645,13
+LsEqnSolverDv,Zgbsv
+WaveModeDv,TE
+WGStructureDv,HPlane2D
+WaveguideWidthForEPlane,0

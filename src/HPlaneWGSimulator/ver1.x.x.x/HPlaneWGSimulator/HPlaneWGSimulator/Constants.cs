@@ -64,6 +64,10 @@ namespace HPlaneWGSimulator
         //public const FemSolver.LinearSystemEqnSoverDV DefLsEqnSolverDv = FemSolver.LinearSystemEqnSoverDV.Zgesv;
         public const FemSolver.LinearSystemEqnSoverDV DefLsEqnSolverDv = FemSolver.LinearSystemEqnSoverDV.Zgbsv;
         /// <summary>
+        /// 導波路構造区分(既定値)
+        /// </summary>
+        public const FemSolver.WGStructureDV DefWGStructureDv = FemSolver.WGStructureDV.HPlane2D;
+        /// <summary>
         /// 計算する波のモード区分（既定値）
         /// </summary>
         public const FemSolver.WaveModeDV DefWaveModeDv = FemSolver.WaveModeDV.TE;

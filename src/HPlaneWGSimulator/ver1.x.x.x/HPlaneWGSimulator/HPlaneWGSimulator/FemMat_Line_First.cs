@@ -84,6 +84,7 @@ namespace HPlaneWGSimulator
         /// <summary>
         /// 1Dヘルムホルツ方程式固有値問題の要素行列を加算する
         /// </summary>
+        /// <param name="waveLength">波長(E面の場合のみ使用する)</param>
         /// <param name="element">線要素</param>
         /// <param name="coords">座標リスト</param>
         /// <param name="toSorted">節点番号→ソート済み節点インデックスマップ</param>
@@ -93,13 +94,24 @@ namespace HPlaneWGSimulator
         /// <param name="ryy_1d">ryy行列</param>
         /// <param name="uzz_1d">uzz行列</param>
         public static void AddElementMatOf1dEigenValueProblem(
+            double waveLength,
             FemLineElement element,
             IList<double> coords,
             Dictionary<int, int> toSorted,
             MediaInfo[] Medias,
+            FemSolver.WGStructureDV WGStructureDv,
             FemSolver.WaveModeDV WaveModeDv,
+            double waveguideWidthForEPlane,
             ref MyDoubleMatrix txx_1d, ref MyDoubleMatrix ryy_1d, ref MyDoubleMatrix uzz_1d)
         {
+            // 定数
+            const double pi = Constants.pi;
+            const double c0 = Constants.c0;
+            // 波数
+            double k0 = 2.0 * pi / waveLength;
+            // 角周波数
+            double omega = k0 * c0;
+
             // １次線要素
             const int nno = Constants.LineNodeCnt_FirstOrder; // 2;
 
@@ -121,21 +133,15 @@ namespace HPlaneWGSimulator
             MediaInfo media = Medias[mediaIndex];
             double[,] media_P = null;
             double[,] media_Q = null;
-            if (WaveModeDv == FemSolver.WaveModeDV.TE)
-            {
-                media_P = media.P;
-                media_Q = media.Q;
-            }
-            else if (WaveModeDv == FemSolver.WaveModeDV.TM)
-            {
-                media_P = media.Q;
-                media_Q = media.P;
-            }
-            else
-            {
-                System.Diagnostics.Debug.Assert(false);
-            }
-            media_P = MyMatrixUtil.matrix_Inverse(media_P);
+            // ヘルムホルツ方程式のパラメータP,Qを取得する
+            FemSolver.GetHelmholtzMediaPQ(
+                k0,
+                media,
+                WGStructureDv,
+                WaveModeDv,
+                waveguideWidthForEPlane,
+                out media_P,
+                out media_Q);
 
             double[,] integralN = new double[nno, nno]
                 {

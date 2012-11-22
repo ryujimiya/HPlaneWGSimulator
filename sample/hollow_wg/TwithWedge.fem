@@ -1326,9 +1326,13 @@ Force,121
 853
 877
 879
-IncidentPortNo,1
+IncidentPortNo,2
 Medias,3
 0,1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1
 1,1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1
 2,1,0,0,0,1,0,0,0,1,1,0,0,0,1,0,0,0,1
 WaveLengthRange,18,9,100
+LsEqnSolverDv,Zgbsv
+WaveModeDv,TE
+WGStructureDv,HPlane2D
+WaveguideWidthForEPlane,0

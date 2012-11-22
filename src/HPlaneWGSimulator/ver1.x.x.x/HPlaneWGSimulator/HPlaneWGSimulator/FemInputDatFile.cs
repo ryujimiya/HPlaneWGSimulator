@@ -28,6 +28,10 @@ namespace HPlaneWGSimulator
         /// <param name="firstWaveLength">計算開始波長</param>
         /// <param name="lastWaveLength">計算終了波長</param>
         /// <param name="calcCnt">計算件数</param>
+        /// <param name="wgStructureDv">導波路構造区分</param>
+        /// <param name="waveModeDv">波のモード区分</param>
+        /// <param name="lsEqnSoverDv">線形方程式解法区分</param>
+        /// <param name="waveguideWidthForEPlane">導波管幅(E面解析用)</param>
         /// <returns></returns>
         public static bool LoadFromFile(
             string filename,
@@ -40,7 +44,10 @@ namespace HPlaneWGSimulator
             out double firstWaveLength,
             out double lastWaveLength,
             out int calcCnt,
-            out FemSolver.LinearSystemEqnSoverDV lsEqnSoverDv
+            out FemSolver.WGStructureDV wgStructureDv,
+            out FemSolver.WaveModeDV waveModeDv,
+            out FemSolver.LinearSystemEqnSoverDV lsEqnSoverDv,
+            out double waveguideWidthForEPlane
             )
         {
             int eNodeCnt = 0;
@@ -60,7 +67,10 @@ namespace HPlaneWGSimulator
             firstWaveLength = 0.0;
             lastWaveLength = 0.0;
             calcCnt = 0;
+            wgStructureDv = Constants.DefWGStructureDv;
+            waveModeDv = Constants.DefWaveModeDv;
             lsEqnSoverDv = Constants.DefLsEqnSolverDv;
+            waveguideWidthForEPlane = 0;
 
             if (!File.Exists(filename))
             {
@@ -340,7 +350,60 @@ namespace HPlaneWGSimulator
                         string value  = tokens[1];
                         lsEqnSoverDv = FemSolver.StrToLinearSystemEqnSolverDV(value);
                     }
-
+                    line = sr.ReadLine();
+                    if (line == null || line.Length == 0)
+                    {
+                    }
+                    else
+                    {
+                        tokens = line.Split(delimiter);
+                        if (tokens.Length != 2 || tokens[0] != "WaveModeDv")
+                        {
+                            MessageBox.Show("計算対象モード区分情報がありません");
+                            return false;
+                        }
+                        if (tokens[1] == "TE")
+                        {
+                            waveModeDv = FemSolver.WaveModeDV.TE;
+                        }
+                        else if (tokens[1] == "TM")
+                        {
+                            waveModeDv = FemSolver.WaveModeDV.TM;
+                        }
+                        else
+                        {
+                            MessageBox.Show("計算対象モード区分情報が不正です");
+                            return false;
+                        }
+                    }
+                    line = sr.ReadLine();
+                    if (line == null || line.Length == 0)
+                    {
+                    }
+                    else
+                    {
+                        tokens = line.Split(delimiter);
+                        if (tokens.Length != 2 || tokens[0] != "WGStructureDv")
+                        {
+                            MessageBox.Show("計算対象導波路構造区分情報がありません");
+                            return false;
+                        }
+                        wgStructureDv = FemSolver.StrToWGStructureDV(tokens[1]);
+                    }
+                    line = sr.ReadLine();
+                    if (line == null || line.Length == 0)
+                    {
+                    }
+                    else
+                    {
+                        tokens = line.Split(delimiter);
+                        if (tokens.Length != 2 || tokens[0] != "WaveguideWidthForEPlane")
+                        {
+                            MessageBox.Show("E面解析用導波路幅がありません");
+                            return false;
+                        }
+                        waveguideWidthForEPlane = double.Parse(tokens[1]);
+                    }
                 }
             }
             catch (Exception exception)
@@ -370,7 +433,10 @@ namespace HPlaneWGSimulator
         /// <param name="firstWaveLength">計算開始波長</param>
         /// <param name="lastWaveLength">計算終了波長</param>
         /// <param name="calcCnt">計算周波数件数</param>
+        /// <param name="wgStructureDv">導波路構造区分</param>
+        /// <param name="waveModeDv">波のモード区分</param>
         /// <param name="lsEqnSolverDv">線形方程式解法区分</param>
+        /// <param name="waveguideWidthForEPlane">導波路幅(E面解析用)</param>
         public static void SaveToFileFromCad
             (string filename,
             int nodeCnt, IList<double[]> doubleCoords,
@@ -382,7 +448,10 @@ namespace HPlaneWGSimulator
             double firstWaveLength,
             double lastWaveLength,
             int calcCnt,
-            FemSolver.LinearSystemEqnSoverDV lsEqnSolverDv)
+            FemSolver.WGStructureDV wgStructureDv,
+            FemSolver.WaveModeDV waveModeDv,
+            FemSolver.LinearSystemEqnSoverDV lsEqnSolverDv,
+            double waveguideWidthForEPlane)
         {
             //////////////////////////////////////////
             // ファイル出力
@@ -475,6 +544,12 @@ namespace HPlaneWGSimulator
                     sw.WriteLine("WaveLengthRange,{0},{1},{2}", firstWaveLength, lastWaveLength, calcCnt);
                     // 線形方程式解法区分
                     sw.WriteLine("LsEqnSolverDv,{0}", FemSolver.LinearSystemEqnSolverDVToStr(lsEqnSolverDv));
+                    // 計算対象モード区分
+                    sw.WriteLine("WaveModeDv,{0}", ((waveModeDv == FemSolver.WaveModeDV.TM) ? "TM" : "TE"));
+                    // 導波路構造区分
+                    sw.WriteLine("WGStructureDv,{0}", FemSolver.WGStructureDVToStr(wgStructureDv));
+                    // 導波路幅(E面解析用)
+                    sw.WriteLine("WaveguideWidthForEPlane,{0}", waveguideWidthForEPlane);
                 }
             }
             catch (Exception exception)
@@ -497,7 +572,10 @@ namespace HPlaneWGSimulator
         /// <param name="firstWaveLength">計算開始波長</param>
         /// <param name="lastWaveLength">計算終了波長</param>
         /// <param name="calcCnt">計算件数</param>
+        /// <param name="wgStructureDv">導波路構造区分</param>
+        /// <param name="waveModeDv">波のモード区分</param>
         /// <param name="lsEqnSolverDv">線形方程式解法区分</param>
+        /// <param name="waveguideWidthForEPlane">導波路幅(E面解析用)</param>
         /// <returns></returns>
         public static void SaveToFile
             (string filename,
@@ -510,7 +588,10 @@ namespace HPlaneWGSimulator
             double firstWaveLength,
             double lastWaveLength,
             int calcCnt,
-            FemSolver.LinearSystemEqnSoverDV lsEqnSolverDv
+            FemSolver.WGStructureDV wgStructureDv,
+            FemSolver.WaveModeDV waveModeDv,
+            FemSolver.LinearSystemEqnSoverDV lsEqnSolverDv,
+            double waveguideWidthForEPlane
             )
         {
             int nodeCnt = nodes.Count;
@@ -547,68 +628,10 @@ namespace HPlaneWGSimulator
                 firstWaveLength,
                 lastWaveLength,
                 calcCnt,
-                lsEqnSolverDv);
-        }
-
-
-        /// <summary>
-        /// 入力ファイル作成時に決まらない情報を更新する
-        /// </summary>
-        /// <param name="filename">ファイル名(*.fem)</param>
-        /// <param name="firstWaveLength">計算対象開始波長</param>
-        /// <param name="lastWaveLength">計算対象終了波長</param>
-        /// <param name="calcCnt">計算対象周波数件数</param>
-        /// <param name="lsEqnSolverDv">線形方程式解法区分</param>
-        public static bool UpdateToFile(string filename,
-            double firstWaveLength, double lastWaveLength, int calcCnt,
-            FemSolver.LinearSystemEqnSoverDV lsEqnSolverDv)
-        {
-            bool success = false;
-            if (!File.Exists(filename))
-            {
-                return success;
-            }
-            IList<FemNode> nodes = null;
-            IList<FemElement> elements = null;
-            IList<IList<int>> ports = null;
-            IList<int> forceBCNodes = null;
-            int incidentPortNo = 0;
-            MediaInfo[] medias = null;
-            double dummyFirstWaveLength = 0.0;
-            double dummyLastWaveLength = 0.0;
-            int dummyCalcCnt = 0;
-            FemSolver.LinearSystemEqnSoverDV dummyLsEqnSolverDv = FemSolver.LinearSystemEqnSoverDV.PCOCG;
-            bool loadRet = FemInputDatFile.LoadFromFile(
-                filename,
-                out nodes,
-                out elements,
-                out ports,
-                out forceBCNodes,
-                out incidentPortNo,
-                out medias,
-                out dummyFirstWaveLength,
-                out dummyLastWaveLength,
-                out dummyCalcCnt,
-                out dummyLsEqnSolverDv
-            );
-            if (loadRet)
-            {
-                SaveToFile(
-                    filename,
-                    nodes,
-                    elements,
-                    ports,
-                    forceBCNodes,
-                    incidentPortNo,
-                    medias,
-                    firstWaveLength,
-                    lastWaveLength,
-                    calcCnt,
-                    lsEqnSolverDv
-                );
-                success = true;
-            }
-            return success;
+                wgStructureDv,
+                waveModeDv,
+                lsEqnSolverDv,
+                waveguideWidthForEPlane);
         }
     }
 }

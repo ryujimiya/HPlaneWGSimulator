@@ -54,9 +54,17 @@ namespace HPlaneWGSimulator
             PCOCG
         }
         /// <summary>
+        /// 導波路構造区分
+        /// </summary>
+        public enum WGStructureDV { ParaPlate2D, HPlane2D, EPlane2D };
+        /// <summary>
         /// 波のモード区分
         /// </summary>
         public enum WaveModeDV { TE, TM };
+        /// <summary>
+        /// 境界条件区分
+        /// </summary>
+        public enum BoundaryDV { ElectricWall, MagneticWall };
 
         ////////////////////////////////////////////////////////////////////////
         // フィールド
@@ -82,6 +90,10 @@ namespace HPlaneWGSimulator
         /// 領域全体の強制境界節点番号ハッシュ
         /// </summary>
         private Dictionary<int, bool> ForceNodeNumberH = new Dictionary<int, bool>();
+        /// <summary>
+        /// 角の節点番号リスト
+        /// </summary>
+        //private IList<int> CornerNodes = new List<int>();
         /// <summary>
         /// 入射ポート番号
         /// </summary>
@@ -115,9 +127,25 @@ namespace HPlaneWGSimulator
             private set;
         }
         /// <summary>
+        /// 導波路構造区分
+        /// </summary>
+        public WGStructureDV WGStructureDv
+        {
+            get;
+            set;
+        }
+        /// <summary>
         /// 計算する波のモード区分
         /// </summary>
         public WaveModeDV WaveModeDv
+        {
+            get;
+            set;
+        }
+        /// <summary>
+        /// 境界区分
+        /// </summary>
+        public BoundaryDV BoundaryDv
         {
             get;
             set;
@@ -146,8 +174,19 @@ namespace HPlaneWGSimulator
         private Dictionary<string, IList<int>> EdgeToElementNoH = new Dictionary<string, IList<int>>();
         /// <summary>
         /// 導波路の幅
+        ///   H面解析の場合は、導波管の幅
+        ///   E面解析の場合は、導波管の高さ
+        ///   座標から自動計算される
         /// </summary>
         private double WaveguideWidth;
+        /// <summary>
+        /// 導波管の幅(E面解析の場合)
+        /// </summary>
+        public double WaveguideWidthForEPlane
+        {
+            get;
+            set;
+        }
         /// <summary>
         /// 計算中止された？
         /// </summary>
@@ -176,6 +215,60 @@ namespace HPlaneWGSimulator
         {
             get;
             set;
+        }
+
+        /// <summary>
+        /// 文字列→導波路構造区分変換
+        /// </summary>
+        /// <param name="confValue"></param>
+        /// <returns></returns>
+        public static WGStructureDV StrToWGStructureDV(string confValue)
+        {
+            WGStructureDV wgStructureDv = WGStructureDV.HPlane2D;
+            if (confValue == "HPlane2D")
+            {
+                wgStructureDv = WGStructureDV.HPlane2D;
+            }
+            else if (confValue == "EPlane2D")
+            {
+                wgStructureDv = WGStructureDV.EPlane2D;
+            }
+            else if (confValue == "ParaPlate2D")
+            {
+                wgStructureDv = WGStructureDV.ParaPlate2D;
+            }
+            else
+            {
+                throw new InvalidDataException("導波路構造区分が不正です");
+            }
+            return wgStructureDv;
+        }
+
+        /// <summary>
+        /// 導波路構造区分→文字列変換
+        /// </summary>
+        /// <param name="wgStructureDv"></param>
+        /// <returns></returns>
+        public static string WGStructureDVToStr(WGStructureDV wgStructureDv)
+        {
+            string confValue = "";
+            if (wgStructureDv == WGStructureDV.HPlane2D)
+            {
+                confValue = "HPlane2D";
+            }
+            else if (wgStructureDv == WGStructureDV.EPlane2D)
+            {
+                confValue = "EPlane2D";
+            }
+            else if (wgStructureDv == WGStructureDV.ParaPlate2D)
+            {
+                confValue = "ParaPlate2D";
+            }
+            else
+            {
+                throw new InvalidDataException("導波路構造区分が不正です");
+            }
+            return confValue;
         }
 
         /// <summary>
@@ -255,6 +348,7 @@ namespace HPlaneWGSimulator
             Ports.Clear();
             ForceBCNodes.Clear();
             ForceNodeNumberH.Clear();
+            //CornerNodes.Clear();
             IncidentPortNo = 1;
             for (int i = 0; i < Medias.Length; i++)
             {
@@ -268,7 +362,10 @@ namespace HPlaneWGSimulator
             FirstWaveLength = 0.0;
             LastWaveLength = 0.0;
             CalcFreqCnt = 0;
+            WGStructureDv = Constants.DefWGStructureDv;
             WaveModeDv = Constants.DefWaveModeDv;
+            BoundaryDv = BoundaryDV.ElectricWall;
+            WaveguideWidthForEPlane = 0;
             ElemShapeDvToBeSet = Constants.DefElemShapeDv;
             ElemOrderToBeSet = Constants.DefElementOrder;
             LsEqnSolverDv = Constants.DefLsEqnSolverDv;
@@ -300,11 +397,18 @@ namespace HPlaneWGSimulator
             double firstWaveLength = 0.0;
             double lastWaveLength = 0.0;
             int calcCnt = 0;
+            WGStructureDV wgStructureDv = WGStructureDV.HPlane2D;
+            WaveModeDV waveModeDv = WaveModeDV.TE;
             LinearSystemEqnSoverDV lsEqnSolverDv = LinearSystemEqnSoverDV.Zgbsv;
+            double waveguideWidthForEPlane = 0;
             bool ret = FemInputDatFile.LoadFromFile(
                 filename,
                 out nodes, out elements, out ports, out forceBCNodes, out incidentPortNo, out medias,
-                out firstWaveLength, out lastWaveLength, out calcCnt, out lsEqnSolverDv);
+                out firstWaveLength, out lastWaveLength, out calcCnt,
+                out wgStructureDv,
+                out waveModeDv,
+                out lsEqnSolverDv,
+                out waveguideWidthForEPlane);
             if (ret)
             {
                 System.Diagnostics.Debug.Assert(medias.Length == Medias.Length);
@@ -317,7 +421,10 @@ namespace HPlaneWGSimulator
                 FirstWaveLength = firstWaveLength;
                 LastWaveLength = lastWaveLength;
                 CalcFreqCnt = calcCnt;
+                WGStructureDv = wgStructureDv;
+                WaveModeDv = waveModeDv;
                 LsEqnSolverDv = lsEqnSolverDv;
+                WaveguideWidthForEPlane = waveguideWidthForEPlane;
 
                 // 要素形状と次数の判定
                 if (Elements.Count > 0)
@@ -330,6 +437,28 @@ namespace HPlaneWGSimulator
                     ElemOrderToBeSet = order;
                 }
 
+                if (WGStructureDv == WGStructureDV.HPlane2D || WGStructureDv == WGStructureDV.ParaPlate2D)
+                {
+                    // H面の場合および平行平板導波路の場合
+                    if ((BoundaryDv == BoundaryDV.ElectricWall && WaveModeDv == WaveModeDV.TM) // TMモード磁界Hz(H面に垂直な磁界)による解析では電気壁は自然境界
+                        || (BoundaryDv == BoundaryDV.MagneticWall && WaveModeDv == WaveModeDV.TE) // TEST
+                        )
+                    {
+                        // 自然境界条件なので強制境界をクリアする
+                        ForceBCNodes.Clear();
+                    }
+                }
+                else if (WGStructureDv == WGStructureDV.EPlane2D)
+                {
+                    // E面の場合
+                    if ((BoundaryDv == BoundaryDV.ElectricWall && WaveModeDv == WaveModeDV.TE) // TEモード電界Ey(E面上方向電界)による解析では電気壁は自然境界
+                        || (BoundaryDv == BoundaryDV.MagneticWall && WaveModeDv == WaveModeDV.TM) // TEST
+                        )
+                    {
+                        // 自然境界条件なので強制境界をクリアする
+                        ForceBCNodes.Clear();
+                    }
+                }
                 // 強制境界節点番号ハッシュの作成(2D節点番号)
                 foreach (int nodeNumber in ForceBCNodes)
                 {
@@ -338,11 +467,13 @@ namespace HPlaneWGSimulator
                         ForceNodeNumberH[nodeNumber] = true;
                     }
                 }
-
                 // 辺と要素の対応マップ作成
                 MkEdgeToElementNoH(Elements, ref EdgeToElementNoH);
                 // 導波管幅の決定
                 setupWaveguideWidth();
+                //TEST
+                //// 角の節点リスト作成
+                //mkCornerNodes();
 
                 if (CalcFreqCnt == 0)
                 {
@@ -430,16 +561,12 @@ namespace HPlaneWGSimulator
         }
 
         /// <summary>
-        /// 計算対象周波数範囲を入力ファイルに書き込む
+        /// 計算条件の更新
         /// </summary>
-        /// <param name="filename"></param>
-        /// <param name="normalizedFreq1"></param>
-        /// <param name="normalizedFreq2"></param>
-        /// <param name="calcCnt"></param>
-        /// <param name="lsEqnSolverDv"></param>
-        public void UpdateAndSaveToInputFile(string filename,
-            double normalizedFreq1, double normalizedFreq2, int calcCnt,
-            LinearSystemEqnSoverDV lsEqnSolverDv)
+        /// <param name="normalizedFreq1">計算開始規格化周波数</param>
+        /// <param name="normalizedFreq2">計算終了規格化周波数</param>
+        /// <param name="calcCnt">計算する周波数の数</param>
+        public void SetNormalizedFreqRange(double normalizedFreq1, double normalizedFreq2, int calcCnt)
         {
             // 計算対象周波数を波長に変換
             double firstWaveLength = GetWaveLengthFromNormalizedFreq(normalizedFreq1, WaveguideWidth);
@@ -449,12 +576,6 @@ namespace HPlaneWGSimulator
             FirstWaveLength = firstWaveLength;
             LastWaveLength = lastWaveLength;
             CalcFreqCnt = calcCnt;
-            LsEqnSolverDv = lsEqnSolverDv;
-
-            // FEM入力ファイルへ更新書き込み
-            FemInputDatFile.UpdateToFile(filename,
-                FirstWaveLength, LastWaveLength, CalcFreqCnt,
-                LsEqnSolverDv);
         }
 
         /// <summary>
@@ -495,6 +616,302 @@ namespace HPlaneWGSimulator
             WaveguideWidth = w1;
             Console.WriteLine("WaveguideWidth:{0}", w1);
         }
+
+        /// <summary>
+        /// ヘルムホルツ方程式のパラメータP,Qを取得する
+        /// </summary>
+        /// <param name="k0">波数</param>
+        /// <param name="media">媒質</param>
+        /// <param name="WGStructureDv">導波路構造区分</param>
+        /// <param name="WaveModeDv">波のモード区分</param>
+        /// <param name="waveguideWidthForEPlane">導波路の幅（E面）</param>
+        /// <param name="media_P">ヘルムホルツ方程式のパラメータP</param>
+        /// <param name="media_Q">ヘルムホルツ方程式のパラメータQ</param>
+        public static void GetHelmholtzMediaPQ(
+            double k0,
+            MediaInfo media,
+            WGStructureDV WGStructureDv,
+            WaveModeDV WaveModeDv,
+            double waveguideWidthForEPlane,
+            out double[,] media_P,
+            out double[,] media_Q)
+        {
+            media_P = null;
+            media_Q = null;
+            double[,] erMat = media.Q;
+            double[,] urMat = media.P;
+            if (WGStructureDv == WGStructureDV.ParaPlate2D)
+            {
+                // 平行平板導波路の場合
+                if (WaveModeDv == FemSolver.WaveModeDV.TE)
+                {
+                    // TEモード(H面)
+                    // 界方程式: Ez(H面に垂直な電界)
+                    //  p = (μr)-1
+                    //  q = εr
+                    //media_P = urMat;
+                    //media_Q = erMat;
+                    //// [p]は逆数をとる
+                    //media_P = MyMatrixUtil.matrix_Inverse(media_P);
+                    // 比透磁率の逆数
+                    media_P = new double[3, 3];
+                    media_P[0, 0] = 1.0 / urMat[0, 0];
+                    media_P[1, 1] = 1.0 / urMat[1, 1];
+                    media_P[2, 2] = 1.0 / urMat[2, 2];
+                    // 比誘電率
+                    media_Q = new double[3, 3];
+                    media_Q[0, 0] = erMat[0, 0];
+                    media_Q[1, 1] = erMat[1, 1];
+                    media_Q[2, 2] = erMat[2, 2];
+                }
+                else if (WaveModeDv == FemSolver.WaveModeDV.TM)
+                {
+                    // TMモード(TEMモードを含む)(H面)
+                    // 界方程式: Hz(H面に垂直な磁界)
+                    //  p = (εr)-1
+                    //  q = μr
+                    //media_P = erMat;
+                    //media_Q = urMat;
+                    //// [p]は逆数をとる
+                    //media_P = MyMatrixUtil.matrix_Inverse(media_P);
+                    // 比誘電率の逆数
+                    media_P = new double[3, 3];
+                    media_P[0, 0] = 1.0 / erMat[0, 0];
+                    media_P[1, 1] = 1.0 / erMat[1, 1];
+                    media_P[2, 2] = 1.0 / erMat[2, 2];
+                    // 比透磁率
+                    media_Q = new double[3, 3];
+                    media_Q[0, 0] = urMat[0, 0];
+                    media_Q[1, 1] = urMat[1, 1];
+                    media_Q[2, 2] = urMat[2, 2];
+                }
+                else
+                {
+                    System.Diagnostics.Debug.Assert(false);
+                }
+            }
+            else if (WGStructureDv == FemSolver.WGStructureDV.HPlane2D)
+            {
+                // H面導波管の場合
+                if (WaveModeDv == FemSolver.WaveModeDV.TE)
+                {
+                    // TEモード(H面)
+                    // 界方程式: Ez(H面に垂直な電界)
+                    //  p = (μr)-1
+                    //  q = εr
+                    // 比透磁率の逆数
+                    media_P = new double[3, 3];
+                    media_P[0, 0] = 1.0 / urMat[0, 0];
+                    media_P[1, 1] = 1.0 / urMat[1, 1];
+                    media_P[2, 2] = 1.0 / urMat[2, 2];
+                    // 比誘電率
+                    media_Q = new double[3, 3];
+                    media_Q[0, 0] = erMat[0, 0];
+                    media_Q[1, 1] = erMat[1, 1];
+                    media_Q[2, 2] = erMat[2, 2];
+                }
+                else if (WaveModeDv == FemSolver.WaveModeDV.TM)
+                {
+                    System.Diagnostics.Debug.Assert(false);
+                    /*
+                    // TMモード(H面)
+                    // 界方程式: Hz(H面に垂直な磁界)
+                    //  p = (εr)-1
+                    //  q = μr
+                    // H面導波管のTMモードの場合、TM11が基本モードのため、Z方向の分布も一定でない
+                    // 比誘電率の置き換え (逆数で指定)
+                    media_P = new double[3, 3];
+                    media_P[0, 0] = (1.0 / erMat[0, 0]);
+                    media_P[1, 1] = 1.0 / erMat[1, 1];
+                    media_P[2, 2] = 1.0 / erMat[2, 2];
+                    // 比透磁率の置き換え
+                    media_Q = new double[3, 3];
+                    media_Q[0, 0] = urMat[0, 0];
+                    media_Q[1, 1] = urMat[1, 1];
+                    media_Q[2, 2] = urMat[2, 2] - (pi * pi * urMat[2, 2]) / (urMat[1, 1] * k0 * k0 * erMat[0, 0] * waveguidWidthForEPlane * waveguidWidthForEPlane);
+                     */
+                }
+                else
+                {
+                    System.Diagnostics.Debug.Assert(false);
+                }
+            }
+            else if (WGStructureDv == FemSolver.WGStructureDV.EPlane2D)
+            {
+                // E面導波管の場合
+                if (WaveModeDv == FemSolver.WaveModeDV.TE)
+                {
+                    // TEモード(E面)
+                    // 界方程式: Hz (E面に垂直な磁界)
+                    // E面をXY平面とする
+                    //  p = (εrEplane)-1
+                    //  q = μrEplane
+                    // LSE(TE^z)モード(Ez = 0:紙面に垂直な方向の電界を０)として解析する
+                    //   波動方程式の導出でμx = μy  εx = εyを仮定した
+                    // 比誘電率の置き換え (逆数で指定)
+                    media_P = new double[3, 3];
+                    media_P[0, 0] = 1.0 / erMat[0, 0];
+                    media_P[1, 1] = 1.0 / erMat[1, 1];
+                    media_P[2, 2] = 1.0 / erMat[2, 2];
+                    // 比透磁率の置き換え
+                    media_Q = new double[3, 3];
+                    media_Q[0, 0] = urMat[0, 0];
+                    media_Q[1, 1] = urMat[1, 1];
+                    media_Q[2, 2] = urMat[2, 2] - (pi * pi * urMat[2, 2]) / (k0 * k0 * erMat[1, 1] * waveguideWidthForEPlane * waveguideWidthForEPlane * urMat[0, 0]);
+                }
+                else if (WaveModeDv == FemSolver.WaveModeDV.TM)
+                {
+                    System.Diagnostics.Debug.Assert(false);
+                    /*
+                    // TMモード(E面)
+                    // 界方程式: Ez (E面に垂直な電界)
+                    // E面をXY平面とする
+                    //  p = (μrEplane)-1
+                    //  q = εrEplane
+                    // 比透磁率の置き換え (逆数で指定)
+                    // LSM(TM^z)モード(Hz = 0:紙面に垂直な方向の磁界を０)として解析する
+                    //   波動方程式の導出でμx = μy  εx = εyを仮定した
+                    media_P = new double[3, 3];
+                    media_P[0, 0] = 1.0 / urMat[0, 0];
+                    media_P[1, 1] = 1.0 / urMat[1, 1];
+                    media_P[2, 2] = 1.0 / urMat[2, 2];
+                    // 比誘電率の置き換え
+                    media_Q = new double[3, 3];
+                    media_Q[0, 0] = erMat[0, 0];
+                    media_Q[1, 1] = erMat[1, 1];
+                    media_Q[2, 2] = erMat[2, 2] - (pi * pi * erMat[2, 2]) / (k0 * k0 * urMat[1, 1] * waveguidWidthForEPlane * waveguidWidthForEPlane * erMat[0, 0]);
+                     */
+                }
+                else
+                {
+                    System.Diagnostics.Debug.Assert(false);
+                }
+            }
+            else
+            {
+                System.Diagnostics.Debug.Assert(false);
+            }
+        }
+
+        /// <summary>
+        /// E面計算時の比誘電率、比透磁率の倍率変換係数を取得する
+        /// </summary>
+        /// <param name="WGStructureDv"></param>
+        /// <param name="WaveModeDv"></param>
+        /// <param name="waveguideWidthForEPlane"></param>
+        /// <param name="media0_erMat"></param>
+        /// <param name="media0_urMat"></param>
+        /// <param name="k0"></param>
+        /// <param name="erEPlaneRatio"></param>
+        /// <param name="urEPlaneRatio"></param>
+        public static void GetErUrEPlaneRatio(
+            WGStructureDV WGStructureDv,
+            WaveModeDV WaveModeDv,
+            double waveguideWidthForEPlane,
+            double[,] media0_erMat,
+            double[,] media0_urMat,
+            double k0,
+            out double erEPlaneRatio,
+            out double urEPlaneRatio)
+        {
+            erEPlaneRatio = 1.0; // fail safe
+            urEPlaneRatio = 1.0; // fail safe
+            if (WGStructureDv == WGStructureDV.EPlane2D)
+            {
+                if (WaveModeDv == WaveModeDV.TM)
+                {
+                    if (Math.Abs(waveguideWidthForEPlane) >= Constants.PrecisionLowerLimit)
+                    {
+                        // μyの式
+                        urEPlaneRatio = (media0_urMat[1, 1] - pi * pi / (k0 * k0 * waveguideWidthForEPlane * waveguideWidthForEPlane * media0_erMat[0, 0])) / media0_urMat[1, 1];
+                        if (Math.Abs(urEPlaneRatio) < Constants.PrecisionLowerLimit)
+                        {
+                            urEPlaneRatio = urEPlaneRatio >= 0 ? Constants.PrecisionLowerLimit : -Constants.PrecisionLowerLimit;
+                        }
+                    }
+                }
+                else
+                {
+                    if (Math.Abs(waveguideWidthForEPlane) >= Constants.PrecisionLowerLimit)
+                    {
+                        // εyの式
+                        erEPlaneRatio = (media0_erMat[1, 1] - pi * pi / (k0 * k0 * waveguideWidthForEPlane * waveguideWidthForEPlane * media0_urMat[0, 0])) / media0_erMat[1, 1];
+                        if (Math.Abs(erEPlaneRatio) < Constants.PrecisionLowerLimit)
+                        {
+                            erEPlaneRatio = erEPlaneRatio >= 0 ? Constants.PrecisionLowerLimit : -Constants.PrecisionLowerLimit;
+                        }
+                    }
+                }
+            }
+        }
+
+        /*
+        /// <summary>
+        /// 角の節点リスト作成
+        /// </summary>
+        private void mkCornerNodes()
+        {
+            double xmin = double.MaxValue;
+            double xmax = double.MinValue;
+            double ymin = double.MaxValue;
+            double ymax = double.MinValue;
+            CornerNodes.Clear();
+            for (int i = 0; i < 4; i++)
+            {
+                CornerNodes.Add(0);
+            }
+            foreach (FemNode node in Nodes)
+            {
+                int nodeNumber = node.No;
+                double xx = node.Coord[0];
+                double yy = node.Coord[1];
+                if (xx > xmax)
+                {
+                    xmax = xx;
+                }
+                if (xx < xmin)
+                {
+                    xmin = xx;
+                }
+                if (yy > ymax)
+                {
+                    ymax = yy;
+                }
+                if (yy < ymin)
+                {
+                    ymin = yy;
+                }
+                if (!CornerNodes.Contains(nodeNumber))
+                {
+                    if (xmin == xx && ymin == yy)
+                    {
+                        CornerNodes[0] = nodeNumber;
+                    }
+                    if (xmax == xx && ymin == yy)
+                    {
+                        CornerNodes[1] = nodeNumber;
+                    }
+                    if (xmax == xx && ymax == yy)
+                    {
+                        CornerNodes[2] = nodeNumber;
+                    }
+                    if (xmin == xx && ymax == yy)
+                    {
+                        CornerNodes[3] = nodeNumber;
+                    }
+                }
+            }
+            if (CornerNodes.Contains(0))
+            {
+                CornerNodes.Clear();
+            }
+            for (int i = 0; i < CornerNodes.Count; i++)
+            {
+                int nodeNumber = CornerNodes[i];
+                Console.WriteLine("CornerNodes[{0}] : {1}", i, nodeNumber);
+            }
+        }
+         */
 
         /// <summary>
         /// 点が要素内に含まれる？
@@ -618,15 +1035,15 @@ namespace HPlaneWGSimulator
                 }
                 return valid;
             }
-            if (ForceBCNodes.Count == 0)
-            {
-                if (showMessageFlg)
-                {
-                    MessageBox.Show("強制境界条件がありません", "計算できません", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-                // Note: H面導波路対象なので強制境界はあるはず
-                return valid;
-            }
+            //if (ForceBCNodes.Count == 0)
+            //{
+            //    if (showMessageFlg)
+            //    {
+            //        MessageBox.Show("強制境界条件がありません", "計算できません", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            //    }
+            //    // Note: H面導波路対象なので強制境界はあるはず
+            //    return valid;
+            //}
             if (Ports.Count == 0 || Ports[0].Count == 0)
             {
                 if (showMessageFlg)
@@ -659,8 +1076,66 @@ namespace HPlaneWGSimulator
                 }
                 return valid;
             }
+            // TMモードは平行平板のみ対応
+            if (WaveModeDv == WaveModeDV.TM && WGStructureDv != WGStructureDV.ParaPlate2D)
+            {
+                if (showMessageFlg)
+                {
+                    MessageBox.Show("TMモードは平行平板以外では計算できません。", "計算できません", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                return valid;
+            }
+            valid = chkMediaPQ();
+            if (!valid)
+            {
+                if (showMessageFlg)
+                {
+                    MessageBox.Show("次の場合、導波路は均一媒質で満たされている必要があります" + Environment.NewLine
+                        //+ "H面導波管(TMモード)" + Environment.NewLine
+                        + "E面導波管(TEモード)" + Environment.NewLine
+                        //+ "E面導波管(TMモード)" + Environment.NewLine
+                        , "計算できません", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                return valid;
+            }
 
             valid = true;
+            return valid;
+        }
+
+        /// <summary>
+        /// 媒質のチェック
+        /// </summary>
+        /// <returns></returns>
+        private bool chkMediaPQ()
+        {
+            bool valid = true;
+            if (Elements.Count == 0)
+            {
+                valid = false;
+                return valid;
+            }
+            // 平行平板TE/TM、H面導波管TEの場合、媒質の制限なし
+            if (WGStructureDv == WGStructureDV.ParaPlate2D
+                || (WGStructureDv == WGStructureDV.HPlane2D && WaveModeDv == WaveModeDV.TE))
+            {
+                valid = true;
+                return valid;
+            }
+            // それ以外は均一媒質で満たされているものとする
+            //   H面導波管TM
+            //   E面導波管TE
+            //   E面導波管TM(=便宜上分けているが媒質は均一なのでH面導波管TMと同じ)
+            // 均一媒質で満たされているかチェック
+            int mediaIndex0 = Elements[0].MediaIndex;
+            foreach (FemElement element in Elements)
+            {
+                if (mediaIndex0 != element.MediaIndex)
+                {
+                    valid = false;
+                    break;
+                }
+            }
             return valid;
         }
 
@@ -1283,6 +1758,9 @@ namespace HPlaneWGSimulator
                 addElementMat(waveLength, toSorted, element, ref mat);
             }
 
+            //TEST
+            //// 角の無限要素の要素行列を加算する
+            //addCornerInfElementMat(waveLength, toSorted, ref mat);
             return true;
         }
 
@@ -1441,7 +1919,9 @@ namespace HPlaneWGSimulator
                     Nodes,
                     Medias,
                     ForceNodeNumberH,
+                    WGStructureDv,
                     WaveModeDv,
+                    WaveguideWidthForEPlane,
                     ref mat);
             }
             else if (elemShapeDv == Constants.FemElementShapeDV.QuadType2 && order == Constants.SecondOrder)
@@ -1454,7 +1934,9 @@ namespace HPlaneWGSimulator
                     Nodes,
                     Medias,
                     ForceNodeNumberH,
+                    WGStructureDv,
                     WaveModeDv,
+                    WaveguideWidthForEPlane,
                     ref mat);
             }
             else if (elemShapeDv == Constants.FemElementShapeDV.Triangle && order == Constants.FirstOrder)
@@ -1467,7 +1949,9 @@ namespace HPlaneWGSimulator
                     Nodes,
                     Medias,
                     ForceNodeNumberH,
+                    WGStructureDv,
                     WaveModeDv,
+                    WaveguideWidthForEPlane,
                     ref mat);
             }
             else if (elemShapeDv == Constants.FemElementShapeDV.QuadType2 && order == Constants.FirstOrder)
@@ -1480,10 +1964,101 @@ namespace HPlaneWGSimulator
                     Nodes,
                     Medias,
                     ForceNodeNumberH,
+                    WGStructureDv,
                     WaveModeDv,
+                    WaveguideWidthForEPlane,
                     ref mat);
             }
         }
+
+        /*
+        /// <summary>
+        /// 角の無限要素の要素行列を加算する
+        /// </summary>
+        /// <param name="mat"></param>
+        private void addCornerInfElementMat(double waveLength, Dictionary<int, int> toSorted, ref MyComplexMatrix mat)
+        {
+            // 波数
+            double k0 = 2.0 * pi / waveLength;
+            // 角周波数
+            double omega = k0 * c0;
+
+            MediaInfo media = new MediaInfo(
+                new double[3, 3] {
+                    {1.0, 0.0, 0.0},
+                    {0.0, 1.0, 0.0},
+                    {0.0, 0.0, 1.0},
+                },
+                new double[3, 3]{
+                    {1.0, 0.0, 0.0},
+                    {0.0, 1.0, 0.0},
+                    {0.0, 0.0, 1.0},
+                }
+                );
+            double[,] media_P = null;
+            double[,] media_Q = null;
+            if (WaveModeDv == FemSolver.WaveModeDV.TE)
+            {
+                media_P = media.P;
+                media_Q = media.Q;
+            }
+            else if (WaveModeDv == FemSolver.WaveModeDV.TM)
+            {
+                media_P = media.Q;
+                media_Q = media.P;
+            }
+            else
+            {
+                System.Diagnostics.Debug.Assert(false);
+            }
+            // [p]は逆数をとる
+            media_P = MyMatrixUtil.matrix_Inverse(media_P);
+            double km = k0 * Math.Sqrt(media.Q[2, 2] * media.P[2, 2]);
+            // 減衰パラメータ
+            const int paraCntConst = 4;
+            double[][] decayParams = new double[paraCntConst][];
+            for (int i = 0; i < paraCntConst; i++)
+            {
+                decayParams[i] = new double[] { 0.01, 90.0 * (paraCntConst - i) / (double)paraCntConst };
+            }
+            int paraCnt = decayParams.Length;
+            Complex[] gammaX = new Complex[paraCnt];
+            Complex[] gammaY = new Complex[paraCnt];
+            for (int iparaX = 0; iparaX < paraCnt; iparaX++)
+            {
+                double[] decayParam = decayParams[iparaX];
+                double alpha = decayParam[0];
+                double angle = decayParam[1] * pi / 180.0;
+                gammaX[iparaX] = km * (new Complex(alpha, Math.Sin(angle)));
+            }
+            for (int iparaY = 0; iparaY < paraCnt; iparaY++)
+            {
+                double[] decayParam = decayParams[iparaY];
+                double alpha = decayParam[0];
+                double angle = decayParam[1] * pi / 180.0;
+                gammaY[iparaY] = km * (new Complex(alpha, Math.Sin(angle)));
+            }
+            foreach (int nodeNumber in CornerNodes)
+            {
+                if (!toSorted.ContainsKey(nodeNumber)) continue;
+                int ino = toSorted[nodeNumber];
+                for (int iparaX = 0; iparaX < paraCnt; iparaX++)
+                {
+                    for (int iparaY = 0; iparaY < paraCnt; iparaY++)
+                    {
+                        Complex integralN = 1.0 / (4.0 * gammaX[iparaX] * gammaY[iparaY]);
+                        Complex[] integralDNDX = new Complex[2]
+                        {
+                            gammaX[iparaX] / (4.0 * gammaY[iparaY]),
+                            gammaY[iparaY] / (4.0 * gammaX[iparaX])
+                        };
+                        mat[ino, ino] += (media_P[0, 0] * integralDNDX[1] + media_P[1, 1] * integralDNDX[0]
+                                             - k0 * k0 * media_Q[2, 2] * integralN) / (paraCnt * paraCnt);
+                    }
+                }
+            }
+        }
+         */
 
         /// <summary>
         /// 入出力ポート境界条件の追加
@@ -1507,6 +2082,35 @@ namespace HPlaneWGSimulator
             // 考慮するモード数
             int maxMode = eigenValues.Length;
 
+            // H面/E面導波管TMモード、E面導波管TEモードの解析では導波管は単一の媒質が充填されている必要がある。
+            // 先頭の媒質を取得する
+            int mediaIndex0 = Elements[0].MediaIndex;
+            MediaInfo media0 = Medias[mediaIndex0];
+            double[,] media0_urMat = media0.P;
+            double[,] media0_erMat = media0.Q;
+            double[,] media0_P = null;
+            double[,] media0_Q = null;
+            // ヘルムホルツ方程式のパラメータP,Qを取得する
+            FemSolver.GetHelmholtzMediaPQ(
+                k0,
+                media0,
+                WGStructureDv,
+                WaveModeDv,
+                WaveguideWidthForEPlane,
+                out media0_P,
+                out media0_Q);
+            double erEPlaneRatio = 1.0; // fail safe
+            double urEPlaneRatio = 1.0; // fail safe
+            FemSolver.GetErUrEPlaneRatio(
+                WGStructureDv,
+                WaveModeDv,
+                WaveguideWidthForEPlane,
+                media0_erMat,
+                media0_urMat,
+                k0,
+                out erEPlaneRatio,
+                out urEPlaneRatio);
+
             // 全体剛性行列の作成
             MyComplexMatrix matB = new MyComplexMatrix(nodeCnt, nodeCnt);
             /*
@@ -1518,6 +2122,7 @@ namespace HPlaneWGSimulator
                 }
             }
              */
+
             for (int imode = 0; imode < maxMode; imode++)
             {
                 Complex betam = eigenValues[imode];
@@ -1533,7 +2138,34 @@ namespace HPlaneWGSimulator
                 {
                     for (int jnoB = 0; jnoB < nodeCnt; jnoB++)
                     {
-                        Complex cvalue = (Complex.ImaginaryOne / (omega * myu0)) * betam * Complex.Abs(betam) * veci[inoB] * vecj[jnoB];
+                        //Complex cvalue = (Complex.ImaginaryOne / (omega * myu0)) * betam * Complex.Abs(betam) * veci[inoB] * vecj[jnoB];
+                        Complex cvalue;
+                        if (WGStructureDv == WGStructureDV.EPlane2D)
+                        {
+                            // E面
+                            if (WaveModeDv == WaveModeDV.TM)
+                            {
+                                cvalue = (Complex.ImaginaryOne / (omega * myu0 * Complex.Conjugate(urEPlaneRatio * media0_urMat[1, 1] * media0_P[1, 1])))
+                                    * betam * Complex.Abs(betam) * veci[inoB] * vecj[jnoB];
+                            }
+                            else
+                            {
+                                cvalue = (Complex.ImaginaryOne / (omega * eps0 * Complex.Conjugate(erEPlaneRatio * media0_erMat[1, 1] * media0_P[1, 1])))
+                                    * betam * Complex.Abs(betam) * veci[inoB] * vecj[jnoB];
+                            }
+                        }
+                        else
+                        {
+                            // H面、平行平板
+                            if (WaveModeDv == WaveModeDV.TM)
+                            {
+                                cvalue = (Complex.ImaginaryOne / (omega * eps0)) * betam * Complex.Abs(betam) * veci[inoB] * vecj[jnoB];
+                            }
+                            else
+                            {
+                                cvalue = (Complex.ImaginaryOne / (omega * myu0)) * betam * Complex.Abs(betam) * veci[inoB] * vecj[jnoB];
+                            }
+                        }
                         //matB[inoB, jnoB] += cvalue;
                         matB._body[inoB + jnoB * matB.RowSize] += cvalue;
                     }
@@ -1558,6 +2190,7 @@ namespace HPlaneWGSimulator
                 Complex[] veci = MyMatrixUtil.product(ryy_1d, fmVec);
                 for (int inoB = 0; inoB < nodeCnt; inoB++)
                 {
+                    // H面、平行平板、E面
                     Complex cvalue = 2.0 * Complex.ImaginaryOne * betam * veci[inoB];
                     //resVecB[inoB] = cvalue;
                     resVecB[inoB].Real = cvalue.Real;
@@ -1653,6 +2286,35 @@ namespace HPlaneWGSimulator
             double k0 = 2.0 * pi / waveLength;
             double omega = k0 * c0;
 
+            // H面/E面導波管TMモード、E面導波管TEモードの解析では導波管は単一の媒質が充填されている必要がある。
+            // 先頭の媒質を取得する
+            int mediaIndex0 = Elements[0].MediaIndex;
+            MediaInfo media0 = Medias[mediaIndex0];
+            double[,] media0_urMat = media0.P;
+            double[,] media0_erMat = media0.Q;
+            double[,] media0_P = null;
+            double[,] media0_Q = null;
+            // ヘルムホルツ方程式のパラメータP,Qを取得する
+            FemSolver.GetHelmholtzMediaPQ(
+                k0,
+                media0,
+                WGStructureDv,
+                WaveModeDv,
+                WaveguideWidthForEPlane,
+                out media0_P,
+                out media0_Q);
+            double erEPlaneRatio = 1.0; // fail safe
+            double urEPlaneRatio = 1.0; // fail safe
+            FemSolver.GetErUrEPlaneRatio(
+                WGStructureDv,
+                WaveModeDv,
+                WaveguideWidthForEPlane,
+                media0_erMat,
+                media0_urMat,
+                k0,
+                out erEPlaneRatio,
+                out urEPlaneRatio);
+
             Complex s11 = new Complex(0.0, 0.0);
 
             int maxMode = eigenValues.Length;
@@ -1669,14 +2331,54 @@ namespace HPlaneWGSimulator
             // s11 = {tmp_vec}t {value_all}
             s11 = MyMatrixUtil.vector_Dot(tmp_vec, valuesB);
             Complex betam = eigenValues[iMode];
-            s11 *= (Complex.Abs(betam) / (omega * myu0));
-
+            //s11 *= (Complex.Abs(betam) / (omega * myu0));
             //Console.WriteLine("field impedance:" + omega*myu0/Complex.Norm(betam));
             //Console.WriteLine("beta:" + Complex.Norm(betam));
-            if (isIncidentMode)
+            //if (isIncidentMode)
+            //{
+            //    s11 += -1.0;
+            //}
+            if (WGStructureDv == WGStructureDV.EPlane2D)
             {
-                s11 += -1.0;
+                // E面
+                if (WaveModeDv == WaveModeDV.TM)
+                {
+                    s11 *= (Complex.Abs(betam) / (omega * myu0 * Complex.Conjugate(media0_urMat[1, 1] * urEPlaneRatio * media0_P[1, 1])));
+                    if (isIncidentMode)
+                    {
+                        s11 += -1.0;
+                    }
+                }
+                else
+                {
+                    s11 *= (Complex.Abs(betam) / (omega * eps0 * Complex.Conjugate(media0_erMat[1, 1] * erEPlaneRatio * media0_P[1, 1])));
+                    if (isIncidentMode)
+                    {
+                        s11 += -1.0;
+                    }
+                }
             }
+            else
+            {
+                // H面、平行平板
+                if (WaveModeDv == WaveModeDV.TM)
+                {
+                    s11 *= (Complex.Abs(betam) / (omega * eps0));
+                    if (isIncidentMode)
+                    {
+                        s11 += -1.0;
+                    }
+                }
+                else
+                {
+                    s11 *= (Complex.Abs(betam) / (omega * myu0));
+                    if (isIncidentMode)
+                    {
+                        s11 += -1.0;
+                    }
+                }
+            }
+
             return s11;
         }
 
@@ -1697,6 +2399,36 @@ namespace HPlaneWGSimulator
             double k0 = 2.0 * pi / waveLength;
             // 角周波数
             double omega = k0 * c0;
+
+            // H面/E面導波管TMモード、E面導波管TEモードの解析では導波管は単一の媒質が充填されている必要がある。
+            // 先頭の媒質を取得する
+            int mediaIndex0 = Elements[0].MediaIndex;
+            MediaInfo media0 = Medias[mediaIndex0];
+            double[,] media0_urMat = media0.P;
+            double[,] media0_erMat = media0.Q;
+            double[,] media0_P = null;
+            double[,] media0_Q = null;
+            // ヘルムホルツ方程式のパラメータP,Qを取得する
+            FemSolver.GetHelmholtzMediaPQ(
+                k0,
+                media0,
+                WGStructureDv,
+                WaveModeDv,
+                WaveguideWidthForEPlane,
+                out media0_P,
+                out media0_Q);
+            double erEPlaneRatio = 1.0; // fail safe
+            double urEPlaneRatio = 1.0; // fail safe
+            FemSolver.GetErUrEPlaneRatio(
+                WGStructureDv,
+                WaveModeDv,
+                WaveguideWidthForEPlane,
+                media0_erMat,
+                media0_urMat,
+                k0,
+                out erEPlaneRatio,
+                out urEPlaneRatio);
+
             // 節点番号リスト(要素インデックス: 1D節点番号 - 1 要素:2D節点番号)
             IList<int> nodes = Ports[portNo - 1];
             // 2D→1D節点番号マップ
@@ -1838,22 +2570,28 @@ namespace HPlaneWGSimulator
                 {
                     // １次線要素
                     FemMat_Line_First.AddElementMatOf1dEigenValueProblem(
+                        waveLength, // E面の場合のみ使用
                         element,
                         coords,
                         toSorted,
                         Medias,
+                        WGStructureDv,
                         WaveModeDv,
+                        WaveguideWidthForEPlane,
                         ref txx_1d, ref ryy_1d, ref uzz_1d);
                 }
                 else
                 {
                     // ２次線要素
                     FemMat_Line_Second.AddElementMatOf1dEigenValueProblem(
+                        waveLength, // E面の場合のみ使用
                         element,
                         coords,
                         toSorted,
                         Medias,
+                        WGStructureDv,
                         WaveModeDv,
+                        WaveguideWidthForEPlane,
                         ref txx_1d, ref ryy_1d, ref uzz_1d);
                 }
             }
@@ -1884,9 +2622,37 @@ namespace HPlaneWGSimulator
             // 質量行列が正定値となるようにするため、上記符号反転を剛性行列の方に反映し、質量行列はryy_1dをそのまま使用する
             //MyDoubleMatrix matB = new MyDoubleMatrix(ryy_1d);
             MyDoubleSymmetricBandMatrix matB = new MyDoubleSymmetricBandMatrix((MyDoubleSymmetricBandMatrix)ryy_1d);
+
+            // 質量行列の正定値マトリクスチェック
+            if (WGStructureDv == WGStructureDV.EPlane2D)
+            {
+                // 比誘電率を置き換えているため、正定値行列にならないことがある（おそらくTE10モードが減衰モードのとき）
+                bool isPositiveDefinite = true;
+                for (int ino = 0; ino < matB.RowSize; ino++)
+                {
+                    // 対角成分の符号チェック
+                    if (matB[ino, ino] < 0.0)
+                    {
+                        isPositiveDefinite = false;
+                        break;
+                    }
+                }
+                if (!isPositiveDefinite)
+                {
+                    for (int i = 0; i < matA._rsize * matA._csize; i++)
+                    {
+                        matA._body[i] = -1.0 * matA._body[i];
+                    }
+                    for (int i = 0; i < matB._rsize * matB._csize; i++)
+                    {
+                        matB._body[i] = -1.0 * matB._body[i];
+                    }
+                }
+            }
+
+            // 一般化固有値問題を解く
             Complex[] evals = null;
             Complex[,] evecs = null;
-            // 一般化固有値問題を解く
             try
             {
                 // 固有値、固有ベクトルを求める
@@ -1899,28 +2665,12 @@ namespace HPlaneWGSimulator
                 Console.WriteLine(exception.Message + " " + exception.StackTrace);
                 System.Diagnostics.Debug.Assert(false);
             }
-            int tagtModeIdx = evals.Length - 1;
             for (int imode = 0; imode < maxMode; imode++)
             {
-                /*
-                for (; tagtModeIdx >= 0; tagtModeIdx--)
-                {
-                    if (Math.Abs(evals[tagtModeIdx].Real) < 1.0e-6)
-                    {
-                        continue;
-                    }
-                    if (evals[tagtModeIdx].Real > 0.0 && Math.Abs(evals[tagtModeIdx].Imaginary) < 1.0e-6)
-                    {
-                        break;
-                    }
-                }
-                */
-                if (tagtModeIdx == -1)
-                {
-                    // fail safe
-                    eigenValues[imode] = 0.0;
-                    continue;
-                }
+                eigenValues[imode] = 0;
+            }
+            for (int tagtModeIdx = evals.Length - 1, imode = 0; tagtModeIdx >= 0 && imode < maxMode; tagtModeIdx--)
+            {
                 // 伝搬定数は固有値のsqrt
                 Complex betam = Complex.Sqrt(evals[tagtModeIdx]);
                 // 定式化BUGFIX
@@ -1931,12 +2681,58 @@ namespace HPlaneWGSimulator
                 }
                 // 固有ベクトル
                 Complex[] evec = MyMatrixUtil.matrix_GetRowVec(evecs, tagtModeIdx);
+                // H面導波管のTMモードの場合、TEM波(TM10:Y方向に界の変化のない解)を除外する
+                if (WGStructureDv == WGStructureDV.HPlane2D && WaveModeDv == WaveModeDV.TM)
+                {
+                    bool isTEM = true;
+                    Complex val0 = evec[0];
+                    for (int i = 1; i < evec.Length; i++)
+                    {
+                        Complex diff = evec[i] - val0;
+                        if (Math.Abs(diff.Real) >= Constants.PrecisionLowerLimit || Math.Abs(diff.Imaginary) >= Constants.PrecisionLowerLimit)
+                        {
+                            isTEM = false;
+                            break;
+                        }
+                    }
+                    if (isTEM)
+                    {
+                        continue;
+                    }
+                }
                 // 規格化定数を求める
                 //Complex[] workVec = MyMatrixUtil.product(MyMatrixUtil.matrix_ConjugateTranspose(ryy_1d), evec);
                 // 実数の場合 [ryy]*t = [ryy]t ryyは対称行列より[ryy]t = [ryy]
                 Complex[] workVec = MyMatrixUtil.product(ryy_1d, evec);
-                double dm = Complex.Abs(MyMatrixUtil.vector_Dot(MyMatrixUtil.vector_Conjugate(evec), workVec));
-                dm = Math.Sqrt(omega * myu0 / Complex.Abs(betam) / dm);
+                //double dm = Complex.Abs(MyMatrixUtil.vector_Dot(MyMatrixUtil.vector_Conjugate(evec), workVec));
+                //dm = Math.Sqrt(omega * myu0 / Complex.Abs(betam) / dm);
+                //BUG?
+                Complex dm = MyMatrixUtil.vector_Dot(MyMatrixUtil.vector_Conjugate(evec), workVec);
+                //dm = Complex.Sqrt(omega * myu0 / Complex.Abs(betam) / dm);
+                if (WGStructureDv == WGStructureDV.EPlane2D)
+                {
+                    // E面
+                    if (WaveModeDv == WaveModeDV.TM)
+                    {
+                        dm = Complex.Sqrt(omega * myu0 * Complex.Conjugate(urEPlaneRatio * media0_urMat[1, 1] * media0_P[1, 1]) / Complex.Abs(betam) / dm);
+                    }
+                    else
+                    {
+                        dm = Complex.Sqrt(omega * eps0 * Complex.Conjugate(erEPlaneRatio * media0_erMat[1, 1] * media0_P[1, 1]) / Complex.Abs(betam) / dm);
+                    }
+                }
+                else
+                {
+                    // H面、平行平板
+                    if (WaveModeDv == WaveModeDV.TM)
+                    {
+                        dm = Complex.Sqrt(omega * eps0 / Complex.Abs(betam) / dm);
+                    }
+                    else
+                    {
+                        dm = Complex.Sqrt(omega * myu0 / Complex.Abs(betam) / dm);
+                    }
+                }
                 //Console.WriteLine("dm = " + dm);
 
                 // 伝搬定数の格納
@@ -1954,8 +2750,7 @@ namespace HPlaneWGSimulator
                     eigenVecs[imode, inoSorted] = fm;
                     //Console.WriteLine("eigenVecs [ " + imode + ", " + inoSorted + "] = " + fm.Real + " + " + fm.Imaginary + " i  Abs:" + Complex.Abs(fm));
                 }
-
-                tagtModeIdx--;
+                imode++;
             }
         }
 

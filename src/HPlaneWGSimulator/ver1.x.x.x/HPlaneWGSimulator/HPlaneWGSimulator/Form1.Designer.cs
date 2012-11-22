@@ -67,6 +67,8 @@
             this.btnNew = new System.Windows.Forms.Button();
             this.labelFreq = new System.Windows.Forms.Label();
             this.SMatChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
+            this.SMatChartContextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.toolStripMILogGraph = new System.Windows.Forms.ToolStripMenuItem();
             this.FValueLegendPanel = new System.Windows.Forms.Panel();
             this.labelFreqValue = new System.Windows.Forms.Label();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
@@ -84,12 +86,14 @@
             this.EigenVecChart = new System.Windows.Forms.DataVisualization.Charting.Chart();
             this.linkLblEigenShow = new System.Windows.Forms.LinkLabel();
             this.linkLabelMeshShow = new System.Windows.Forms.LinkLabel();
+            this.labelCalcMode = new System.Windows.Forms.Label();
             this.btnLoadCancel = new System.Windows.Forms.Button();
             this.imgcbxCadModeErase = new HPlaneWGSimulator.ImageCombobox();
             this.imgcbxCadModeArea = new HPlaneWGSimulator.ImageCombobox();
             this.FValuePanel.SuspendLayout();
             this.GroupBoxCadMode.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.SMatChart)).BeginInit();
+            this.SMatChartContextMenuStrip.SuspendLayout();
             this.FValueLegendPanel.SuspendLayout();
             this.GroupBoxMedia.SuspendLayout();
             this.panelMedia.SuspendLayout();
@@ -426,7 +430,7 @@
             // labelFreq
             // 
             this.labelFreq.AutoSize = true;
-            this.labelFreq.Location = new System.Drawing.Point(7, 249);
+            this.labelFreq.Location = new System.Drawing.Point(0, 249);
             this.labelFreq.Name = "labelFreq";
             this.labelFreq.Size = new System.Drawing.Size(48, 12);
             this.labelFreq.TabIndex = 0;
@@ -436,6 +440,7 @@
             // 
             chartArea1.Name = "ChartArea1";
             this.SMatChart.ChartAreas.Add(chartArea1);
+            this.SMatChart.ContextMenuStrip = this.SMatChartContextMenuStrip;
             legend1.Name = "Legend1";
             this.SMatChart.Legends.Add(legend1);
             this.SMatChart.Location = new System.Drawing.Point(453, 326);
@@ -448,6 +453,20 @@
             title1.Name = "Title1";
             this.SMatChart.Titles.Add(title1);
             this.SMatChart.DoubleClick += new System.EventHandler(this.SMatChart_DoubleClick);
+            // 
+            // SMatChartContextMenuStrip
+            // 
+            this.SMatChartContextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripMILogGraph});
+            this.SMatChartContextMenuStrip.Name = "SMatChartContextMenuStrip";
+            this.SMatChartContextMenuStrip.Size = new System.Drawing.Size(125, 26);
+            // 
+            // toolStripMILogGraph
+            // 
+            this.toolStripMILogGraph.Name = "toolStripMILogGraph";
+            this.toolStripMILogGraph.Size = new System.Drawing.Size(124, 22);
+            this.toolStripMILogGraph.Text = "対数表示";
+            this.toolStripMILogGraph.Click += new System.EventHandler(this.toolStripMILogGraph_Click);
             // 
             // FValueLegendPanel
             // 
@@ -465,7 +484,7 @@
             // 
             this.labelFreqValue.AutoSize = true;
             this.labelFreqValue.Font = new System.Drawing.Font("MS UI Gothic", 14.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
-            this.labelFreqValue.Location = new System.Drawing.Point(12, 265);
+            this.labelFreqValue.Location = new System.Drawing.Point(5, 265);
             this.labelFreqValue.Name = "labelFreqValue";
             this.labelFreqValue.Size = new System.Drawing.Size(42, 19);
             this.labelFreqValue.TabIndex = 3;
@@ -645,6 +664,17 @@
             this.linkLabelMeshShow.Text = "メッシュを見る";
             this.linkLabelMeshShow.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabelMeshShow_LinkClicked);
             // 
+            // labelCalcMode
+            // 
+            this.labelCalcMode.AutoSize = true;
+            this.labelCalcMode.Font = new System.Drawing.Font("MS UI Gothic", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(128)));
+            this.labelCalcMode.ForeColor = System.Drawing.Color.Navy;
+            this.labelCalcMode.Location = new System.Drawing.Point(251, 10);
+            this.labelCalcMode.Name = "labelCalcMode";
+            this.labelCalcMode.Size = new System.Drawing.Size(48, 12);
+            this.labelCalcMode.TabIndex = 0;
+            this.labelCalcMode.Text = "H面 TE";
+            // 
             // btnLoadCancel
             // 
             this.btnLoadCancel.AutoSize = true;
@@ -687,10 +717,11 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoScroll = true;
             this.BackColor = System.Drawing.Color.White;
-            this.ClientSize = new System.Drawing.Size(918, 567);
+            this.ClientSize = new System.Drawing.Size(917, 567);
             this.Controls.Add(this.chkboxAutoCalc);
             this.Controls.Add(this.btnLoadCancel);
             this.Controls.Add(this.linkLabelMeshShow);
+            this.Controls.Add(this.labelCalcMode);
             this.Controls.Add(this.FValueLegendPanel);
             this.Controls.Add(this.panelMedia);
             this.Controls.Add(this.linkLblEigenShow);
@@ -722,6 +753,7 @@
             this.FValuePanel.ResumeLayout(false);
             this.GroupBoxCadMode.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.SMatChart)).EndInit();
+            this.SMatChartContextMenuStrip.ResumeLayout(false);
             this.FValueLegendPanel.ResumeLayout(false);
             this.FValueLegendPanel.PerformLayout();
             this.GroupBoxMedia.ResumeLayout(false);
@@ -774,6 +806,7 @@
         private System.Windows.Forms.Button btnUndo;
         private System.Windows.Forms.Button btnRedo;
         private System.Windows.Forms.LinkLabel linkLblEigenShow;
+        private System.Windows.Forms.Label labelCalcMode;
         private System.Windows.Forms.LinkLabel linkLabelMeshShow;
         private System.Windows.Forms.Button btnLoadCancel;
         private System.Windows.Forms.Button btnPrevFValuePanel;
@@ -784,6 +817,8 @@
         private ImageCombobox imgcbxCadModeErase;
         private System.Windows.Forms.ImageList imageListCadModeErase;
         private System.Windows.Forms.CheckBox chkboxAutoCalc;
+        private System.Windows.Forms.ContextMenuStrip SMatChartContextMenuStrip;
+        private System.Windows.Forms.ToolStripMenuItem toolStripMILogGraph;
     }
 }
 

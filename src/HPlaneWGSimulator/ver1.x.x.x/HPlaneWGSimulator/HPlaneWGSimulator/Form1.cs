@@ -80,7 +80,7 @@ namespace HPlaneWGSimulator
         /// <summary>
         /// 等高線図パネルのコンテンツ表示名(TEモード)
         /// </summary>
-        private readonly string[] FValuePanelContentNameForTE = 
+        private readonly string[] FValuePanelContentNameForE = 
             {
                 "|Ez|等高線図",
                 "Ezの実数部の等高線図",
@@ -90,7 +90,7 @@ namespace HPlaneWGSimulator
         /// <summary>
         /// 等高線図パネルのコンテンツ表示名(TEモード)
         /// </summary>
-        private readonly string[] FValuePanelContentNameForTM = 
+        private readonly string[] FValuePanelContentNameForH = 
             {
                 "|Hz|等高線図",
                 "Hzの実数部の等高線図",
@@ -1156,7 +1156,11 @@ namespace HPlaneWGSimulator
             // 計算範囲ダイアログを表示する
             CalcSettingFrm calcSettingFrm = new CalcSettingFrm(
                 Solver.FirstNormalizedFreq, Solver.LastNormalizedFreq, Solver.CalcFreqCnt,
-                Solver.ElemShapeDvToBeSet, Solver.ElemOrderToBeSet, Solver.LsEqnSolverDv);
+                Solver.WGStructureDv,
+                Solver.WaveModeDv,
+                Solver.ElemShapeDvToBeSet, Solver.ElemOrderToBeSet,
+                Solver.LsEqnSolverDv,
+                Solver.WaveguideWidthForEPlane);
             DialogResult result = calcSettingFrm.ShowDialog();
             if (result != DialogResult.OK)
             {
@@ -1165,6 +1169,13 @@ namespace HPlaneWGSimulator
             // 要素形状、次数の設定をSolverに格納する
             Solver.ElemShapeDvToBeSet = calcSettingFrm.ElemShapeDv;
             Solver.ElemOrderToBeSet = calcSettingFrm.ElemOrder;
+
+            // ソルバーに計算範囲画面で設定した情報をセットする
+            Solver.SetNormalizedFreqRange(calcSettingFrm.NormalizedFreq1, calcSettingFrm.NormalizedFreq2, calcSettingFrm.CalcFreqCnt);
+            Solver.WGStructureDv = calcSettingFrm.WGStructureDv;
+            Solver.WaveModeDv = calcSettingFrm.WaveModeDv;
+            Solver.LsEqnSolverDv = calcSettingFrm.LsEqnSolverDv;
+            Solver.WaveguideWidthForEPlane = calcSettingFrm.WaveguideWidthForEPlane;
 
             // Cadデータ保存＆Fem入力データ作成保存
             doSave(true);
@@ -1175,10 +1186,6 @@ namespace HPlaneWGSimulator
 
             // 解析機へ入力データを読み込む
             Solver.Load(FemInputDatFilePath);
-            // 解析機の情報が確定したので、計算範囲画面で設定した計算範囲をファイルへ書き込み
-            Solver.UpdateAndSaveToInputFile(FemInputDatFilePath,
-                calcSettingFrm.NormalizedFreq1, calcSettingFrm.NormalizedFreq2, calcSettingFrm.CalcFreqCnt,
-                calcSettingFrm.LsEqnSolverDv);
 
             // 計算処理
             doCalc();
@@ -1199,7 +1206,11 @@ namespace HPlaneWGSimulator
                 SMatChart,
                 BetaChart,
                 EigenVecChart);
-
+            // 計算モードのラベル表示
+            setLabelCalcModeText(Solver.WGStructureDv, Solver.WaveModeDv);
+            // ツールチップ表示更新
+            setFValuePanelToolTip();
+            
             // 解析機のデータチェック
             bool chkResult = Solver.ChkInputData();
             if (!chkResult)
@@ -1825,6 +1836,34 @@ namespace HPlaneWGSimulator
         }
 
         /// <summary>
+        /// 計算モードのラベル表示
+        /// </summary>
+        /// <param name="waveModeDv"></param>
+        private void setLabelCalcModeText(FemSolver.WGStructureDV wgStructureDv, FemSolver.WaveModeDV waveModeDv)
+        {
+            string text;
+            if (wgStructureDv == FemSolver.WGStructureDV.HPlane2D)
+            {
+                text = "H面";
+            }
+            else if (wgStructureDv == FemSolver.WGStructureDV.EPlane2D)
+            {
+                text = "E面";
+            }
+            else if (wgStructureDv == FemSolver.WGStructureDV.ParaPlate2D)
+            {
+                text = "平行板";
+            }
+            else
+            {
+                text = "(unknown)";
+            }
+            text += " " + ((waveModeDv == FemSolver.WaveModeDV.TM) ? "TM" : "TE");
+
+            labelCalcMode.Text = text;
+        }
+
+        /// <summary>
         /// GUI初期化
         /// </summary>
         private void resetGUI()
@@ -1866,6 +1905,11 @@ namespace HPlaneWGSimulator
                 BetaChart,
                 EigenVecChart
                 );
+
+            // 計算モードのラベル表示
+            setLabelCalcModeText(Solver.WGStructureDv, Solver.WaveModeDv);
+            // ツールチップ表示更新
+            setFValuePanelToolTip();
 
             // 周波数インデックス初期化
             FreqNo = -1;
@@ -1920,6 +1964,10 @@ namespace HPlaneWGSimulator
                 BetaChart,
                 EigenVecChart
                 );
+            // 計算モードのラベル表示
+            setLabelCalcModeText(Solver.WGStructureDv, Solver.WaveModeDv);
+            // ツールチップ表示更新
+            setFValuePanelToolTip();
             //描画の途中経過を表示
             Application.DoEvents();
 
@@ -2119,38 +2167,31 @@ namespace HPlaneWGSimulator
             double firstNormalizedFreq = Solver.FirstNormalizedFreq;
             double lastNormalizedFreq = Solver.LastNormalizedFreq;
             int calcFreqCnt = Solver.CalcFreqCnt;
+            // 導波路構造区分の退避
+            FemSolver.WGStructureDV wgStructureDv = Solver.WGStructureDv;
+            // 波のモード区分の退避
+            FemSolver.WaveModeDV waveModeDv = Solver.WaveModeDv;
             // 要素形状、補間次数の退避
             Constants.FemElementShapeDV elemShapeDv = Solver.ElemShapeDvToBeSet;
             int elemOrder = Solver.ElemOrderToBeSet;
             // 線形方程式解法区分の退避
             FemSolver.LinearSystemEqnSoverDV lsEqnSolverDv = Solver.LsEqnSolverDv;
+            // 導波路幅(E面解析用)の退避
+            double waveguideWidthForEPlane = Solver.WaveguideWidthForEPlane;
+
             if (calcFreqCnt == 0)
             {
                 firstNormalizedFreq = Constants.DefNormalizedFreqRange[0];
                 lastNormalizedFreq = Constants.DefNormalizedFreqRange[1];
                 calcFreqCnt = Constants.DefCalcFreqencyPointCount;
-                elemShapeDv = Constants.DefElemShapeDv;
-                elemOrder = Constants.DefElementOrder;
-                lsEqnSolverDv = Constants.DefLsEqnSolverDv;
             }
 
             // Fem入出力データの削除
             removeAllFemDatFile();
-            
+
             // 解析機の入力データ初期化
             Solver.InitData();
-            /*
-            // ポストプロセッサの入力データ初期化
-            PostPro.InitData(
-                Solver,
-                CadPanel,
-                FValuePanel,
-                FValueLegendPanel, labelFreqValue,
-                SMatChart,
-                BetaChart,
-                EigenVecChart
-                );*/
-
+            
             // 周波数インデックス初期化
             FreqNo = -1;
             // 周波数ボタンの有効・無効化
@@ -2159,15 +2200,17 @@ namespace HPlaneWGSimulator
             // Cadデータの書き込み
             CadLgc.SerializeCadData(CadDatFilePath);
             // FEM入力データの作成
-            CadLgc.MkFemInputData(FemInputDatFilePath, elemShapeDv, elemOrder);
+            CadLgc.MkFemInputData(
+                FemInputDatFilePath,
+                elemShapeDv, elemOrder,
+                firstNormalizedFreq, lastNormalizedFreq, calcFreqCnt,
+                wgStructureDv,
+                waveModeDv,
+                lsEqnSolverDv,
+                waveguideWidthForEPlane);
 
-            // 計算範囲の復元
             // 解析機へ入力データを読み込む
             Solver.Load(FemInputDatFilePath);
-            // 解析機の情報が確定したので、計算範囲画面で設定した計算範囲をファイルへ書き込み
-            Solver.UpdateAndSaveToInputFile(FemInputDatFilePath,
-                firstNormalizedFreq, lastNormalizedFreq, calcFreqCnt,
-                lsEqnSolverDv);
             // ポストプロセッサの入力データ初期化
             PostPro.InitData(
                 Solver,
@@ -2178,6 +2221,10 @@ namespace HPlaneWGSimulator
                 BetaChart,
                 EigenVecChart
                 );
+            // 計算モードのラベル表示
+            setLabelCalcModeText(Solver.WGStructureDv, Solver.WaveModeDv);
+            // ツールチップ表示更新
+            setFValuePanelToolTip();
 
             // 元に戻す、やり直しボタンの操作可能フラグをセットアップ
             setupUndoRedoEnable();
@@ -2971,33 +3018,49 @@ namespace HPlaneWGSimulator
         {
             // 等高線図パネルのツールチップを設定する
             string text = "";
-            if (PostPro.WaveModeDv == FemSolver.WaveModeDV.TM)
+            string[] contentName = FValuePanelContentNameForE;
+            if (PostPro.WGStructureDv == FemSolver.WGStructureDV.EPlane2D)
             {
-                if (FValuePanelIndex >= FValuePanelFieldDV_ValueDVPairList.Length)
+                // E面
+                if (PostPro.WaveModeDv == FemSolver.WaveModeDV.TM)
                 {
-                    foreach (string tmp in FValuePanelContentNameForTM)
-                    {
-                        text += tmp + " " + System.Environment.NewLine;
-                    }
+                    // E面TM
+                    // 解析対象が電界
+                    contentName = FValuePanelContentNameForE;
                 }
                 else
                 {
-                    text = FValuePanelContentNameForTM[FValuePanelIndex];
+                    // E面TE
+                    // 解析対象が磁界
+                    contentName = FValuePanelContentNameForH;
                 }
             }
             else
             {
-                if (FValuePanelIndex >= FValuePanelFieldDV_ValueDVPairList.Length)
+                // H面、平行平板
+                if (PostPro.WaveModeDv == FemSolver.WaveModeDV.TM)
                 {
-                    foreach (string tmp in FValuePanelContentNameForTE)
-                    {
-                        text += tmp + " " + System.Environment.NewLine;
-                    }
+                    // H面、平行平板TM
+                    // 解析対象が磁界
+                    contentName = FValuePanelContentNameForH;
                 }
                 else
                 {
-                    text = FValuePanelContentNameForTE[FValuePanelIndex];
+                    // H面、平行平板TE
+                    // 解析対象が電界
+                    contentName = FValuePanelContentNameForE;
                 }
+            }
+            if (FValuePanelIndex >= FValuePanelFieldDV_ValueDVPairList.Length)
+            {
+                foreach (string tmp in contentName)
+                {
+                    text += tmp + " " + System.Environment.NewLine;
+                }
+            }
+            else
+            {
+                text = contentName[FValuePanelIndex];
             }
             toolTip1.SetToolTip(FValuePanel, text);
         }
@@ -3120,6 +3183,19 @@ namespace HPlaneWGSimulator
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// 「対数表示」メニュークリックイベントハンドラ
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void toolStripMILogGraph_Click(object sender, EventArgs e)
+        {
+            bool isLogarithmic = PostPro.IsSMatChartLogarithmic;
+            isLogarithmic = !isLogarithmic;
+            toolStripMILogGraph.Checked = isLogarithmic;
+            PostPro.SetSMatChartLogarithmic(SMatChart, isLogarithmic);
         }
 
     }
