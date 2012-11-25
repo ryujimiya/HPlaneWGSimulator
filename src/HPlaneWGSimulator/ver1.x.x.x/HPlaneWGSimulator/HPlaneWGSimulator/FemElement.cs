@@ -101,6 +101,10 @@ namespace HPlaneWGSimulator
         /// 波のモード区分
         /// </summary>
         protected FemSolver.WaveModeDV _WaveModeDv = FemSolver.WaveModeDV.TE;
+        /// <summary>
+        /// 導波路構造区分
+        /// </summary>
+        protected FemSolver.WGStructureDV _WGStructureDv = FemSolver.WGStructureDV.HPlane2D;
 
         /// <summary>
         /// フィールド値描画を荒くする？
@@ -186,6 +190,7 @@ namespace HPlaneWGSimulator
                     {0.0, 0.0, 1.0},
                 };
             _WaveModeDv = FemSolver.WaveModeDV.TE;
+            _WGStructureDv = FemSolver.WGStructureDV.HPlane2D;
             IsCoarseFieldMesh = false;
         }
 
@@ -228,6 +233,7 @@ namespace HPlaneWGSimulator
                     {0.0, 0.0, 1.0},
                 };
             _WaveModeDv = FemSolver.WaveModeDV.TE;
+            _WGStructureDv = FemSolver.WGStructureDV.HPlane2D;
             IsCoarseFieldMesh = false;
         }
 
@@ -253,7 +259,7 @@ namespace HPlaneWGSimulator
         /// <param name="nodesRegionToIndex"></param>
         /// <param name="factorForRot">回転に掛ける因子(磁界または電界への変換)</param>
         public virtual void SetFieldValueFromAllValues(Complex[] valuesAll, Dictionary<int, int> nodesRegionToIndex,
-            Complex factorForRot, double[,] media_Q, FemSolver.WaveModeDV waveModeDv)
+            Complex factorForRot, double[,] media_Q, FemSolver.WGStructureDV wgStructureDv, FemSolver.WaveModeDV waveModeDv)
         {
             _FValues = new Complex[NodeNumbers.Length];
             for (int ino = 0; ino < NodeNumbers.Length; ino++)
@@ -280,10 +286,22 @@ namespace HPlaneWGSimulator
                     _media_Q[i, j] = media_Q[i, j];
                 }
             }
+            _WGStructureDv = wgStructureDv;
             _WaveModeDv = waveModeDv;
 
             // フィールドの回転を求める
             calcRotField(out _RotXFValues, out _RotYFValues);
+
+            // 複素共役を格納
+            //if (_RotXFValues != null && _RotYFValues != null)
+            //{
+            //    int nno = NodeNumbers.Length;
+            //    for (int ino = 0; ino < nno; ino++)
+            //    {
+            //        _RotXFValues[ino] = Complex.Conjugate(_RotXFValues[ino]);
+            //        _RotYFValues[ino] = Complex.Conjugate(_RotYFValues[ino]);
+            //    }
+            //}
 
             // 回転を計算できたら（実装されていたら)、複素ポインティングベクトルを計算する
             _PoyntingXFValues = null;
@@ -295,17 +313,47 @@ namespace HPlaneWGSimulator
                 _PoyntingYFValues = new Complex[nno];
                 for (int ino = 0; ino < nno; ino++)
                 {
-                    if (_WaveModeDv == FemSolver.WaveModeDV.TM)
+                    if (_WGStructureDv == FemSolver.WGStructureDV.EPlane2D)
                     {
-                        // E x H* = rot x (fz)* = { (fz)*(roty), - (fz)* (rotx) }  (rotは_FactorForRotを乗算済み)
-                        _PoyntingXFValues[ino] = Complex.Conjugate(_FValues[ino]) * _RotYFValues[ino];
-                        _PoyntingYFValues[ino] = -1.0 * Complex.Conjugate(_FValues[ino]) * _RotXFValues[ino];
+                        if (_WaveModeDv == FemSolver.WaveModeDV.TM)
+                        {
+                            // F:電界(Z成分)
+                            // G:磁界(XY成分)
+                            // (E x H*) = (fz x (rot)*) = { - fz(roty)*, fz (rotx)* }  (rotは_FactorForRotを乗算済み)
+                            _PoyntingXFValues[ino] = _FValues[ino] * Complex.Conjugate(_RotYFValues[ino]);
+                            _PoyntingYFValues[ino] = -1.0 * _FValues[ino] * Complex.Conjugate(_RotXFValues[ino]);
+                        }
+                        else
+                        {
+                            // F:磁界(Z成分)
+                            // G:電界(XY成分)
+                            // E x H* = rot x (fz)* = { (fz)*(roty), - (fz)* (rotx) }  (rotは_FactorForRotを乗算済み)
+                            //_PoyntingXFValues[ino] = -1.0 * Complex.Conjugate(_FValues[ino]) * _RotYFValues[ino];
+                            //_PoyntingYFValues[ino] = Complex.Conjugate(_FValues[ino]) * _RotXFValues[ino];
+                            _PoyntingXFValues[ino] = -1.0 * _FValues[ino] * Complex.Conjugate(_RotYFValues[ino]);
+                            _PoyntingYFValues[ino] = _FValues[ino] * Complex.Conjugate(_RotXFValues[ino]);
+                        }
                     }
                     else
                     {
-                        // E x H* = fz x (rot)* = { -fz(roty)*, fz (rotx)* }  (rotは_FactorForRotを乗算済み)
-                        _PoyntingXFValues[ino] = -1.0 * _FValues[ino] * Complex.Conjugate(_RotYFValues[ino]);
-                        _PoyntingYFValues[ino] = _FValues[ino] * Complex.Conjugate(_RotXFValues[ino]);
+                        if (_WaveModeDv == FemSolver.WaveModeDV.TM)
+                        {
+                            // F:磁界(Z成分)
+                            // G:電界(XY成分)
+                            // E x H* = rot x (fz)* = { (fz)*(roty), - (fz)* (rotx) }  (rotは_FactorForRotを乗算済み)
+                            //_PoyntingXFValues[ino] = -1.0 * Complex.Conjugate(_FValues[ino]) * _RotYFValues[ino];
+                            //_PoyntingYFValues[ino] = Complex.Conjugate(_FValues[ino]) * _RotXFValues[ino];
+                            _PoyntingXFValues[ino] = -1.0 * _FValues[ino] * Complex.Conjugate(_RotYFValues[ino]);
+                            _PoyntingYFValues[ino] = _FValues[ino] * Complex.Conjugate(_RotXFValues[ino]);
+                        }
+                        else
+                        {
+                            // F:電界(Z成分)
+                            // G:磁界(XY成分)
+                            // (E x H*) = (fz x (rot)*) = { - fz(roty)*, fz (rotx)* }  (rotは_FactorForRotを乗算済み)
+                            _PoyntingXFValues[ino] = _FValues[ino] * Complex.Conjugate(_RotYFValues[ino]);
+                            _PoyntingYFValues[ino] = -1.0 * _FValues[ino] * Complex.Conjugate(_RotXFValues[ino]);
+                        }
                     }
                 }
             }

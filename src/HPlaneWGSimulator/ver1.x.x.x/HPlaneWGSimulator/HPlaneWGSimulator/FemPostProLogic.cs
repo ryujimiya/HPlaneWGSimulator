@@ -719,14 +719,14 @@ namespace HPlaneWGSimulator
                     // TMモードの場合、q :比誘電率
                     //   F:磁界
                     //   G:電界
-                    factorForRot = -1.0 * Complex.ImaginaryOne / (omega * Constants.eps0);
+                    factorForRot = Complex.ImaginaryOne / (omega * Constants.eps0);
                 }
                 else
                 {
                     // TEモードの場合、q:比透磁率
                     //   F:電界
                     //   G:磁界
-                    factorForRot = Complex.ImaginaryOne / (omega * Constants.myu0);
+                    factorForRot = -1.0 * Complex.ImaginaryOne / (omega * Constants.myu0);
                 }
             }
 
@@ -785,7 +785,7 @@ namespace HPlaneWGSimulator
                     }
                 }
                 element.SetFieldValueFromAllValues(valuesAll, nodesRegionToIndex,
-                    factorForRot, media_Q, WaveModeDv);
+                    factorForRot, media_Q, WGStructureDv, WaveModeDv);
             }
 
             // フィールド値の絶対値の最小、最大

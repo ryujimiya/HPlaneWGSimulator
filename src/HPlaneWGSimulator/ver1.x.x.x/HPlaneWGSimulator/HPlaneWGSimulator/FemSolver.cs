@@ -729,6 +729,11 @@ namespace HPlaneWGSimulator
                     media_Q[0, 0] = urMat[0, 0];
                     media_Q[1, 1] = urMat[1, 1];
                     media_Q[2, 2] = urMat[2, 2] - (pi * pi * urMat[2, 2]) / (urMat[1, 1] * k0 * k0 * erMat[0, 0] * waveguidWidthForEPlane * waveguidWidthForEPlane);
+                    // ヘルムホルツ方程式がポアソンの方程式と同じ形になるとき、解が収束しなくなるので小さな値で０を代用する
+                    if (Math.Abs(media_Q[2, 2]) < Constants.PrecisionLowerLimit)
+                    {
+                        media_Q[2, 2] = media_Q[2, 2] >= 0 ? Constants.PrecisionLowerLimit : -Constants.PrecisionLowerLimit;
+                    }
                      */
                 }
                 else
@@ -758,6 +763,11 @@ namespace HPlaneWGSimulator
                     media_Q[0, 0] = urMat[0, 0];
                     media_Q[1, 1] = urMat[1, 1];
                     media_Q[2, 2] = urMat[2, 2] - (pi * pi * urMat[2, 2]) / (k0 * k0 * erMat[1, 1] * waveguideWidthForEPlane * waveguideWidthForEPlane * urMat[0, 0]);
+                    // ヘルムホルツ方程式がポアソンの方程式と同じ形になるとき、解が収束しなくなるので小さな値で０を代用する
+                    if (Math.Abs(media_Q[2, 2]) < Constants.PrecisionLowerLimit)
+                    {
+                        media_Q[2, 2] = media_Q[2, 2] >= 0 ? Constants.PrecisionLowerLimit : -Constants.PrecisionLowerLimit;
+                    }
                 }
                 else if (WaveModeDv == FemSolver.WaveModeDV.TM)
                 {
@@ -780,6 +790,11 @@ namespace HPlaneWGSimulator
                     media_Q[0, 0] = erMat[0, 0];
                     media_Q[1, 1] = erMat[1, 1];
                     media_Q[2, 2] = erMat[2, 2] - (pi * pi * erMat[2, 2]) / (k0 * k0 * urMat[1, 1] * waveguidWidthForEPlane * waveguidWidthForEPlane * erMat[0, 0]);
+                    // ヘルムホルツ方程式がポアソンの方程式と同じ形になるとき、解が収束しなくなるので小さな値で０を代用する
+                    if (Math.Abs(media_Q[2, 2]) < Constants.PrecisionLowerLimit)
+                    {
+                        media_Q[2, 2] = media_Q[2, 2] >= 0 ? Constants.PrecisionLowerLimit : -Constants.PrecisionLowerLimit;
+                    }
                      */
                 }
                 else
