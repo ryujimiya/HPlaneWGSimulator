@@ -1,5 +1,13 @@
 ﻿HPlaneWGSimulator Release Notes
 
+version1.6.0.2
+---(2012-12-17)
+  Lisys CLW.dll更新
+    KrdLab.clapack.FunctionExt.zgbsv 複素エルミート帯行列用一般化固有値問題解法 追加
+    現在未使用
+  BUGFIX
+    MyCmplexBandMatrix(未使用のコンストラクタにバグがあったので修正)
+
 version1.6.0.1
 ---(2012-11-25)
   界分布の計算のロジック修正（最終的な値は修正前と同じ)

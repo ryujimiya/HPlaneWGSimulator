@@ -125,6 +125,7 @@ Class KrdLab.clapack.FunctionExt: AutoLayout, AnsiClass, Class, Public, BeforeFi
     dggev(Double[], Int32, Int32, Double[], Int32, Int32, Double[]&, Double[]&, Double[][]&, Double[][]&): PrivateScope, Public, Static, HideBySig
     dsbgv(Double[], Int32, Int32, Int32, Double[], Int32, Int32, Int32, Double[]&, Double[][]&): PrivateScope, Public, Static, HideBySig
     zggev(Complex[], Int32, Int32, Complex[], Int32, Int32, Complex[]&, Complex[][]&): PrivateScope, Public, Static, HideBySig
+    zhbgv(Complex[], Int32, Int32, Int32, Complex[], Int32, Int32, Int32, Double[]&, Complex[][]&): PrivateScope, Public, Static, HideBySig
     CompressMatFor_zgesv(ValueType[]&): PrivateScope, Public, Static, HideBySig
 Class KrdLab.clapack.CalculationChecker: AutoLayout, AnsiClass, Class, Public, BeforeFieldInit
     Void .ctor(): PrivateScope, Public, HideBySig, SpecialName, RTSpecialName

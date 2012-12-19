@@ -33,6 +33,7 @@ namespace MyUtilLib.Matrix
         /// <returns></returns>
         internal virtual int GetBufferIndex(int row, int col)
         {
+            System.Diagnostics.Debug.Assert(row >= 0 && row < RowSize && col >= 0 && col < ColumnSize);
             return (row + col * _rsize);
         }
 

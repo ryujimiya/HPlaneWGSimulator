@@ -30,6 +30,7 @@ namespace MyUtilLib.Matrix
         /// <returns></returns>
         internal override int GetBufferIndex(int row, int col)
         {
+            System.Diagnostics.Debug.Assert(row >= 0 && row < RowSize && col >= 0 && col < ColumnSize);
             //BUGFIX
             //if (!(col >= row - this._superdiaSize && col <= row + this._subdiaSize))
             if (!(row >= col - this._superdiaSize && row <= col + this._subdiaSize))
@@ -161,7 +162,9 @@ namespace MyUtilLib.Matrix
                 // subdiagonal¬•ª
                 if (c < rowcolSize - 1)
                 {
-                    for (int r = c + 1; r < c + subdiaSize && c < rowcolSize; r++)
+                    //BUGFIX
+                    //for (int r = c + 1; r < c + subdiaSize && c < rowcolSize; r++)
+                    for (int r = c + 1; r <= c + subdiaSize && r < rowcolSize; r++)
                     {
                         this[r, c] = arr[r, c];
                     }

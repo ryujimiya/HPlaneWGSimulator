@@ -30,6 +30,7 @@ namespace MyUtilLib.Matrix
         /// <returns></returns>
         internal override int GetBufferIndex(int row, int col)
         {
+            System.Diagnostics.Debug.Assert(row >= 0 && row < RowSize && col >= 0 && col < ColumnSize);
             // 上三角バンド行列
             if (!(row >= col - this._superdiaSize && row <= col))
             {

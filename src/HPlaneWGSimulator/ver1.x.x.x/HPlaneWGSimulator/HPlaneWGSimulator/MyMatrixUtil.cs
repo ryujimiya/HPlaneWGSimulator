@@ -585,7 +585,9 @@ namespace MyUtilLib.Matrix
         public static Complex[] product(MyComplexMatrix matA, Complex[] vec)
         {
             System.Diagnostics.Debug.Assert(matA.ColumnSize == vec.Length);
-            Complex[] retVec = new Complex[vec.Length];
+            //BUGFIX
+            //Complex[] retVec = new Complex[vec.Length];
+            Complex[] retVec = new Complex[matA.RowSize];
 
             for (int i = 0; i < matA.RowSize; i++)
             {
@@ -602,7 +604,9 @@ namespace MyUtilLib.Matrix
         public static Complex[] product(MyComplexBandMatrix matA, Complex[] vec)
         {
             System.Diagnostics.Debug.Assert(matA.ColumnSize == vec.Length);
-            Complex[] retVec = new Complex[vec.Length];
+            //BUGFIX
+            //Complex[] retVec = new Complex[vec.Length];
+            Complex[] retVec = new Complex[matA.RowSize];
 
             for (int i = 0; i < matA.RowSize; i++)
             {
@@ -619,7 +623,9 @@ namespace MyUtilLib.Matrix
         public static Complex[] product(MyDoubleMatrix matA, Complex[] vec)
         {
             System.Diagnostics.Debug.Assert(matA.ColumnSize == vec.Length);
-            Complex[] retVec = new Complex[vec.Length];
+            //BUGFIX
+            //Complex[] retVec = new Complex[vec.Length];
+            Complex[] retVec = new Complex[matA.RowSize];
 
             for (int i = 0; i < matA.RowSize; i++)
             {

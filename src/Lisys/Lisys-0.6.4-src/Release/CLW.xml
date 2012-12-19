@@ -139,6 +139,35 @@ int zgesv_(integer *n, integer *nrhs,
                 <para>zgesv_ 関数の内部では LU分解が使用されている．</para>
             </remarks>
         </member>
+        <member name="M:KrdLab.clapack.FunctionExt.zhbgv(KrdLab.clapack.Complex[],System.Int32,System.Int32,System.Int32,KrdLab.clapack.Complex[],System.Int32,System.Int32,System.Int32,System.Double[]@,KrdLab.clapack.Complex[][]@)">
+            <summary>
+                <para>一般化固有値問題 Ax=λBxを解く</para>
+                <para>Aはエルミート帯行列. Bはエルミート帯行列かつ正定値行列である. 計算された固有ベクトルは，大きさ（ユークリッドノルム）が 1 に規格化されている．</para>
+            </summary>
+            <param name="A">固有値分解される帯行列A（計算の過程で上書きされる）</param>
+            <param name="a_row">行列 <paramref name="A" /> の行数</param>
+            <param name="a_col">行列 <paramref name="A" /> の列数</param>
+            <param name="ka">行列 <paramref name="A" /> のsuperdiagonalsのサイズ</param>
+            <param name="B">固有値分解される帯行列B（計算の過程で上書きされる）</param>
+            <param name="b_row">行列 <paramref name="B" /> の行数</param>
+            <param name="b_col">行列 <paramref name="B" /> の列数</param>
+            <param name="kb">行列 <paramref name="B" /> のsuperdiagonalsのサイズ</param>
+            <param name="evals">固有値</param>
+            <param name="evecs">固有ベクトル</param>
+            <returns>常に 0 が返ってくる．</returns>
+            <remarks>
+                <para>対応するCLAPACK関数（CLAPACK/BLAS/SRC/dsbgv.c）</para>
+                <code>
+int zhbgv_(char *jobz, char *uplo, integer *n,
+           integer *ka, integer *kb, 
+           doublecomplex *ab, integer *ldab,
+           doublecomplex *bb, integer *ldbb,
+           doublecomplex *w,
+           doublecomplex *z, integer *ldz,
+           doublecomplex *work, doublereal *rwork, integer *info);
+</code>
+            </remarks>
+        </member>
         <member name="M:KrdLab.clapack.FunctionExt.zggev(KrdLab.clapack.Complex[],System.Int32,System.Int32,KrdLab.clapack.Complex[],System.Int32,System.Int32,KrdLab.clapack.Complex[]@,KrdLab.clapack.Complex[][]@)">
             <summary>
                 <para>一般化固有値問題 Ax=λBxを解く</para>

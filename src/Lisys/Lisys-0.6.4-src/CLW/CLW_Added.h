@@ -1269,6 +1269,168 @@ namespace KrdLab {
                 return ret;
             }
 
+            /// <summary>
+            /// <para>一般化固有値問題 Ax=λBxを解く</para>
+            /// <para>Aはエルミート帯行列. Bはエルミート帯行列かつ正定値行列である. 計算された固有ベクトルは，大きさ（ユークリッドノルム）が 1 に規格化されている．</para>
+            /// </summary>
+            /// <param name="A">固有値分解される帯行列A（計算の過程で上書きされる）</param>
+            /// <param name="a_row">行列 <paramref name="A"/> の行数</param>
+            /// <param name="a_col">行列 <paramref name="A"/> の列数</param>
+            /// <param name="ka">行列 <paramref name="A"/> のsuperdiagonalsのサイズ</param>
+            /// <param name="B">固有値分解される帯行列B（計算の過程で上書きされる）</param>
+            /// <param name="b_row">行列 <paramref name="B"/> の行数</param>
+            /// <param name="b_col">行列 <paramref name="B"/> の列数</param>
+            /// <param name="kb">行列 <paramref name="B"/> のsuperdiagonalsのサイズ</param>
+            /// <param name="evals">固有値</param>
+            /// <param name="evecs">固有ベクトル</param>
+            /// <returns>常に 0 が返ってくる．</returns>
+            /// <remarks>
+            /// <para>対応するCLAPACK関数（CLAPACK/BLAS/SRC/dsbgv.c）</para>
+            /// <code>
+            /// int zhbgv_(char *jobz, char *uplo, integer *n,
+            ///            integer *ka, integer *kb, 
+            ///            doublecomplex *ab, integer *ldab,
+            ///            doublecomplex *bb, integer *ldbb,
+            ///            doublecomplex *w,
+            ///            doublecomplex *z, integer *ldz,
+            ///            doublecomplex *work, doublereal *rwork, integer *info);
+            /// </code>
+            /// </remarks>
+            static int zhbgv(array<Complex>^ A, int a_row, int a_col, int ka, 
+                             array<Complex>^ B, int b_row, int b_col, int kb,
+                             array<doublereal>^% evals,
+                             array< array<Complex>^ >^% evecs )
+            {
+                char jobz = 'V';
+                // 固有ベクトルを
+                //   if jobvl == 'V' then 計算する
+                //   if jobvl == 'N' then 計算しない
+
+                char uplo = 'U';
+                // if uplo == 'U' then upper triangles of A and B are stored.
+                // if uplo == 'L' then lower triangles of A and B are stored.
+
+                integer n = a_col;
+                // 行列 A, B の大きさ（N×Nなので，片方だけでよい）
+
+                integer ka_ = ka;
+                // the number of superdiagonals of the matrix A if uplo == 'U'
+                // or the number of subdiagonals if uplo == 'L'. ka >= 0.
+                
+                integer kb_ = kb;
+                // the number of superdiagonals of the matrix B if uplo == 'U'
+                // or the number of subdiagonals if uplo == 'L'. kb >= 0.
+
+                integer ldab = ka_ + 1;
+                // the leading dimension of the array AB. ldab >= ka + 1.
+
+                pin_ptr<void> ab_ptr = &A[0];
+                doublecomplex *ab = (doublecomplex *)(void *)ab_ptr;
+                // [ldab, n] N×N の行列 Aの上三角行列（または下三角行列)を帯行列形式で格納
+                // if UPLO = 'U', AB(ka+1+i-j,j) = A(i,j) for max(1,j-ka)<=i<=j;
+                // if UPLO = 'L', AB(1+i-j,j)    = A(i,j) for j<=i<=min(n,j+ka)
+                // 配列 ab （行列 A）は，計算の過程で上書きされる．
+                
+                integer ldbb = kb_ + 1;
+                // the leading dimension of the array BB. ldbb >= kb + 1.
+
+                pin_ptr<void> bb_ptr = &B[0];
+                doublecomplex *bb = (doublecomplex *)(void *)bb_ptr;
+                // [ldbb, n] N×N の行列 Bの上三角行列（または下三角行列)を帯行列形式で格納
+                // if UPLO = 'U', BB(kb+1+i-j,j) = B(i,j) for max(1,j-kb)<=i<=j;
+                // if UPLO = 'L', BB(1+i-j,j)    = B(i,j) for j<=i<=min(n,j+kb).
+                // 配列 bb （行列 B）は，計算の過程で上書きされる．
+
+                doublereal* w = new doublereal[n];
+                // 計算された固有値が入る．
+
+                integer ldz = n;
+                // 必ず 1 <= ldz を満たす必要がある．
+                // if jobz == 'V' then N <= ldz
+
+                doublecomplex* z = new doublecomplex[ldz * n];
+                // if jobz == 'V' then 固有ベクトルが z の各列に，固有値と同じ順序で格納される．
+                // if jobz == 'N' then z is not referenced.
+
+                //
+                // その他
+
+                doublecomplex* work = new doublecomplex[n];
+                // dimension(N)
+                doublereal *rwork = new doublereal[3 * n];
+                // dimension (3*N)
+
+                integer info = 0;
+                // if info == 0 then 正常終了
+                // if info <  0 then -info 番目の引数の値が間違っている．
+                // if info >  0 then QRアルゴリズムは，全ての固有値を計算できなかった．
+                //                   固有ベクトルは計算されていない．
+                //                   wr[info+1:N] と wl[info+1:N] には，収束した固有値が含まれている．
+
+                int ret;
+                try
+                {
+                    // CLAPACKルーチン
+                    ret = zhbgv_(&jobz, &uplo, &n, &ka_, &kb_, ab, &ldab, bb, &ldbb, w, z, &ldz, work, rwork, &info);
+
+                    if(info == 0)
+                    {
+                        //
+                        // 固有値を格納
+                        evals = gcnew array<doublereal>(n);
+
+                        for(int i=0; i<n; ++i)
+                        {
+                            evals[i] = ((Math::Abs(w[i]) < CalculationLowerLimit) ? (0.0) : (w[i]));
+                        }
+
+                        //
+                        // 固有ベクトルを格納
+                        evecs = gcnew array< array<Complex>^ >(n);
+
+                        for(int i=0; i<n; ++i)
+                        {
+                            // 通常の格納処理
+                            evecs[i] = gcnew array<Complex>(ldz);
+
+                            for(int j=0; j<ldz; ++j)
+                            {
+                                doublecomplex v = z[i*ldz + j];
+                                evecs[i][j] = Complex(v.r, v.i);
+                            }
+                        }// end for i
+                    }// end if info == 0
+                    else
+                    {
+                        if(info < 0)
+                        {
+                            throw gcnew IllegalClapackArgumentException(
+                                "Error occurred: " + -info
+                                    + "-th argument had an illegal value in the clapack.Function.zhbgv", -info);
+                        }
+                        else if (info > n && info <= 2*n)
+                        {
+                            throw gcnew IllegalClapackResultException(
+                                "Error occurred: " +  "B(" + (info - n - 1) + ", " + (info - n - 1) + ") was was negative. B is not positive definite.", (info - n - 1));
+                        }
+                        else
+                        {
+                            throw gcnew IllegalClapackResultException("Error occurred: zhbgv_", info);
+                        }
+                    }
+                }
+                finally
+                {
+                    // unmanaged code の後始末
+                    delete[] w; w = nullptr;
+                    delete[] z; z = nullptr;
+                    delete[] work; work = nullptr;
+                    delete[] rwork; rwork = nullptr;
+                }
+
+                return ret;
+            }
+
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////
         // System::Numerics::Complexを使用したI/F
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////

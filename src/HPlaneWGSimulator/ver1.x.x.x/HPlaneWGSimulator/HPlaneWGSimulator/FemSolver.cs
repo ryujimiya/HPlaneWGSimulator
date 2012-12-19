@@ -2186,6 +2186,21 @@ namespace HPlaneWGSimulator
                     }
                 }
             }
+            // check 対称行列
+            for (int inoB = 0; inoB < matB.RowSize; inoB++)
+            {
+                for (int jnoB = inoB; jnoB < matB.ColumnSize; jnoB++)
+                {
+                    if (Math.Abs(matB[inoB, jnoB].Real - matB[jnoB, inoB].Real) >= Constants.PrecisionLowerLimit)
+                    {
+                        System.Diagnostics.Debug.Assert(false);
+                    }
+                    if (Math.Abs(matB[inoB, jnoB].Imaginary - matB[jnoB, inoB].Imaginary) >= Constants.PrecisionLowerLimit)
+                    {
+                        System.Diagnostics.Debug.Assert(false);
+                    }
+                }
+            }
             //MyMatrixUtil.printMatrix("matB", matB);
 
             // 残差ベクトルの作成
@@ -2690,12 +2705,18 @@ namespace HPlaneWGSimulator
                 Complex betam = Complex.Sqrt(evals[tagtModeIdx]);
                 // 定式化BUGFIX
                 //   減衰定数は符号がマイナス(β = -jα)
+                bool isConjugateMode = false;
                 if (betam.Imaginary >= 0.0)
                 {
                     betam = new Complex(betam.Real, -betam.Imaginary);
+                    isConjugateMode = true;
                 }
                 // 固有ベクトル
                 Complex[] evec = MyMatrixUtil.matrix_GetRowVec(evecs, tagtModeIdx);
+                if (isConjugateMode)
+                {
+                    evec = MyMatrixUtil.vector_Conjugate(evec);
+                }
                 // H面導波管のTMモードの場合、TEM波(TM10:Y方向に界の変化のない解)を除外する
                 if (WGStructureDv == WGStructureDV.HPlane2D && WaveModeDv == WaveModeDV.TM)
                 {
