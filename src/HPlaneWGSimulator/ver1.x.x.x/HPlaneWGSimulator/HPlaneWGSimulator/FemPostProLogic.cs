@@ -1429,7 +1429,7 @@ namespace HPlaneWGSimulator
 
             FValueLegendColorPanel = new Panel();
             FValueLegendColorPanel.Location = new Point(0, 15);
-            FValueLegendColorPanel.Size = new Size(50, 5 + 20 * cnt + 5);
+            FValueLegendColorPanel.Size = new Size(legendPanel.Width, 5 + 20 * cnt + 5);
             FValueLegendColorPanel.Paint += new PaintEventHandler(FValueLegendColorPanel_Paint);
             legendPanel.Controls.Add(FValueLegendColorPanel);
 
@@ -1453,7 +1453,7 @@ namespace HPlaneWGSimulator
             // カラーマップを表示する
             drawFValueLegendColormap(g);
             // カラーマップの目盛を表示する
-            drawFValueLegendColorScale(g);
+            drawFValueLegendColorScale(g, ShowFieldDv, ShowValueDv);
         }
 
         /// <summary>
@@ -1470,6 +1470,7 @@ namespace HPlaneWGSimulator
 
             FValueColorMap.Min = 0;
             FValueColorMap.Max = 1.0;
+
             for (int y = 0; y < height * cnt; y++)
             {
                 double value = (height - y) / (double)height;
@@ -1485,35 +1486,47 @@ namespace HPlaneWGSimulator
         /// 凡例カラーマップ目盛の描画
         /// </summary>
         /// <param name="g"></param>
-        private void drawFValueLegendColorScale(Graphics g)
+        private void drawFValueLegendColorScale(Graphics g, FemElement.FieldDV fieldDv, FemElement.ValueDV valueDv)
         {
             const int cnt = LegendColorCnt;
             const int ofsX = 22;
             const int ofsY = 0;
             const int height = 20; // 1目盛の高さ
-            double divValue = 1.0 / (double)cnt;
+            //double divValue = 1.0 / (double)cnt;
+            double min = 0.0;
+            double max = 1.0;
+            if (fieldDv == FemElement.FieldDV.Field)
+            {
+                min = MinFValue;
+                max = MaxFValue;
+            }
+            else if (fieldDv == FemElement.FieldDV.RotX || fieldDv == FemElement.FieldDV.RotY)
+            {
+                min = MinRotFValue;
+                max = MaxRotFValue;
+            }
+            else
+            {
+                return;
+            }
+            if (valueDv == FemElement.ValueDV.Abs)
+            {
+            }
+            else
+            {
+                min = -max;
+            }
+            double divValue = (max - min) / (double)cnt;
 
             using (Font font = new Font("MS UI Gothic", 9))
             using (Brush brush = new SolidBrush(FValueLegendColorPanel.ForeColor))
             {
-                if (ShowValueDv == FemElement.ValueDV.Abs)
+                for (int i = 0; i < cnt + 1; i++)
                 {
-                    for (int i = 0; i < cnt + 1; i++)
-                    {
-                        int y = i * height;
-                        string text = string.Format("{0:F1}", (cnt - i) * divValue);
-                        g.DrawString(text, font, brush, new Point(ofsX, y + ofsY));
-                    }
-                }
-                else
-                {
-                    for (int i = 0; i < cnt + 1; i++)
-                    {
-                        int y = i * height;
-                        double value = ((cnt - i) * 2.0 - cnt) * divValue;
-                        string text = string.Format(value >= 0 ? "+{0:F1}" : "{0:F1}", value);
-                        g.DrawString(text, font, brush, new Point(ofsX, y + ofsY));
-                    }
+                    int y = i * height;
+                    double value = min + (cnt - i) * divValue;
+                    string text = string.Format("{0:E3}", value);
+                    g.DrawString(text, font, brush, new Point(ofsX, y + ofsY));
                 }
             }
         }
@@ -1535,6 +1548,7 @@ namespace HPlaneWGSimulator
             }
             // BUGFIX [次の周波数][前の周波数]ボタンで周波数が遅れて表示される不具合を修正
             labelFreqValue.Refresh();
+            legendPanel.Refresh();
         }
 
         /// <summary>
@@ -2111,10 +2125,17 @@ namespace HPlaneWGSimulator
                     for (int ino = 0; ino < nodeCnt; ino++)
                     {
                         Complex cval = eigenVecs[modeIndex, ino];
+                        /*
                         double realAbs = Math.Abs(cval.Real);
                         if (realAbs > maxValue)
                         {
                             maxValue = realAbs;
+                        }
+                         */
+                        double abs = cval.Magnitude;
+                        if (abs > maxValue)
+                        {
+                            maxValue = abs;
                         }
                     }
                     if (Math.Abs(maxValue) < Constants.PrecisionLowerLimit)
@@ -2135,6 +2156,12 @@ namespace HPlaneWGSimulator
                             {
                                 seriesReal.Points.AddXY(x0, 0.0); // 実数部
                                 seriesImag.Points.AddXY(x0, 0.0); // 虚数部
+                            }
+                            else if (Math.Abs(maxValue) < Constants.PrecisionLowerLimit)
+                            {
+                                seriesReal.Points.AddXY(x0, 0.0); // 実数部
+                                seriesImag.Points.AddXY(x0, 0.0); // 虚数部
+                                ino++;
                             }
                             else
                             {

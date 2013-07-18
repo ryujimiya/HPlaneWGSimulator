@@ -42,3 +42,7 @@ CLW_Added.h
 
 (2012-10-09)
   CompressMatFor_zgesvでnull要素を０扱いにするようにした(メモリ節約）
+
+(2013-06-12)
+  dgbsv (実帯行列の方程式解法) 追加
+

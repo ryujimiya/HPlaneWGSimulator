@@ -272,6 +272,41 @@ int zgeev_(char *jobvl, char *jobvr, integer *n,
 </code>
             </remarks>
         </member>
+        <member name="M:KrdLab.clapack.FunctionExt.dgbsv(System.Double[]@,System.Int32@,System.Int32@,System.Double[],System.Int32,System.Int32,System.Int32,System.Int32,System.Double[],System.Int32,System.Int32)">
+            <summary>
+                <para>A * X = B を解く（X が解）．</para>
+                <para>A は n×n のバンド行列，X と B は n×nrhs の行列である．</para>
+            </summary>
+            <param name="X">
+                <c>A * X = B</c> の解である X が格納される（実際には B と同じオブジェクトを指す）</param>
+            <param name="x_row">行列 X の行数が格納される（<c>== <paramref name="b_row" /></c>）</param>
+            <param name="x_col">行列 X の列数が格納される（<c>== <paramref name="b_col" /></c>）</param>
+            <param name="A">バンドストレージ形式で格納された係数行列（LU分解の結果である P*L*U に書き換えられる．）</param>
+            <param name="a_row">行列Aの行数</param>
+            <param name="a_col">行列Aの列数</param>
+            <param name="kl">バンド行列A内のsubdiagonalの数</param>
+            <param name="ku">バンド行列A内のsuperdiagonalの数</param>
+            <param name="B">行列 B（内部のCLAPACK関数により X の値が格納される）</param>
+            <param name="b_row">行列Bの行数</param>
+            <param name="b_col">行列Bの列数</param>
+            <returns>常に 0 が返ってくる．</returns>
+            <exception cref="T:KrdLab.clapack.exception.IllegalClapackArgumentException">
+内部で dgbsv_関数に渡された引数に問題があると throw される．
+</exception>
+            <exception cref="T:KrdLab.clapack.exception.IllegalClapackResultException">
+行列 A の LU分解において，U[i, i] が 0 となってしまった場合に throw される．
+この場合，解を求めることができない．
+</exception>
+            <remarks>
+                <para>対応するCLAPACK関数（CLAPACK/SRC/dgbsv.c）</para>
+                <code>
+int dgbsv_(integer *n, integer *kl, integer *ku, integer *nrhs,
+           doublereal *ab, integer *ldab, integer *ipiv,
+           doublereal *b, integer *ldb, integer *info)
+</code>
+                <para>dgbsv_ 関数の内部では LU分解が使用されている．</para>
+            </remarks>
+        </member>
         <member name="M:KrdLab.clapack.FunctionExt.zgbsv(KrdLab.clapack.Complex[]@,System.Int32@,System.Int32@,KrdLab.clapack.Complex[],System.Int32,System.Int32,System.Int32,System.Int32,KrdLab.clapack.Complex[],System.Int32,System.Int32)">
             <summary>
                 <para>A * X = B を解く（X が解）．</para>

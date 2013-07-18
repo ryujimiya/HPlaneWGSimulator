@@ -1,5 +1,9 @@
 ﻿# H面導波管シミュレーター(HPlaneWGSimulator)  
   
+**Latest Release**  
+version1.6.0.3  
+　[installer](https://github.com/ryujimiya/HPlaneWGSimulator/tree/master/publish)  
+
 **News**
 
 ***2012-11-22 version1.6.0.0 Release***  

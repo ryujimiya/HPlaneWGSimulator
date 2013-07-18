@@ -2695,6 +2695,35 @@ namespace HPlaneWGSimulator
                 Console.WriteLine(exception.Message + " " + exception.StackTrace);
                 System.Diagnostics.Debug.Assert(false);
             }
+            for (int imode = 0; imode < evecs.GetLength(0); imode++)
+            {
+                KrdLab.clapack.Complex phaseShift = 1.0;
+                double maxAbs = double.MinValue;
+                KrdLab.clapack.Complex fValueAtMaxAbs = 0.0;
+                {
+                    // 境界上で位相調整する
+                    for (int ino = 0; ino < evecs.GetLength(1); ino++)
+                    {
+                        KrdLab.clapack.Complex cvalue = evecs[imode, ino];
+                        double abs = KrdLab.clapack.Complex.Abs(cvalue);
+                        if (abs > maxAbs)
+                        {
+                            maxAbs = abs;
+                            fValueAtMaxAbs = cvalue;
+                        }
+                    }
+                }
+                if (maxAbs >= MyUtilLib.Matrix.Constants.PrecisionLowerLimit)
+                {
+                    phaseShift = fValueAtMaxAbs / maxAbs;
+                }
+                //System.Diagnostics.Debug.WriteLine("phaseShift: {0} (°)", Math.Atan2(phaseShift.Imaginary, phaseShift.Real) * 180.0 / pi);
+                for (int ino = 0; ino < evecs.GetLength(1); ino++)
+                {
+                    evecs[imode, ino] /= phaseShift;
+                }
+            }
+            
             for (int imode = 0; imode < maxMode; imode++)
             {
                 eigenValues[imode] = 0;
