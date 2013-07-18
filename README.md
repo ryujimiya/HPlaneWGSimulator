@@ -4,7 +4,7 @@
 version1.6.0.3  
 　[installer](https://github.com/ryujimiya/HPlaneWGSimulator/tree/master/publish)  
 
-![HPlaneWGSimulator](http://f.hatena.ne.jp/ryujimiya/20120925000643)  
+![HPlaneWGSimulator](http://cdn-ak.f.st-hatena.com/images/fotolife/r/ryujimiya/20120925/20120925000643.jpg)  
 
 **News**
 
