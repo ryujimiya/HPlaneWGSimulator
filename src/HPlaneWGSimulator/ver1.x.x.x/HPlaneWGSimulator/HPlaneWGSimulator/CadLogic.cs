@@ -211,8 +211,8 @@ namespace HPlaneWGSimulator
             Ofs = new Size(deltax, deltay);
             Delta = new Size(deltax, deltay);
             RegionSize = new Size(Delta.Width * MaxDiv.Width, Delta.Height * MaxDiv.Height);
-            //Console.WriteLine("{0},{1}", RegionSize.Width, RegionSize.Height);
-            //Console.WriteLine("{0},{1}", Delta.Width, Delta.Height);
+            //System.Diagnostics.Debug.WriteLine("{0},{1}", RegionSize.Width, RegionSize.Height);
+            //System.Diagnostics.Debug.WriteLine("{0},{1}", Delta.Width, Delta.Height);
         }
 
         /// <summary>
@@ -1549,9 +1549,9 @@ namespace HPlaneWGSimulator
                             }
                         }
                     }
-                    //Console.Write("{0},", edge.No);
+                    //System.Diagnostics.Debug.Write("{0},", edge.No);
                 }
-                //Console.WriteLine(" ");
+                //System.Diagnostics.Debug.WriteLine(" ");
                 // 番号順に並び替え
                 ((List<Edge>)EdgeList).Sort();
                 executed = true;
@@ -1885,7 +1885,7 @@ namespace HPlaneWGSimulator
             if (hitx != -1)
             {
                 // Y方向境界
-                //Console.WriteLine("YBoundary:x={0},y={1},{2}", hitx, sty, edy);
+                //System.Diagnostics.Debug.WriteLine("YBoundary:x={0},y={1},{2}", hitx, sty, edy);
                 for (int y = sty; y < (edy + 1); y++)
                 {
                     if (y < 0 || y >= MaxDiv.Height) continue;
@@ -1941,7 +1941,7 @@ namespace HPlaneWGSimulator
             if (!executed && hity != -1)
             {
                 // X方向境界
-                //Console.WriteLine("XBoundary:y={0},x={1},{2}", hity, stx, edx);
+                //System.Diagnostics.Debug.WriteLine("XBoundary:y={0},x={1},{2}", hity, stx, edx);
                 for (int x = stx; x < (edx + 1); x++)
                 {
                     if (x < 0 || x >= MaxDiv.Width) continue;
@@ -1997,7 +1997,7 @@ namespace HPlaneWGSimulator
             if (edge != null)
             {
                 System.Diagnostics.Debug.Assert(!edge.IsEmpty());
-                //Console.WriteLine("target:({0},{1}),({2},{3})", edge.Points[0].X, edge.Points[0].Y, edge.Points[1].X, edge.Points[1].Y);
+                //System.Diagnostics.Debug.WriteLine("target:({0},{1}),({2},{3})", edge.Points[0].X, edge.Points[0].Y, edge.Points[1].X, edge.Points[1].Y);
                 // 辺リストの最大番号を取得
                 int maxNo = 0;
                 foreach (Edge work in EdgeList)
@@ -2032,10 +2032,10 @@ namespace HPlaneWGSimulator
                         {
                             // 合体
                             edge.MergeEdge(work);
-                            //Console.WriteLine("merge:({0},{1}),({2},{3})", edge.Points[0].X, edge.Points[0].Y, edge.Points[1].X, edge.Points[1].Y);
+                            //System.Diagnostics.Debug.WriteLine("merge:({0},{1}),({2},{3})", edge.Points[0].X, edge.Points[0].Y, edge.Points[1].X, edge.Points[1].Y);
 
                             // 合体前の辺は削除
-                            //Console.WriteLine("removed:({0},{1}),({2},{3})", work.Points[0].X, work.Points[0].Y, work.Points[1].X, work.Points[1].Y);
+                            //System.Diagnostics.Debug.WriteLine("removed:({0},{1}),({2},{3})", work.Points[0].X, work.Points[0].Y, work.Points[1].X, work.Points[1].Y);
                             EdgeList.Remove(work);
                         }
                         else
@@ -2045,7 +2045,7 @@ namespace HPlaneWGSimulator
                             if (splitEdges.Count > 0)
                             {
                                 // 分解前の辺は削除
-                                //Console.WriteLine("removed:({0},{1}),({2},{3})", work.Points[0].X, work.Points[0].Y, work.Points[1].X, work.Points[1].Y);
+                                //System.Diagnostics.Debug.WriteLine("removed:({0},{1}),({2},{3})", work.Points[0].X, work.Points[0].Y, work.Points[1].X, work.Points[1].Y);
                                 EdgeList.Remove(work);
                                 // 分解した辺を追加
                                 foreach (Edge splitEdge in splitEdges)
@@ -2058,8 +2058,8 @@ namespace HPlaneWGSimulator
                                             maxNo++;
                                             splitEdge.No = maxNo;
                                         }
-                                        //Console.WriteLine("addNo:{0}", splitEdge.No);
-                                        //Console.WriteLine("added:({0},{1}),({2},{3})", splitEdge.Points[0].X, splitEdge.Points[0].Y, splitEdge.Points[1].X, splitEdge.Points[1].Y);
+                                        //System.Diagnostics.Debug.WriteLine("addNo:{0}", splitEdge.No);
+                                        //System.Diagnostics.Debug.WriteLine("added:({0},{1}),({2},{3})", splitEdge.Points[0].X, splitEdge.Points[0].Y, splitEdge.Points[1].X, splitEdge.Points[1].Y);
                                         EdgeList.Add(splitEdge);
                                     }
                                 }
@@ -2069,8 +2069,8 @@ namespace HPlaneWGSimulator
                     if (valueToSet)
                     {
                         // 追加
-                        //Console.WriteLine("addNo:{0}", edge.No);
-                        //Console.WriteLine("added:({0},{1}),({2},{3})", edge.Points[0].X, edge.Points[0].Y, edge.Points[1].X, edge.Points[1].Y);
+                        //System.Diagnostics.Debug.WriteLine("addNo:{0}", edge.No);
+                        //System.Diagnostics.Debug.WriteLine("added:({0},{1}),({2},{3})", edge.Points[0].X, edge.Points[0].Y, edge.Points[1].X, edge.Points[1].Y);
                         EdgeList.Add(edge);
                     }
                 }
@@ -2082,8 +2082,8 @@ namespace HPlaneWGSimulator
                         maxNo++;
                         edge.No = maxNo;
                         // 追加
-                        //Console.WriteLine("addNo:{0}", edge.No);
-                        //Console.WriteLine("added:({0},{1}),({2},{3})", edge.Points[0].X, edge.Points[0].Y, edge.Points[1].X, edge.Points[1].Y);
+                        //System.Diagnostics.Debug.WriteLine("addNo:{0}", edge.No);
+                        //System.Diagnostics.Debug.WriteLine("added:({0},{1}),({2},{3})", edge.Points[0].X, edge.Points[0].Y, edge.Points[1].X, edge.Points[1].Y);
                         EdgeList.Add(edge);
                     }
                 }
@@ -2094,10 +2094,10 @@ namespace HPlaneWGSimulator
                 int newIncidentPortNo = -1;
                 foreach (Edge work in EdgeList)
                 {
-                    //Console.Write("{0}", work.No);
+                    //System.Diagnostics.Debug.Write("{0}", work.No);
                     int saveNo = work.No;
                     work.No = ++portCounter;
-                    //Console.WriteLine("  --> {0}", work.No);
+                    //System.Diagnostics.Debug.WriteLine("  --> {0}", work.No);
                     if (saveNo == IncidentPortNo)
                     {
                         //BUGFIX 判定に用いているIncdentPortNoを書き換えない!!!
@@ -2219,7 +2219,7 @@ namespace HPlaneWGSimulator
                         AreaSelection[y, x] = valueToSet;
                         if (!valueToSet)
                         {
-                            //Console.WriteLine("Delte Boundary for Area x ={0}, y ={1}", x, y);
+                            //System.Diagnostics.Debug.WriteLine("Delte Boundary for Area x ={0}, y ={1}", x, y);
                             // 消去処理で境界に面している場合は、境界も消去
                             // Y方向境界
                             // YBoundarySelection[y, x] = false;
@@ -2485,7 +2485,7 @@ namespace HPlaneWGSimulator
                 double[] pp2 = doubleCoords[portNodes[portNodes.Count - 1] - 1];
                 waveguideWidth = FemMeshLogic.GetDistance(pp1, pp2);
             }
-            Console.WriteLine("(MkFemInputData) waveguideWidth:{0}", waveguideWidth);
+            System.Diagnostics.Debug.WriteLine("(MkFemInputData) waveguideWidth:{0}", waveguideWidth);
             // 計算開始、終了波長の計算
             double firstWaveLength = FemSolver.GetWaveLengthFromNormalizedFreq(normalizedFreq1, waveguideWidth);
             double lastWaveLength = FemSolver.GetWaveLengthFromNormalizedFreq(normalizedFreq2, waveguideWidth);

@@ -44,7 +44,7 @@ namespace MyUtilLib
             //const string logPath = "debug.log" ;
 
             Debug.WriteLine(str);
-            //System.Console.WriteLine(str);
+            //System.System.Diagnostics.Debug.WriteLine(str);
 
             //using (StreamWriter sw = File.AppendText(logPath))
             //{

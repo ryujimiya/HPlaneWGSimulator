@@ -228,7 +228,7 @@ namespace HPlaneWGSimulator
                             // ヤコビアン
                             double detj = j11 * j22 - j12 * j21;
                             detjsum += detj * weight;
-                            //Console.WriteLine("det:{0}", detj);
+                            //System.Diagnostics.Debug.WriteLine("det:{0}", detj);
 
                             // gradr[0] : gradrのx成分 grad[1] : gradrのy成分
                             // grads[0] : gradsのx成分 grads[1] : gradsのy成分
@@ -255,7 +255,7 @@ namespace HPlaneWGSimulator
                             emat[ino, jno] += detj * weight * functional;
                         }
                     }
-                    //Console.WriteLine("detsum: {0}", detjsum);
+                    //System.Diagnostics.Debug.WriteLine("detsum: {0}", detjsum);
                 }
             }
 

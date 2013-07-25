@@ -31,7 +31,7 @@ namespace MyUtilLib.Matrix
                 for (int j = 0; j < mat.ColumnSize; j++)
                 {
                     double val = mat[i, j];
-                    Console.WriteLine(tag + "(" + i + ", " + j + ")" + " = " + val);
+                    System.Diagnostics.Debug.WriteLine(tag + "(" + i + ", " + j + ")" + " = " + val);
                 }
             }
         }
@@ -42,7 +42,7 @@ namespace MyUtilLib.Matrix
                 for (int j = 0; j < mat.ColumnSize; j++)
                 {
                     Complex val = mat[i, j];
-                    Console.WriteLine(tag + "(" + i + ", " + j + ")" + " = "
+                    System.Diagnostics.Debug.WriteLine(tag + "(" + i + ", " + j + ")" + " = "
                                        + "(" + val.Real + "," + val.Imaginary + ") " + Complex.Abs(val));
                 }
             }
@@ -55,7 +55,7 @@ namespace MyUtilLib.Matrix
                 {
                     Complex val = mat[i, j];
                     if (Complex.Abs(val) < Constants.PrecisionLowerLimit) continue;
-                    Console.WriteLine(tag + "(" + i + ", " + j + ")" + " = "
+                    System.Diagnostics.Debug.WriteLine(tag + "(" + i + ", " + j + ")" + " = "
                                        + "(" + val.Real + "," + val.Imaginary + ") ");
                 }
             }
@@ -68,7 +68,7 @@ namespace MyUtilLib.Matrix
                 {
                     double val = mat[i, j];
                     if (Math.Abs(val) < Constants.PrecisionLowerLimit) continue;
-                    Console.WriteLine(tag + "(" + i + ", " + j + ")" + " = " + val + " ");
+                    System.Diagnostics.Debug.WriteLine(tag + "(" + i + ", " + j + ")" + " = " + val + " ");
                 }
             }
         }
@@ -80,7 +80,7 @@ namespace MyUtilLib.Matrix
                 {
                     Complex val = mat[i, j];
                     if (Complex.Abs(val) < Constants.PrecisionLowerLimit) continue;
-                    Console.WriteLine(tag + "(" + i + ", " + j + ")" + " = "
+                    System.Diagnostics.Debug.WriteLine(tag + "(" + i + ", " + j + ")" + " = "
                                        + "(" + val.Real + "," + val.Imaginary + ") ");
                 }
             }
@@ -93,7 +93,7 @@ namespace MyUtilLib.Matrix
                 {
                     double val = mat[i, j];
                     if (Math.Abs(val) < Constants.PrecisionLowerLimit) continue;
-                    Console.WriteLine(tag + "(" + i + ", " + j + ")" + " = " + val + " ");
+                    System.Diagnostics.Debug.WriteLine(tag + "(" + i + ", " + j + ")" + " = " + val + " ");
                 }
             }
         }
@@ -102,7 +102,7 @@ namespace MyUtilLib.Matrix
             for (int i = 0; i < vec.Length; i++)
             {
                 Complex val = vec[i];
-                Console.WriteLine(tag + "(" + i + ")" + " = " + val);
+                System.Diagnostics.Debug.WriteLine(tag + "(" + i + ")" + " = " + val);
             }
         }
         public static void printVec(string tag, Complex[] vec)
@@ -110,7 +110,7 @@ namespace MyUtilLib.Matrix
             for (int i = 0; i < vec.Length; i++)
             {
                 Complex val = vec[i];
-                Console.WriteLine(tag + "(" + i + ")" + " = "
+                System.Diagnostics.Debug.WriteLine(tag + "(" + i + ")" + " = "
                                    + "(" + val.Real + "," + val.Imaginary + ") " + Complex.Abs(val));
             }
         }
@@ -120,7 +120,7 @@ namespace MyUtilLib.Matrix
             for (int i = 0; i < vec.Length; i++)
             {
                 Complex val = (Complex)vec[i];
-                Console.WriteLine(tag + "(" + i + ")" + " = "
+                System.Diagnostics.Debug.WriteLine(tag + "(" + i + ")" + " = "
                                    + "(" + val.Real + "," + val.Imaginary + ") " + Complex.Abs(val));
             }
         }

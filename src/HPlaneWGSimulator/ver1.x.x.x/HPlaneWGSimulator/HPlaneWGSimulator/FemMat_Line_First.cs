@@ -67,7 +67,7 @@ namespace HPlaneWGSimulator
                 }
                 if (!EdgeToElementNoH.ContainsKey(edgeKey))
                 {
-                    Console.WriteLine("logical error: Not find edge {0}", edgeKey);
+                    System.Diagnostics.Debug.WriteLine("logical error: Not find edge {0}", edgeKey);
                 }
                 else
                 {

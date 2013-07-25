@@ -1453,11 +1453,11 @@ namespace HPlaneWGSimulator
                     subArea_pp[2] = test_pp;
                     //foreach (double[] work_pp in subArea_pp)
                     //{
-                    //    Console.Write("{0},{1}  ", work_pp[0], work_pp[1]);
+                    //    System.Diagnostics.Debug.Write("{0},{1}  ", work_pp[0], work_pp[1]);
                     //}
                     double subArea = KerEMatTri.TriArea(subArea_pp[0], subArea_pp[1], subArea_pp[2]);
-                    //Console.Write("  subArea = {0}", subArea);
-                    //Console.WriteLine();
+                    //System.Diagnostics.Debug.Write("  subArea = {0}", subArea);
+                    //System.Diagnostics.Debug.WriteLine();
                     //BUGFIX
                     //if (subArea <= 0.0)
                     // 丁度辺上の場合は、サブエリアの１つが０になるのでこれは許可しないといけない

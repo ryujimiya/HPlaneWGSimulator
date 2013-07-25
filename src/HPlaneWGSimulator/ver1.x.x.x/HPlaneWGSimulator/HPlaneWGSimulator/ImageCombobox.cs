@@ -67,7 +67,7 @@ namespace HPlaneWGSimulator
             }
             catch (Exception exception)
             {
-                Console.WriteLine(exception.Message + " " + exception.StackTrace);
+                System.Diagnostics.Debug.WriteLine(exception.Message + " " + exception.StackTrace);
                 using (Brush brush = new SolidBrush(e.ForeColor))
                 {
                     e.Graphics.DrawString(s, e.Font, brush, bounds.Left, bounds.Top);

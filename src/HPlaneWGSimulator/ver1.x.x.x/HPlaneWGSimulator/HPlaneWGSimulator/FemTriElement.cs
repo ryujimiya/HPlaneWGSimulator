@@ -307,7 +307,7 @@ namespace HPlaneWGSimulator
                 if (vL2max < 0.0)
                 {
                     // ERROR
-                    Console.WriteLine("logic error vL2max = {0}", vL2max);
+                    System.Diagnostics.Debug.WriteLine("logic error vL2max = {0}", vL2max);
                     continue;
                 }
                 double fdiv2 = (double)ndiv * vL2max;
@@ -328,7 +328,7 @@ namespace HPlaneWGSimulator
                     if (vL3 < 0.0)
                     {
                         // ERROR
-                        Console.WriteLine("logic error vL3 = {0}", vL3);
+                        System.Diagnostics.Debug.WriteLine("logic error vL3 = {0}", vL3);
                         continue;
                     }
 
@@ -354,17 +354,17 @@ namespace HPlaneWGSimulator
                         if (rectLi[ino][0] < 0.0)
                         {
                             rectLi[ino][0] = 0.0;
-                            Console.WriteLine("logical error rectLi[{0}][0] = {1}", ino, rectLi[ino][0]);
+                            System.Diagnostics.Debug.WriteLine("logical error rectLi[{0}][0] = {1}", ino, rectLi[ino][0]);
                         }
                         if (rectLi[ino][0] > 1.0)
                         {
                             rectLi[ino][0] = 1.0;
-                            Console.WriteLine("logical error rectLi[{0}][0] = {1}", ino, rectLi[ino][0]);
+                            System.Diagnostics.Debug.WriteLine("logical error rectLi[{0}][0] = {1}", ino, rectLi[ino][0]);
                         }
                         if (rectLi[ino][1] < 0.0)
                         {
                             rectLi[ino][1] = 0.0;
-                            Console.WriteLine("logical error rectLi[{0}][1] = {1}", ino, rectLi[ino][1]);
+                            System.Diagnostics.Debug.WriteLine("logical error rectLi[{0}][1] = {1}", ino, rectLi[ino][1]);
                         }
                         if (rectLi[ino][1] > (1.0 - rectLi[ino][0]))  // L2最大値(1 - L1)チェック
                         {
@@ -373,7 +373,7 @@ namespace HPlaneWGSimulator
                         rectLi[ino][2] = 1.0 - rectLi[ino][0] - rectLi[ino][1];
                         if (rectLi[ino][2] < 0.0)
                         {
-                            Console.WriteLine("logical error rectLi[{0}][2] = {1}", ino, rectLi[ino][2]);
+                            System.Diagnostics.Debug.WriteLine("logical error rectLi[{0}][2] = {1}", ino, rectLi[ino][2]);
                         }
                     }
                     for (int ino = 0; ino < rectVCnt; ino++)
@@ -409,7 +409,7 @@ namespace HPlaneWGSimulator
                     vLi[2] = 1.0 - vLi[0] - vLi[1];
                     if (vLi[2] < 0.0)
                     {
-                        Console.WriteLine("logic error vLi[2] = {0}", vLi[2]);
+                        System.Diagnostics.Debug.WriteLine("logic error vLi[2] = {0}", vLi[2]);
                     }
 
                     // 表示する値
@@ -480,7 +480,7 @@ namespace HPlaneWGSimulator
                     }
                     catch (Exception exception)
                     {
-                        Console.WriteLine(exception.Message + " " + exception.StackTrace);
+                        System.Diagnostics.Debug.WriteLine(exception.Message + " " + exception.StackTrace);
                     }
                 }
             }
@@ -573,7 +573,7 @@ namespace HPlaneWGSimulator
                 vLi[2] = 1.0 - vLi[0] - vLi[1];
                 if (vLi[2] < 0.0)
                 {
-                    Console.WriteLine("logic error vLi[2] = {0}", vLi[2]);
+                    System.Diagnostics.Debug.WriteLine("logic error vLi[2] = {0}", vLi[2]);
                 }
                 // 表示する値
                 Complex cvalue = new Complex(0.0, 0.0);
@@ -642,7 +642,7 @@ namespace HPlaneWGSimulator
                 }
                 catch (Exception exception)
                 {
-                    Console.WriteLine(exception.Message + " " + exception.StackTrace);
+                    System.Diagnostics.Debug.WriteLine(exception.Message + " " + exception.StackTrace);
                 }
             }
         }
@@ -732,7 +732,7 @@ namespace HPlaneWGSimulator
                 if (vL2max < 0.0)
                 {
                     // ERROR
-                    Console.WriteLine("logic error vL2max = {0}", vL2max);
+                    System.Diagnostics.Debug.WriteLine("logic error vL2max = {0}", vL2max);
                     continue;
                 }
                 double fdiv2 = (double)ndiv * vL2max;
@@ -753,7 +753,7 @@ namespace HPlaneWGSimulator
                     if (vL3 < 0.0)
                     {
                         // ERROR
-                        Console.WriteLine("logic error vL3 = {0}", vL3);
+                        System.Diagnostics.Debug.WriteLine("logic error vL3 = {0}", vL3);
                         continue;
                     }
 
@@ -778,17 +778,17 @@ namespace HPlaneWGSimulator
                         if (rectLi[ino][0] < 0.0)
                         {
                             rectLi[ino][0] = 0.0;
-                            Console.WriteLine("logical error rectLi[{0}][0] = {1}", ino, rectLi[ino][0]);
+                            System.Diagnostics.Debug.WriteLine("logical error rectLi[{0}][0] = {1}", ino, rectLi[ino][0]);
                         }
                         if (rectLi[ino][0] > 1.0)
                         {
                             rectLi[ino][0] = 1.0;
-                            Console.WriteLine("logical error rectLi[{0}][0] = {1}", ino, rectLi[ino][0]);
+                            System.Diagnostics.Debug.WriteLine("logical error rectLi[{0}][0] = {1}", ino, rectLi[ino][0]);
                         }
                         if (rectLi[ino][1] < 0.0)
                         {
                             rectLi[ino][1] = 0.0;
-                            Console.WriteLine("logical error rectLi[{0}][1] = {1}", ino, rectLi[ino][1]);
+                            System.Diagnostics.Debug.WriteLine("logical error rectLi[{0}][1] = {1}", ino, rectLi[ino][1]);
                         }
                         if (rectLi[ino][1] > (1.0 - rectLi[ino][0]))  // L2最大値(1 - L1)チェック
                         {
@@ -797,7 +797,7 @@ namespace HPlaneWGSimulator
                         rectLi[ino][2] = 1.0 - rectLi[ino][0] - rectLi[ino][1];
                         if (rectLi[ino][2] < 0.0)
                         {
-                            Console.WriteLine("logical error rectLi[{0}][2] = {1}", ino, rectLi[ino][2]);
+                            System.Diagnostics.Debug.WriteLine("logical error rectLi[{0}][2] = {1}", ino, rectLi[ino][2]);
                         }
                     }
                     /*
@@ -941,7 +941,7 @@ namespace HPlaneWGSimulator
             }
             catch (Exception exception)
             {
-                Console.WriteLine(exception.Message + " " + exception.StackTrace);
+                System.Diagnostics.Debug.WriteLine(exception.Message + " " + exception.StackTrace);
             }
         }
     }

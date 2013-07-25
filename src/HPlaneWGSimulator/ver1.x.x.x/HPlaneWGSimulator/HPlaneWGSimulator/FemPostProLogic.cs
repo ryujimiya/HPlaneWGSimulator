@@ -294,6 +294,14 @@ namespace HPlaneWGSimulator
         /// 散乱係数チャートのYの値のリスト
         /// </summary>
         private IList<IList<double[]>> SMatChartYValuesList = new List<IList<double[]>>();
+        /// <summary>
+        /// 伝搬定数チャートのXの値のリスト
+        /// </summary>
+        private IList<double> BetaChartXValueList = new List<double>();
+        /// <summary>
+        /// 伝搬定数チャートのYの値のリスト
+        /// </summary>
+        private IList<IList<double[]>> BetaChartYValuesList = new List<IList<double[]>>();
 
         /// <summary>
         /// 光導波路の最小比誘電率(ポート毎)
@@ -656,7 +664,7 @@ namespace HPlaneWGSimulator
                     }
                 }
                  */
-
+                /*
                 if (EigenVecsList != null)
                 {
                     for (int portIndex = 0; portIndex < EigenVecsList.Count; portIndex++)
@@ -677,6 +685,7 @@ namespace HPlaneWGSimulator
                         eigenVecs2 = null;
                     }
                 }
+                 */
                 /*
                 if (ScatterVecList != null)
                 {
@@ -1105,13 +1114,7 @@ namespace HPlaneWGSimulator
             {
                 // Sマトリックス周波数特性グラフに計算した点を追加
                 AddScatterMatrixToChart(SMatChart);
-                int firstFreqNo;
-                int lastFreqNo;
-                if (GetCalculatedFreqCnt(FemOutputDatFilePath, out firstFreqNo, out lastFreqNo) == 1)
-                {
-                    // 固有値チャート初期化(モード数が変わっているので再度初期化する)
-                    ResetEigenValueChart(BetaChart);
-                }
+
                 // 固有値(伝搬定数)周波数特性グラフに計算した点を追加
                 AddEigenValueToChart(BetaChart);
             }
@@ -1281,8 +1284,8 @@ namespace HPlaneWGSimulator
             delta = new Size(deltax, deltay);
             ofs = new Size(ofsx, ofsy);
             regionSize = new Size(delta.Width * boxWidth, delta.Height * boxWidth);
-            //Console.WriteLine("{0},{1}", ofs.Width, ofs.Height);
-            //Console.WriteLine("{0},{1}", regionSize.Width, regionSize.Height);
+            //System.Diagnostics.Debug.WriteLine("{0},{1}", ofs.Width, ofs.Height);
+            //System.Diagnostics.Debug.WriteLine("{0},{1}", regionSize.Width, regionSize.Height);
         }
 
         /// <summary>
@@ -1686,7 +1689,7 @@ namespace HPlaneWGSimulator
             }
             // 表示するモード数をデータから判定する
             int portCnt = Ports.Count;
-            int[] portModeCntAry = getPortModeCntFromData();
+            int[] portModeCntAry = getPortModeCntFromSMatData();
 
             for (int portIndex = 0; portIndex < portCnt; portIndex++)
             {
@@ -1867,10 +1870,10 @@ namespace HPlaneWGSimulator
         }
 
         /// <summary>
-        /// ポート毎のモード数をデータから取得する
+        /// ポート毎のモード数をデータから取得する(散乱係数データ)
         /// </summary>
         /// <returns></returns>
-        private int[] getPortModeCntFromData()
+        private int[] getPortModeCntFromSMatData()
         {
             // 表示するモード数をデータから判定する
             int portCnt = Ports.Count;
@@ -1886,6 +1889,35 @@ namespace HPlaneWGSimulator
                 for (int portIndex = 0; portIndex < Ports.Count; portIndex++)
                 {
                     int workModeCnt = SMatChartYValuesList[freqIndex][portIndex].Length;
+                    if (workModeCnt > portModeCntAry[portIndex])
+                    {
+                        portModeCntAry[portIndex] = workModeCnt;
+                    }
+                }
+            }
+            return portModeCntAry;
+        }
+
+        /// <summary>
+        /// ポート毎のモード数をデータから取得する(伝搬定数データ)
+        /// </summary>
+        /// <returns></returns>
+        private int[] getPortModeCntFromBetaData()
+        {
+            // 表示するモード数をデータから判定する
+            int portCnt = Ports.Count;
+            int[] portModeCntAry = new int[portCnt];
+
+            for (int portIndex = 0; portIndex < portCnt; portIndex++)
+            {
+                portModeCntAry[portIndex] = 1;// 初期化
+            }
+            int freqCnt = BetaChartXValueList.Count;
+            for (int freqIndex = 0; freqIndex < freqCnt; freqIndex++)
+            {
+                for (int portIndex = 0; portIndex < Ports.Count; portIndex++)
+                {
+                    int workModeCnt = BetaChartYValuesList[freqIndex][portIndex].Length;
                     if (workModeCnt > portModeCntAry[portIndex])
                     {
                         portModeCntAry[portIndex] = workModeCnt;
@@ -1943,7 +1975,7 @@ namespace HPlaneWGSimulator
                                 // 速波の場合は除外
                                 break;
                             }
-                            //Console.WriteLine("Math.Abs(beta.Real / k0) {0} {1}", iMode, Math.Abs(beta.Real / k0));
+                            //System.Diagnostics.Debug.WriteLine("Math.Abs(beta.Real / k0) {0} {1}", iMode, Math.Abs(beta.Real / k0));
                         }
                         modeCnt++;
                     }
@@ -2008,7 +2040,7 @@ namespace HPlaneWGSimulator
             }
             int freqCnt = SMatChartXValueList.Count;
             int portCnt = Ports.Count;
-            int[] portModeCntAry = getPortModeCntFromData();
+            int[] portModeCntAry = getPortModeCntFromSMatData();
 
             for (int freqIndex = 0; freqIndex < freqCnt; freqIndex++)
             {
@@ -2081,21 +2113,22 @@ namespace HPlaneWGSimulator
         /// 伝搬定数分散特性(グラフの初期化
         /// </summary>
         /// <param name="chart1"></param>
-        public void ResetEigenValueChart(Chart chart1)
+        public void ResetEigenValueChart(Chart chart1, bool isDataClear = true)
         {
             double normalizedFreq1 = FemSolver.GetNormalizedFreq(FirstWaveLength, WaveguideWidth);
             normalizedFreq1 = Math.Round(normalizedFreq1, 2);
             double normalizedFreq2 = FemSolver.GetNormalizedFreq(LastWaveLength, WaveguideWidth);
             normalizedFreq2 = Math.Round(normalizedFreq2, 2);
 
-            // 表示モード数
-            int showMaxMode = ShowMaxMode;
-            /*
-            if (MaxMode > 0)
+            if (isDataClear)
             {
-                showMaxMode = MaxMode;
+                BetaChartXValueList.Clear();
+                BetaChartYValuesList.Clear();
             }
-             */
+
+            // 表示モード数
+            int[] portModeCntAry = getPortModeCntFromBetaData();
+
             // チャート初期化
             setupChartColor(chart1);
             chart1.Titles[0].Text = "規格化伝搬定数周波数特性";
@@ -2113,7 +2146,7 @@ namespace HPlaneWGSimulator
             }
             for (int portIndex = 0; portIndex < Ports.Count; portIndex++)
             {
-                for (int modeIndex = 0; modeIndex < showMaxMode; modeIndex++)
+                for (int modeIndex = 0; modeIndex < portModeCntAry[portIndex]; modeIndex++)
                 {
                     Series series = new Series();
                     series.Name = string.Format(((WaveModeDv == FemSolver.WaveModeDV.TM) ? "TM({0}) at {1}" : "TE({0}) at {1}"), modeIndex + 1, portIndex + 1);
@@ -2135,14 +2168,6 @@ namespace HPlaneWGSimulator
             double k0 = 2.0 * Constants.pi / WaveLength;
             // 角周波数
             double omega = k0 * Constants.c0;
-            // 表示モード数
-            int showMaxMode = ShowMaxMode;
-            /*
-            if (MaxMode > 0)
-            {
-                showMaxMode = MaxMode;
-            }
-             */
 
             if (!isInputDataReady())
             {
@@ -2154,16 +2179,112 @@ namespace HPlaneWGSimulator
                 //MessageBox.Show("出力データがセットされていません", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
+
+            // データを追加
+            double chartXValue = GetNormalizedFrequency();
+            IList<double[]> chartYValues = new List<double[]>();
             for (int portIndex = 0; portIndex < Ports.Count; portIndex++)
             {
-                for (int modeIndex = 0; modeIndex < showMaxMode; modeIndex++)
+                Complex[] eigenValueVec = EigenValuesList[portIndex];
+                int modeCnt_0 = eigenValueVec.Length;
+                int modeCnt = 0; // 伝搬モードのみ抽出
+                for (int iMode = 0; iMode < modeCnt_0; iMode++)
                 {
-                    Series series = chart1.Series[portIndex * showMaxMode + modeIndex];
-
-                    Complex normbeta = EigenValuesList[portIndex][modeIndex] / k0;
-                    if (normbeta.Real > chart1.ChartAreas[0].Axes[1].Minimum)
+                    Complex beta = EigenValuesList[portIndex][iMode];
+                    if (Math.Abs(beta.Imaginary / k0) >= Constants.PrecisionLowerLimit)
                     {
-                        series.Points.AddXY(GetNormalizedFrequency(), normbeta.Real); // 実数部
+                        break;
+                    }
+                    else if (Math.Abs(beta.Real / k0) >= Constants.PrecisionLowerLimit)
+                    {
+                        if (WGStructureDv == FemSolver.WGStructureDV.ParaPlate2D)
+                        {
+                            // 平行平板導波路は光導波路とみなす
+                            // 最小屈折率より低い伝搬定数のモードは除外する(ただし、最初のモードを除く)
+                            if (modeCnt >= 1 && Math.Abs(beta.Real / k0) < Math.Sqrt(PortMinEps[portIndex]))
+                            {
+                                // 速波の場合は除外
+                                break;
+                            }
+                            //System.Diagnostics.Debug.WriteLine("Math.Abs(beta.Real / k0) {0} {1}", iMode, Math.Abs(beta.Real / k0));
+                        }
+                        modeCnt++;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                double[] chartPortYValues = new double[modeCnt];
+                for (int iMode = 0; iMode < modeCnt; iMode++)
+                {
+                    Complex beta = eigenValueVec[iMode];
+                    double betaReal = beta.Real;
+                    if (Math.Abs(beta.Imaginary / k0) >= Constants.PrecisionLowerLimit)
+                    {
+                        //減衰モード
+                        betaReal = InvalidValueForSMat;
+                    }
+                    else if (Math.Abs(beta.Real / k0) >= Constants.PrecisionLowerLimit)
+                    {
+                        //伝搬モード
+                        if (WGStructureDv == FemSolver.WGStructureDV.ParaPlate2D)
+                        {
+                            // 平行平板導波路は光導波路とみなす
+                            // 最小屈折率より低い伝搬定数のモードは除外する(ただし、最初のモードを除く)
+                            if (modeCnt >= 1 && Math.Abs(beta.Real / k0) < Math.Sqrt(PortMinEps[portIndex]))
+                            {
+                                // 速波の場合は除外
+                                break;
+                            }
+                        }
+                    }
+                    chartPortYValues[iMode] = betaReal / k0;
+                }
+                chartYValues.Add(chartPortYValues);
+            }
+            BetaChartXValueList.Add(chartXValue);
+            BetaChartYValuesList.Add(chartYValues);
+
+            // 伝搬定数チャートにデータをセットする
+            setBetaChartYValuesToChart(chart1);
+        }
+
+        /// <summary>
+        /// 伝搬定数チャートにデータをセットする
+        /// </summary>
+        /// <param name="chart1"></param>
+        private void setBetaChartYValuesToChart(Chart chart1)
+        {
+            // チャートの表示項目をリセット(データはクリアしない)
+            ResetEigenValueChart(chart1, false); // dataClearFlg : false
+
+            // チャートへデータをセットする
+            int[] portModeCntAry = getPortModeCntFromBetaData();
+            int freqCnt = BetaChartXValueList.Count;
+            int portCnt = Ports.Count;
+            for (int freqIndex =0; freqIndex < freqCnt; freqIndex++)
+            {
+                double chartXValue = BetaChartXValueList[freqIndex];
+                IList<double[]> chartYValues = BetaChartYValuesList[freqIndex];
+                int dataIndex = 0;
+                for (int portIndex = 0; portIndex < portCnt; portIndex++)
+                {
+                    double[] portChartYValues = chartYValues[portIndex];
+                    int modeCnt = portModeCntAry[portIndex];
+                    for (int iMode = 0; iMode < modeCnt; iMode++)
+                    {
+                        Series series = chart1.Series[dataIndex];
+                        double chartYValue = 0.0;
+                        if (iMode < portChartYValues.Length)
+                        {
+                            chartYValue = portChartYValues[iMode];
+                        }
+                        if (chartYValue > chart1.ChartAreas[0].Axes[1].Minimum)
+                        {
+                            series.Points.AddXY(chartXValue, chartYValue);
+                        }
+                        dataIndex++;
                     }
                 }
             }
@@ -2175,14 +2296,9 @@ namespace HPlaneWGSimulator
             double k0 = 2.0 * Constants.pi / WaveLength;
             // 角周波数
             double omega = k0 * Constants.c0;
-            // 表示モード数
-            int showMaxMode = ShowMaxMode;
-            /*
-            if (MaxMode > 0)
-            {
-                showMaxMode = MaxMode;
-            }
-             */
+
+            int[] portModeCntAry = getPortModeCntFromBetaData();
+
             // チャート初期化
             setupChartColor(chart1);
             chart1.Titles[0].Text = "固有モードEz実部、虚部の分布 (2W/λ = " + (isInputDataReady()? string.Format("{0:F2}", GetNormalizedFrequency()) : "---") + ")";
@@ -2202,12 +2318,16 @@ namespace HPlaneWGSimulator
             }
             for (int portIndex = 0; portIndex < Ports.Count; portIndex++)
             {
-                for (int modeIndex = 0; modeIndex < showMaxMode; modeIndex++)
+                for (int iMode = 0; iMode < portModeCntAry[portIndex]; iMode++)
                 {
                     string modeDescr = "---モード";
                     if (isOutputDataReady())
                     {
-                        Complex beta = EigenValuesList[portIndex][modeIndex];
+                        Complex beta = 0.0;
+                        if (iMode < EigenValuesList[portIndex].Length)
+                        {
+                            beta = EigenValuesList[portIndex][iMode];
+                        }
                         if (Math.Abs(beta.Imaginary / k0) >= Constants.PrecisionLowerLimit)
                         {
                             modeDescr = "減衰モード";
@@ -2221,14 +2341,14 @@ namespace HPlaneWGSimulator
                     Series series;
                     series = new Series();
                     series.Name = string.Format(((WaveModeDv == FemSolver.WaveModeDV.TM) ? "TM({0}) 実部 at {1}" : "TE({0}) 実部 at {1}")
-                        + Environment.NewLine + modeDescr, modeIndex + 1, portIndex + 1);
+                        + Environment.NewLine + modeDescr, iMode + 1, portIndex + 1);
                     series.ChartType = SeriesChartType.Line;
                     //series.MarkerStyle = MarkerStyle.Square;
                     series.BorderDashStyle = ChartDashStyle.Solid;
                     chart1.Series.Add(series);
                     series = new Series();
                     series.Name = string.Format(((WaveModeDv == FemSolver.WaveModeDV.TM) ? "TM({0}) 虚部 at {1}" : "TE({0}) 虚部 at {1}")
-                        + Environment.NewLine + modeDescr, modeIndex + 1, portIndex + 1);
+                        + Environment.NewLine + modeDescr, iMode + 1, portIndex + 1);
                     series.ChartType = SeriesChartType.Line;
                     //series.MarkerStyle = MarkerStyle.Cross;
                     series.BorderDashStyle = ChartDashStyle.Dash;
@@ -2248,14 +2368,19 @@ namespace HPlaneWGSimulator
                 //MessageBox.Show("出力データがセットされていません", "", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
+            int dataIndex = 0;
             for (int portIndex = 0; portIndex < Ports.Count; portIndex++)
             {
                 IList<int> portNodes = Ports[portIndex];
                 Complex[,] eigenVecs = EigenVecsList[portIndex];
                 int nodeCnt = eigenVecs.GetLength(1);
-                for (int modeIndex = 0; modeIndex < showMaxMode; modeIndex++)
+                for (int iMode = 0; iMode < portModeCntAry[portIndex]; iMode++)
                 {
-                    Complex beta = EigenValuesList[portIndex][modeIndex];
+                    Complex beta = 0.0;
+                    if (iMode < EigenValuesList[portIndex].Length)
+                    {
+                        beta = EigenValuesList[portIndex][iMode];
+                    }
                     /*
                     if (Math.Abs(beta.Imaginary/k0) >= Constants.PrecisionLowerLimit)
                     {
@@ -2267,26 +2392,19 @@ namespace HPlaneWGSimulator
                     double maxValue = 0.0;
                     for (int ino = 0; ino < nodeCnt; ino++)
                     {
-                        Complex cval = eigenVecs[modeIndex, ino];
-                        /*
-                        double realAbs = Math.Abs(cval.Real);
-                        if (realAbs > maxValue)
+                        Complex cval = 0.0;
+                        if (iMode < eigenVecs.GetLength(0))
                         {
-                            maxValue = realAbs;
+                            cval = eigenVecs[iMode, ino];
                         }
-                         */
                         double abs = cval.Magnitude;
                         if (abs > maxValue)
                         {
                             maxValue = abs;
                         }
                     }
-                    if (Math.Abs(maxValue) < Constants.PrecisionLowerLimit)
-                    {
-                        return;
-                    }
-                    Series seriesReal = chart1.Series[(portIndex * showMaxMode + modeIndex) * 2];
-                    Series seriesImag = chart1.Series[(portIndex * showMaxMode + modeIndex) * 2 + 1];
+                    Series seriesReal = chart1.Series[dataIndex];
+                    Series seriesImag = chart1.Series[dataIndex + 1];
                     {
                         int ino = 0;  // 強制境界を除いた節点のインデックス
                         for (int inoB = 0; inoB < portNodes.Count; inoB++)
@@ -2308,7 +2426,7 @@ namespace HPlaneWGSimulator
                             }
                             else
                             {
-                                Complex cval = eigenVecs[modeIndex, ino];
+                                Complex cval = eigenVecs[iMode, ino];
                                 double real = cval.Real / maxValue;
                                 double imag = cval.Imaginary / maxValue;
                                 seriesReal.Points.AddXY(x0, real); // 実数部
@@ -2317,6 +2435,8 @@ namespace HPlaneWGSimulator
                             }
                         }
                     }
+                    // 実数部と虚数部の2データ分進める
+                    dataIndex += 2;
                 }
             }
         }
