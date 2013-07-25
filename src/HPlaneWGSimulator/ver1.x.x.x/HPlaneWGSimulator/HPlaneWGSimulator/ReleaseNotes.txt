@@ -1,5 +1,9 @@
 ﻿HPlaneWGSimulator Release Notes
 
+version1.6.0.4
+---(2013-07-25)
+  散乱係数周波数特性　複数モード対応
+
 version1.6.0.3
 ---(2013-07-18)
   VS2012でビルド

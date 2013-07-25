@@ -695,7 +695,7 @@ namespace HPlaneWGSimulator
             double r = (this.ClientSize.Width - SystemInformation.VerticalScrollBarWidth) / (double)CadPanelBaseSize.Width;
             CadPanel.Location = new Point(0, btnNew.Bottom); // ファイル操作ボタンの高さ分ずらす
             CadPanel.Size = new Size((int)((double)CadPanelBaseSize.Width * r), (int)((double)CadPanelBaseSize.Height * r));
-            GroupBoxCadMode.Location = CadPanel.Location + new Size(0, CadPanel.Height - GroupBoxCadModeBaseSize.Height);
+            GroupBoxCadMode.Location = new Point(CadPanel.Left, CadPanel.Bottom);
             GroupBoxCadMode.Size = GroupBoxCadModeBaseSize;
             btnMediaSelect.Location = new Point(BtnMediaSelectBaseLocation.X, GroupBoxCadMode.Top + radioBtnNone.Top);
             btnMediaSelect.Size = BtnMediaSelectBaseSize;
@@ -2748,14 +2748,9 @@ namespace HPlaneWGSimulator
         private void linkLabelMeshShow_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             // ファイルを保存しないとメッシュを作成できないのでファイルを保存する
-            if (File.Exists(FemInputDatFilePath) && File.Exists(FemOutputDatFilePath))
+            if (IsCalculating)
             {
-                /*
-                // 計算済み(入力ファイルがあり、出力ファイルもある)の場合は、メッシュの再作成はしないで計算済みのメッシュを表示する
-                MessageBox.Show("計算済みのデータのメッシュを表示します。"
-                    + System.Environment.NewLine
-                    + "図面のメッシュを表示する場合は、Cadデータを保存するするか、計算を実行してください。");
-                 */
+                // 計算中は保存しない(既に作成済み)
             }
             else
             {
