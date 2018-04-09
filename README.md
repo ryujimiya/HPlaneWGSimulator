@@ -6,6 +6,10 @@ version1.6.0.5
 
 ![HPlaneWGSimulator](http://cdn-ak.f.st-hatena.com/images/fotolife/r/ryujimiya/20120925/20120925000643.jpg)  
 
+**Source dependencies**  
+　CLW.dll 導波路解析用に機能追加したもの [HPlaneWGSimulator/Lisys](https://github.com/ryujimiya/HPlaneWGSimulator/tree/master/src/Lisys)  
+　　CLW.dllはKrdLab氏の[Lisys](https://github.com/krdlab/lisys)がオリジナルです。  
+
 **News**
 
 ***2012-11-22 version1.6.0.0 Release***  
@@ -47,8 +51,3 @@ HPlaneWGSimulatorのアセンブリ、ソースコード（下記注釈を除く
 ※同梱されているLisysの著作権は、KrdLab氏にあります。  
 　　DelFEM　[有限要素法(FEM)のページ](http://ums.futene.net/)  
 　　Lisys　 [KrdLabの不定期日記 2009-05-07](http://d.hatena.ne.jp/KrdLab/20090507)  
-  
-**Contact To Human**  
-何かございましたら下記までご連絡ください。  
-りゅうじみや ryujimiya(あっと)mail.goo.ne.jp  
-  
